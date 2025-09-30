@@ -121,7 +121,7 @@ export default function ImageUpload({
         
         <div className="text-xs text-muted-foreground space-y-1 text-center">
           <p>Formatos: JPG, PNG, WEBP</p>
-          <p>Tamanho máximo: 4MB</p>
+          <p>Tamanho máximo: 8MB</p>
         </div>
       </div>
 

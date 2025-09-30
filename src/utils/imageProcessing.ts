@@ -9,14 +9,14 @@ export function fileToBase64(file: File): Promise<string> {
 
 export function validateImageFile(file: File): string | null {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  const maxSize = 4 * 1024 * 1024; // 4MB
+  const maxSize = 8 * 1024 * 1024; // 8MB
 
   if (!validTypes.includes(file.type)) {
     return 'Formato inválido. Use JPG, PNG ou WEBP.';
   }
 
   if (file.size > maxSize) {
-    return `Arquivo muito grande (${formatFileSize(file.size)}). Máximo: 4MB.`;
+    return `Arquivo muito grande (${formatFileSize(file.size)}). Máximo: 8MB.`;
   }
 
   return null;
