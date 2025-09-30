@@ -62,7 +62,7 @@ export async function saveConfig(config: Config): Promise<void> {
       top_p: config.topP,
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
-    });
+    }, { onConflict: 'user_id' });
 
   if (error) throw error;
 }
