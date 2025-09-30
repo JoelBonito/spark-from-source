@@ -24,10 +24,11 @@ export default function ConfigForm() {
   });
 
   useEffect(() => {
-    const config = getConfig();
-    if (config) {
-      setFormData(config);
-    }
+    getConfig().then((config) => {
+      if (config) {
+        setFormData(config);
+      }
+    });
   }, []);
 
   const validateForm = (): boolean => {
@@ -71,7 +72,7 @@ export default function ConfigForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -89,9 +90,13 @@ export default function ConfigForm() {
       promptTemplate: formData.promptTemplate,
     };
 
-    saveConfig(config);
-    toast.success("Configuração salva com sucesso!");
-    setTimeout(() => navigate("/"), 500);
+    try {
+      await saveConfig(config);
+      toast.success("Configuração salva com sucesso!");
+      setTimeout(() => navigate("/"), 500);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao salvar configuração");
+    }
   };
 
   const handleResetPrompt = () => {

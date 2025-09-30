@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, Download, RefreshCw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
 
 export default function Index() {
+  const navigate = useNavigate();
   const [hasApiConfig, setHasApiConfig] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -20,8 +22,31 @@ export default function Index() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setHasApiConfig(hasConfig());
-  }, []);
+    // Check if user is logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      // Check if config exists
+      hasConfig().then((exists) => {
+        setHasApiConfig(exists);
+        if (!exists) {
+          navigate("/config");
+        }
+      });
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -57,7 +82,7 @@ export default function Index() {
     const startTime = Date.now();
 
     try {
-      const config = getConfig();
+      const config = await getConfig();
       if (!config) {
         throw new Error("Configuração não encontrada");
       }
@@ -120,30 +145,7 @@ export default function Index() {
   };
 
   if (!hasApiConfig) {
-    return (
-      <Layout>
-        <div className="max-w-2xl mx-auto">
-          <div className="rounded-lg border border-warning/50 bg-warning/10 p-6">
-            <div className="flex items-start gap-4">
-              <AlertCircle className="h-6 w-6 text-warning flex-shrink-0 mt-1" />
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-warning mb-2">
-                  Configure a API primeiro
-                </h2>
-                <p className="text-sm text-warning/90 mb-4">
-                  Você precisa configurar sua chave API do Gemini antes de usar o simulador.
-                </p>
-                <Link to="/config">
-                  <Button className="bg-warning hover:bg-warning/90 text-warning-foreground">
-                    Ir para Configurações
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
+    return null; // Already redirecting to /config
   }
 
   return (

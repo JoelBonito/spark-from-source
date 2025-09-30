@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_configs: {
+        Row: {
+          api_key: string
+          backend_url: string
+          created_at: string
+          id: string
+          max_tokens: number
+          prompt_template: string
+          temperature: number
+          top_k: number
+          top_p: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          backend_url: string
+          created_at?: string
+          id?: string
+          max_tokens?: number
+          prompt_template: string
+          temperature?: number
+          top_k?: number
+          top_p?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          backend_url?: string
+          created_at?: string
+          id?: string
+          max_tokens?: number
+          prompt_template?: string
+          temperature?: number
+          top_k?: number
+          top_p?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

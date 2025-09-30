@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface Config {
   apiKey: string;
   backendUrl: string;
@@ -45,21 +47,51 @@ RESULTADO ESPERADO:
 O resultado deve ser fotorrealista, natural e adequado para apresentação clínica profissional.
 Evite efeito artificial ("dentes de chiclete"). Mantenha a identidade do paciente.`;
 
-const STORAGE_KEY = 'dentalFacetsConfig';
+export async function saveConfig(config: Config): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Usuário não autenticado");
 
-export function saveConfig(config: Config): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  const { error } = await supabase
+    .from("user_configs")
+    .upsert({
+      user_id: user.id,
+      api_key: config.apiKey,
+      backend_url: config.backendUrl,
+      temperature: config.temperature,
+      top_k: config.topK,
+      top_p: config.topP,
+      max_tokens: config.maxTokens,
+      prompt_template: config.promptTemplate,
+    });
+
+  if (error) throw error;
 }
 
-export function getConfig(): Config | null {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : null;
+export async function getConfig(): Promise<Config | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("user_configs")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    apiKey: data.api_key,
+    backendUrl: data.backend_url,
+    temperature: Number(data.temperature),
+    topK: data.top_k,
+    topP: Number(data.top_p),
+    maxTokens: data.max_tokens,
+    promptTemplate: data.prompt_template,
+  };
 }
 
-export function hasConfig(): boolean {
-  return localStorage.getItem(STORAGE_KEY) !== null;
-}
-
-export function clearConfig(): void {
-  localStorage.removeItem(STORAGE_KEY);
+export async function hasConfig(): Promise<boolean> {
+  const config = await getConfig();
+  return config !== null;
 }
