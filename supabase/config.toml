@@ -1,0 +1,4 @@
+project_id = "emlllyoovwdzajhrwydz"
+
+[functions.process-dental-facets]
+verify_jwt = false

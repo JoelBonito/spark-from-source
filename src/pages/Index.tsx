@@ -62,7 +62,8 @@ export default function Index() {
         throw new Error("Configuração não encontrada");
       }
 
-      const response = await fetch(`${config.backendUrl}/api/apply-dental-facets`, {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

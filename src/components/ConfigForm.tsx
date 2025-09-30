@@ -15,7 +15,7 @@ export default function ConfigForm() {
 
   const [formData, setFormData] = useState({
     apiKey: "",
-    backendUrl: "http://localhost:3001",
+    backendUrl: import.meta.env.VITE_SUPABASE_URL || "",
     temperature: 0.4,
     topK: 32,
     topP: 1.0,
@@ -148,13 +148,13 @@ export default function ConfigForm() {
             id="backendUrl"
             type="text"
             value={formData.backendUrl}
-            onChange={(e) => setFormData({ ...formData, backendUrl: e.target.value })}
-            placeholder="http://localhost:3001"
-            className={errors.backendUrl ? "border-destructive" : ""}
+            disabled
+            placeholder={import.meta.env.VITE_SUPABASE_URL}
+            className="bg-muted"
           />
-          {errors.backendUrl && (
-            <p className="text-sm text-destructive">{errors.backendUrl}</p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            ℹ️ Usando Lovable Cloud (configurado automaticamente)
+          </p>
         </div>
       </div>
 
