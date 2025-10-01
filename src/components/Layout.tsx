@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Image, Settings, LogOut, FileText, Users, DollarSign } from "lucide-react";
+import { Image, Settings, LogOut, FileText, Users, DollarSign, Kanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -75,6 +75,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <DollarSign className="h-4 w-4" />
               Orçamentos
+            </Link>
+            <Link
+              to="/crm"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                location.pathname === "/crm"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Kanban className="h-4 w-4" />
+              CRM
             </Link>
             <Link
               to="/relatorios"
