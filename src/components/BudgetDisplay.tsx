@@ -1,3 +1,4 @@
+import React from 'react';
 import { DollarSign, CreditCard, Calendar } from 'lucide-react';
 
 interface BudgetDisplayProps {
