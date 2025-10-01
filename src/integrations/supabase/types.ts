@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      budgets: {
+        Row: {
+          budget_number: string
+          created_at: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          final_price: number
+          id: string
+          patient_id: string | null
+          payment_conditions: Json | null
+          pdf_url: string | null
+          price_per_tooth: number | null
+          simulation_id: string | null
+          status: string | null
+          subtotal: number
+          teeth_count: number
+          updated_at: string | null
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          budget_number: string
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_price: number
+          id?: string
+          patient_id?: string | null
+          payment_conditions?: Json | null
+          pdf_url?: string | null
+          price_per_tooth?: number | null
+          simulation_id?: string | null
+          status?: string | null
+          subtotal: number
+          teeth_count: number
+          updated_at?: string | null
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          budget_number?: string
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_price?: number
+          id?: string
+          patient_id?: string | null
+          payment_conditions?: Json | null
+          pdf_url?: string | null
+          price_per_tooth?: number | null
+          simulation_id?: string | null
+          status?: string | null
+          subtotal?: number
+          teeth_count?: number
+          updated_at?: string | null
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           address: string | null

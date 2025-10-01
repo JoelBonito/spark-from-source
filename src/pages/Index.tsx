@@ -22,6 +22,8 @@ import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 import { useTechnicalReport } from "@/hooks/useTechnicalReport";
 import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
+import { createBudget } from "@/services/budgetService";
+import { addDays } from 'date-fns';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -260,8 +262,9 @@ export default function Index() {
     
     setGeneratingPdf(true);
     try {
+      const budgetNumber = generateBudgetNumber();
       const pdfUrl = await generateBudgetPDF({
-        budgetNumber: generateBudgetNumber(),
+        budgetNumber: budgetNumber,
         patientName: patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
@@ -285,9 +288,23 @@ export default function Index() {
           })
           .eq('id', currentSimulationId);
       }
+
+      // Create budget record
+      await createBudget({
+        budget_number: budgetNumber,
+        patient_id: selectedPatientId || undefined,
+        simulation_id: currentSimulationId || undefined,
+        teeth_count: teethCount,
+        price_per_tooth: 600,
+        subtotal: budget.subtotal,
+        final_price: budget.finalPrice,
+        payment_conditions: budget.paymentOptions,
+        pdf_url: pdfUrl,
+        valid_until: addDays(new Date(), 30),
+      });
       
       window.open(pdfUrl, '_blank');
-      toast.success("PDF gerado com sucesso!");
+      toast.success("PDF e orçamento gerados com sucesso!");
       
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
