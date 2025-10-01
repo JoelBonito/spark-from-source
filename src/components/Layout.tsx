@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Image, Settings, LogOut, FileText, Users, DollarSign, Kanban } from "lucide-react";
+import { Image, Settings, LogOut, FileText, Users, DollarSign, Kanban, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Enable real-time notifications
+  useNotifications();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,6 +57,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <Image className="h-4 w-4" />
               Simulador
+            </Link>
+            <Link
+              to="/dashboard"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                location.pathname === "/dashboard"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
             </Link>
             <Link
               to="/pacientes"

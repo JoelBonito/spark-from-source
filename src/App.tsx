@@ -12,6 +12,7 @@ import TechnicalReports from "./pages/TechnicalReports";
 import { Patients } from "./pages/Patients";
 import { Budgets } from "./pages/Budgets";
 import CRM from "./pages/CRM";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/config" element={<Config />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/pacientes" element={<Patients />} />
