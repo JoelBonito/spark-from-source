@@ -45,7 +45,21 @@ PRESERVAR COMPLETAMENTE:
 
 RESULTADO ESPERADO:
 O resultado deve ser fotorrealista, natural e adequado para apresentação clínica profissional.
-Evite efeito artificial ("dentes de chiclete"). Mantenha a identidade do paciente.`;
+Evite efeito artificial ("dentes de chiclete"). Mantenha a identidade do paciente.
+
+---
+ANÁLISE QUANTITATIVA OBRIGATÓRIA:
+
+Após processar a imagem, você DEVE especificar EXATAMENTE quantos dentes foram modificados com facetas.
+
+Formato obrigatório de resposta (adicione no final):
+DENTES_MODIFICADOS: [número]
+
+Exemplo:
+DENTES_MODIFICADOS: 4
+
+Normalmente são modificados os incisivos centrais e laterais superiores (dentes 11, 21, 12, 22), totalizando 4 facetas.
+Se a análise visual indicar número diferente, especifique o valor correto.`;
 
 export async function saveConfig(config: Config): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();

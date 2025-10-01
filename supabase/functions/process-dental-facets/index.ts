@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
 
     // Extract the generated image from the response
     const generatedImage = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const textResponse = result.choices?.[0]?.message?.content || '';
 
     if (!generatedImage) {
       console.error('Resposta do Gemini sem imagem:', JSON.stringify(result));
@@ -94,7 +95,10 @@ Deno.serve(async (req) => {
     console.log('Imagem processada com sucesso');
 
     return new Response(
-      JSON.stringify({ imageBase64: generatedImage }),
+      JSON.stringify({ 
+        imageBase64: generatedImage,
+        fullResponse: textResponse
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

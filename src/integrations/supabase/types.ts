@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      simulations: {
+        Row: {
+          budget_data: Json | null
+          budget_pdf_url: string | null
+          created_at: string | null
+          final_price: number | null
+          id: string
+          original_image_url: string | null
+          patient_name: string | null
+          patient_phone: string | null
+          price_per_tooth: number | null
+          processed_image_url: string | null
+          status: string | null
+          teeth_analyzed: Json | null
+          teeth_count: number | null
+          total_price: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          budget_data?: Json | null
+          budget_pdf_url?: string | null
+          created_at?: string | null
+          final_price?: number | null
+          id?: string
+          original_image_url?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          price_per_tooth?: number | null
+          processed_image_url?: string | null
+          status?: string | null
+          teeth_analyzed?: Json | null
+          teeth_count?: number | null
+          total_price?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          budget_data?: Json | null
+          budget_pdf_url?: string | null
+          created_at?: string | null
+          final_price?: number | null
+          id?: string
+          original_image_url?: string | null
+          patient_name?: string | null
+          patient_phone?: string | null
+          price_per_tooth?: number | null
+          processed_image_url?: string | null
+          status?: string | null
+          teeth_analyzed?: Json | null
+          teeth_count?: number | null
+          total_price?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_configs: {
         Row: {
           api_key: string

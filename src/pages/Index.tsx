@@ -1,16 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Download, RefreshCw, Zap } from "lucide-react";
+import { Download, RefreshCw, Zap, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import ImageUpload from "@/components/ImageUpload";
 import ComparisonView from "@/components/ComparisonView";
 import ErrorAlert from "@/components/ErrorAlert";
+import { BudgetDisplay } from "@/components/BudgetDisplay";
 import { hasConfig, getConfig } from "@/utils/storage";
 import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
+import { extractTeethCountFromGeminiResponse, calculateBudget, saveSimulationAnalysis } from "@/services/analysisService";
+import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -20,6 +25,13 @@ export default function Index() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [teethCount, setTeethCount] = useState(4);
+  const [budget, setBudget] = useState<any>(null);
+  const [budgetPdfUrl, setBudgetPdfUrl] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [patientName, setPatientName] = useState("");
+  const [patientPhone, setPatientPhone] = useState("");
+  const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -78,6 +90,8 @@ export default function Index() {
     setError(null);
     setProcessedImage(null);
     setProcessingTime(0);
+    setBudget(null);
+    setBudgetPdfUrl(null);
 
     const startTime = Date.now();
 
@@ -118,6 +132,28 @@ export default function Index() {
 
       setProcessedImage(result.imageBase64);
       setProcessingTime(Date.now() - startTime);
+      
+      // Extrair número de facetas da resposta
+      const detectedTeethCount = await extractTeethCountFromGeminiResponse(result.fullResponse || "");
+      setTeethCount(detectedTeethCount);
+      
+      // Calcular orçamento
+      const calculatedBudget = calculateBudget(detectedTeethCount);
+      setBudget(calculatedBudget);
+      
+      // Salvar análise no banco
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const simulation = await saveSimulationAnalysis(
+          user.id,
+          originalImage,
+          result.imageBase64,
+          detectedTeethCount,
+          calculatedBudget
+        );
+        setCurrentSimulationId(simulation.id);
+      }
+      
       toast.success("Simulação gerada com sucesso!");
     } catch (err) {
       console.error("Erro ao processar:", err);
@@ -142,6 +178,62 @@ export default function Index() {
     setProcessedImage(null);
     setError(null);
     setProcessingTime(0);
+    setBudget(null);
+    setBudgetPdfUrl(null);
+    setPatientName("");
+    setPatientPhone("");
+    setCurrentSimulationId(null);
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!budget || !patientName) {
+      toast.error("Por favor, preencha o nome do paciente");
+      return;
+    }
+    
+    setGeneratingPdf(true);
+    try {
+      const pdfUrl = await generateBudgetPDF({
+        budgetNumber: generateBudgetNumber(),
+        patientName: patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: teethCount,
+        pricePerTooth: 600,
+        subtotal: budget.subtotal,
+        paymentOptions: budget.paymentOptions
+      });
+      
+      setBudgetPdfUrl(pdfUrl);
+      
+      // Update simulation with PDF URL
+      if (currentSimulationId) {
+        await supabase
+          .from('simulations')
+          .update({ 
+            budget_pdf_url: pdfUrl,
+            patient_name: patientName,
+            patient_phone: patientPhone || null
+          })
+          .eq('id', currentSimulationId);
+      }
+      
+      window.open(pdfUrl, '_blank');
+      toast.success("PDF gerado com sucesso!");
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF do orçamento');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleTeethCountChange = (count: number) => {
+    if (count >= 2 && count <= 8) {
+      setTeethCount(count);
+      setBudget(calculateBudget(count));
+    }
   };
 
   if (!hasApiConfig) {
@@ -219,7 +311,92 @@ export default function Index() {
               />
             </div>
 
-            {processedImage && (
+            {processedImage && budget && (
+              <>
+                <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Dados do Paciente
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="patientName">Nome do Paciente *</Label>
+                      <Input
+                        id="patientName"
+                        type="text"
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="Nome completo"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="patientPhone">Telefone (opcional)</Label>
+                      <Input
+                        id="patientPhone"
+                        type="tel"
+                        value={patientPhone}
+                        onChange={(e) => setPatientPhone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <BudgetDisplay
+                  teethCount={teethCount}
+                  onTeethCountChange={handleTeethCountChange}
+                  budget={budget}
+                  editable={true}
+                />
+
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button
+                    onClick={handleNewSimulation}
+                    variant="outline"
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                    Nova Simulação
+                  </Button>
+                  <Button
+                    onClick={handleDownload}
+                    variant="outline"
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-5 w-5" />
+                    Baixar Resultado
+                  </Button>
+                  <Button
+                    onClick={handleGeneratePDF}
+                    disabled={generatingPdf || !patientName}
+                    size="lg"
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                  >
+                    {generatingPdf ? (
+                      <>Gerando PDF...</>
+                    ) : (
+                      <>
+                        <FileText className="h-5 w-5" />
+                        Gerar Orçamento PDF
+                      </>
+                    )}
+                  </Button>
+                  {budgetPdfUrl && (
+                    <Button
+                      onClick={() => window.open(budgetPdfUrl, '_blank')}
+                      size="lg"
+                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                    >
+                      <FileText className="h-5 w-5" />
+                      Abrir PDF
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+            
+            {processedImage && !budget && (
               <div className="flex flex-wrap gap-3 justify-center">
                 <Button
                   onClick={handleNewSimulation}
