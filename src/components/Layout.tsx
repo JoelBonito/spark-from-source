@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Image, Settings, LogOut, FileText } from "lucide-react";
+import { Image, Settings, LogOut, FileText, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +53,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <Image className="h-4 w-4" />
               Simulador
+            </Link>
+            <Link
+              to="/pacientes"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                location.pathname === "/pacientes"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Pacientes
             </Link>
             <Link
               to="/relatorios"

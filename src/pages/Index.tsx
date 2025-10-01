@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, RefreshCw, Zap, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,20 @@ import ComparisonView from "@/components/ComparisonView";
 import ErrorAlert from "@/components/ErrorAlert";
 import { BudgetDisplay } from "@/components/BudgetDisplay";
 import { TechnicalReportPreview } from "@/components/TechnicalReportPreview";
+import { PatientSelector } from "@/components/PatientSelector";
+import { QuickPatientForm } from "@/components/QuickPatientForm";
 import { hasConfig, getConfig } from "@/utils/storage";
 import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
 import { extractTeethCountFromGeminiResponse, calculateBudget, saveSimulationAnalysis } from "@/services/analysisService";
 import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 import { useTechnicalReport } from "@/hooks/useTechnicalReport";
+import { getPatientById } from "@/services/patientService";
+import { usePatientForm } from "@/hooks/usePatientForm";
 
 export default function Index() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [hasApiConfig, setHasApiConfig] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
@@ -35,6 +40,8 @@ export default function Index() {
   const [patientPhone, setPatientPhone] = useState("");
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
   const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [showQuickPatientForm, setShowQuickPatientForm] = useState(false);
   
   // Technical Report hook
   const { 
@@ -43,6 +50,8 @@ export default function Index() {
     reportPdfUrl,
     generateReport 
   } = useTechnicalReport();
+
+  const { createPatient } = usePatientForm();
 
   useEffect(() => {
     // Check if user is logged in
@@ -68,6 +77,14 @@ export default function Index() {
       });
     });
 
+    // Check if navigated from patients page with selected patient
+    const state = location.state as { selectedPatient?: any };
+    if (state?.selectedPatient) {
+      setSelectedPatientId(state.selectedPatient.id);
+      setPatientName(state.selectedPatient.name);
+      setPatientPhone(state.selectedPatient.phone || "");
+    }
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
@@ -76,7 +93,7 @@ export default function Index() {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -88,6 +105,38 @@ export default function Index() {
     }
     return () => clearInterval(interval);
   }, [isProcessing]);
+
+  // Load patient data when selectedPatientId changes
+  useEffect(() => {
+    if (selectedPatientId) {
+      loadPatientData(selectedPatientId);
+    }
+  }, [selectedPatientId]);
+
+  const loadPatientData = async (patientId: string) => {
+    try {
+      const patient = await getPatientById(patientId);
+      if (patient) {
+        setPatientName(patient.name);
+        setPatientPhone(patient.phone || "");
+      }
+    } catch (error) {
+      console.error('Error loading patient:', error);
+    }
+  };
+
+  const handleQuickPatientCreate = async (data: { name: string; phone: string }) => {
+    try {
+      const patient = await createPatient(data);
+      setSelectedPatientId(patient.id);
+      setPatientName(patient.name);
+      setPatientPhone(patient.phone);
+      toast.success("Paciente criado com sucesso!");
+    } catch (error) {
+      console.error('Error creating patient:', error);
+      toast.error("Erro ao criar paciente");
+    }
+  };
 
   const handleImageSelect = (base64: string) => {
     setOriginalImage(base64);
@@ -224,14 +273,15 @@ export default function Index() {
       
       setBudgetPdfUrl(pdfUrl);
       
-      // Update simulation with PDF URL
+      // Update simulation with PDF URL and patient_id
       if (currentSimulationId) {
         await supabase
           .from('simulations')
           .update({ 
             budget_pdf_url: pdfUrl,
             patient_name: patientName,
-            patient_phone: patientPhone || null
+            patient_phone: patientPhone || null,
+            patient_id: selectedPatientId
           })
           .eq('id', currentSimulationId);
       }
@@ -362,26 +412,36 @@ export default function Index() {
                   <h2 className="text-xl font-semibold text-foreground">
                     Dados do Paciente
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="patientName">Nome do Paciente *</Label>
-                      <Input
-                        id="patientName"
-                        type="text"
-                        value={patientName}
-                        onChange={(e) => setPatientName(e.target.value)}
-                        placeholder="Nome completo"
+                      <Label>Selecionar Paciente</Label>
+                      <PatientSelector
+                        value={selectedPatientId}
+                        onChange={setSelectedPatientId}
+                        onCreateNew={() => setShowQuickPatientForm(true)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="patientPhone">Telefone (opcional)</Label>
-                      <Input
-                        id="patientPhone"
-                        type="tel"
-                        value={patientPhone}
-                        onChange={(e) => setPatientPhone(e.target.value)}
-                        placeholder="(00) 00000-0000"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="patientName">Nome do Paciente *</Label>
+                        <Input
+                          id="patientName"
+                          type="text"
+                          value={patientName}
+                          onChange={(e) => setPatientName(e.target.value)}
+                          placeholder="Nome completo"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="patientPhone">Telefone (opcional)</Label>
+                        <Input
+                          id="patientPhone"
+                          type="tel"
+                          value={patientPhone}
+                          onChange={(e) => setPatientPhone(e.target.value)}
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -485,6 +545,12 @@ export default function Index() {
           />
         )}
       </div>
+
+      <QuickPatientForm
+        isOpen={showQuickPatientForm}
+        onClose={() => setShowQuickPatientForm(false)}
+        onSave={handleQuickPatientCreate}
+      />
     </Layout>
   );
 }

@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      patients: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       simulations: {
         Row: {
           budget_data: Json | null
@@ -22,6 +64,7 @@ export type Database = {
           final_price: number | null
           id: string
           original_image_url: string | null
+          patient_id: string | null
           patient_name: string | null
           patient_phone: string | null
           price_per_tooth: number | null
@@ -42,6 +85,7 @@ export type Database = {
           final_price?: number | null
           id?: string
           original_image_url?: string | null
+          patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           price_per_tooth?: number | null
@@ -62,6 +106,7 @@ export type Database = {
           final_price?: number | null
           id?: string
           original_image_url?: string | null
+          patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           price_per_tooth?: number | null
@@ -75,7 +120,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "simulations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_configs: {
         Row: {
