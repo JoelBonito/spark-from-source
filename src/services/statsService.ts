@@ -113,7 +113,7 @@ export async function getExpiredBudgets() {
     .from('budgets')
     .select('*, patient:patients(name)')
     .eq('user_id', user.id)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'sent', 'viewed'])
     .lte('valid_until', today);
 
   if (error) throw error;

@@ -30,6 +30,7 @@ export function calculateBudget(teethCount: number, pricePerTooth: number = 600)
     teethCount,
     pricePerTooth,
     subtotal,
+    finalPrice: subtotal,
     paymentOptions: [
       {
         name: 'À vista',

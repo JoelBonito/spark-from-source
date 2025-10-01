@@ -39,6 +39,7 @@ export interface CreateBudgetData {
   payment_conditions?: any;
   valid_until?: Date;
   pdf_url?: string;
+  status?: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
 }
 
 export interface BudgetFilters {
@@ -125,7 +126,7 @@ export async function createBudget(budgetData: CreateBudgetData): Promise<Budget
         valid_until: budgetData.valid_until 
           ? budgetData.valid_until.toISOString().split('T')[0]
           : addDays(new Date(), 30).toISOString().split('T')[0],
-        status: 'pending'
+        status: budgetData.status || 'pending'
       }
     ])
     .select()

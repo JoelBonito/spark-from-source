@@ -19,6 +19,7 @@ import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
 import { extractTeethCountFromGeminiResponse, calculateBudget, saveSimulationAnalysis } from "@/services/analysisService";
 import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
+import { autoProcessSimulation } from "@/services/automationService";
 import { useTechnicalReport } from "@/hooks/useTechnicalReport";
 import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
@@ -221,6 +222,24 @@ export default function Index() {
           calculatedBudget
         );
         setCurrentSimulationId(simulation.id);
+
+        // Auto-create lead and draft budget if patient info is available
+        if (patientName && patientPhone) {
+          try {
+            await autoProcessSimulation(
+              simulation.id,
+              selectedPatientId,
+              patientName,
+              patientPhone,
+              detectedTeethCount,
+              calculatedBudget.finalPrice
+            );
+            console.log('Lead e orçamento draft criados automaticamente');
+          } catch (error) {
+            console.error('Erro na automação:', error);
+            // Don't block the main flow if automation fails
+          }
+        }
       }
       
       toast.success("Simulação gerada com sucesso!");
@@ -289,19 +308,62 @@ export default function Index() {
           .eq('id', currentSimulationId);
       }
 
-      // Create budget record
-      await createBudget({
-        budget_number: budgetNumber,
-        patient_id: selectedPatientId || undefined,
-        simulation_id: currentSimulationId || undefined,
-        teeth_count: teethCount,
-        price_per_tooth: 600,
-        subtotal: budget.subtotal,
-        final_price: budget.finalPrice,
-        payment_conditions: budget.paymentOptions,
-        pdf_url: pdfUrl,
-        valid_until: addDays(new Date(), 30),
-      });
+      // Update existing draft budget to 'sent' status or create new one
+      const { data: existingBudget } = await supabase
+        .from('budgets')
+        .select('id')
+        .eq('simulation_id', currentSimulationId)
+        .eq('status', 'draft')
+        .single();
+
+      if (existingBudget) {
+        // Update draft to sent
+        await supabase
+          .from('budgets')
+          .update({
+            pdf_url: pdfUrl,
+            status: 'sent',
+            budget_number: budgetNumber,
+            payment_conditions: budget.paymentOptions,
+          })
+          .eq('id', existingBudget.id);
+
+        // Create activity for PDF generation
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && selectedPatientId) {
+          const { data: lead } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('patient_id', selectedPatientId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (lead) {
+            await supabase.from('activities').insert({
+              lead_id: lead.id,
+              type: 'budget_sent',
+              title: 'Orçamento enviado',
+              description: `Orçamento ${budgetNumber} gerado e enviado - R$ ${budget.finalPrice.toFixed(2)}`,
+              user_id: user.id,
+            });
+          }
+        }
+      } else {
+        // Create new budget as 'sent'
+        await createBudget({
+          budget_number: budgetNumber,
+          patient_id: selectedPatientId || undefined,
+          simulation_id: currentSimulationId || undefined,
+          teeth_count: teethCount,
+          price_per_tooth: 600,
+          subtotal: budget.subtotal,
+          final_price: budget.finalPrice,
+          payment_conditions: budget.paymentOptions,
+          pdf_url: pdfUrl,
+          status: 'sent',
+          valid_until: addDays(new Date(), 30),
+        });
+      }
       
       window.open(pdfUrl, '_blank');
       toast.success("PDF e orçamento gerados com sucesso!");
