@@ -27,6 +27,8 @@ export type Database = {
           price_per_tooth: number | null
           processed_image_url: string | null
           status: string | null
+          technical_notes: string | null
+          technical_report_url: string | null
           teeth_analyzed: Json | null
           teeth_count: number | null
           total_price: number | null
@@ -45,6 +47,8 @@ export type Database = {
           price_per_tooth?: number | null
           processed_image_url?: string | null
           status?: string | null
+          technical_notes?: string | null
+          technical_report_url?: string | null
           teeth_analyzed?: Json | null
           teeth_count?: number | null
           total_price?: number | null
@@ -63,6 +67,8 @@ export type Database = {
           price_per_tooth?: number | null
           processed_image_url?: string | null
           status?: string | null
+          technical_notes?: string | null
+          technical_report_url?: string | null
           teeth_analyzed?: Json | null
           teeth_count?: number | null
           total_price?: number | null

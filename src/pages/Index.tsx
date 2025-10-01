@@ -11,11 +11,13 @@ import ImageUpload from "@/components/ImageUpload";
 import ComparisonView from "@/components/ComparisonView";
 import ErrorAlert from "@/components/ErrorAlert";
 import { BudgetDisplay } from "@/components/BudgetDisplay";
+import { TechnicalReportPreview } from "@/components/TechnicalReportPreview";
 import { hasConfig, getConfig } from "@/utils/storage";
 import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
 import { extractTeethCountFromGeminiResponse, calculateBudget, saveSimulationAnalysis } from "@/services/analysisService";
 import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
+import { useTechnicalReport } from "@/hooks/useTechnicalReport";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -32,6 +34,15 @@ export default function Index() {
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  
+  // Technical Report hook
+  const { 
+    generating: generatingReport, 
+    reportContent, 
+    reportPdfUrl,
+    generateReport 
+  } = useTechnicalReport();
 
   useEffect(() => {
     // Check if user is logged in
@@ -41,11 +52,18 @@ export default function Index() {
         return;
       }
 
-      // Check if config exists
+      // Check if config exists and load API key
       hasConfig().then((exists) => {
         setHasApiConfig(exists);
         if (!exists) {
           navigate("/config");
+        } else {
+          // Load API key for technical reports
+          getConfig().then((config) => {
+            if (config?.apiKey) {
+              setGeminiApiKey(config.apiKey);
+            }
+          });
         }
       });
     });
@@ -236,6 +254,33 @@ export default function Index() {
     }
   };
 
+  const handleGenerateTechnicalReport = async () => {
+    if (!originalImage || !patientName) {
+      toast.error("Por favor, preencha o nome do paciente");
+      return;
+    }
+    
+    if (!geminiApiKey) {
+      toast.error("API Key do Gemini não configurada");
+      return;
+    }
+    
+    try {
+      await generateReport(
+        originalImage,
+        patientName,
+        patientPhone || undefined,
+        teethCount,
+        geminiApiKey,
+        currentSimulationId || undefined
+      );
+      toast.success("Relatório técnico gerado com sucesso!");
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      toast.error('Erro ao gerar relatório técnico');
+    }
+  };
+
   if (!hasApiConfig) {
     return null; // Already redirecting to /config
   }
@@ -346,6 +391,13 @@ export default function Index() {
                   onTeethCountChange={handleTeethCountChange}
                   budget={budget}
                   editable={true}
+                />
+
+                <TechnicalReportPreview
+                  reportContent={reportContent || undefined}
+                  reportPdfUrl={reportPdfUrl || undefined}
+                  generating={generatingReport}
+                  onGenerate={handleGenerateTechnicalReport}
                 />
 
                 <div className="flex flex-wrap gap-3 justify-center">
