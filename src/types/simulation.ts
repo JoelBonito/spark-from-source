@@ -1,0 +1,72 @@
+export interface DenteAnalise {
+  dente: string;
+  nome: string;
+  condicao_atual: string;
+  alteracoes_cromaticas: string;
+  morfologia: string;
+  integridade_estrutural: string;
+  indicacao_faceta: 'sim' | 'não';
+  justificativa: string;
+}
+
+export interface RelatorioTecnico {
+  avaliacao_por_dente: DenteAnalise[];
+  diagnostico: {
+    complexidade: 'baixa' | 'média' | 'alta';
+    justificativa_complexidade: string;
+    fatores_considerados: string[];
+  };
+  planejamento: {
+    objetivo_tratamento: string;
+    protocolo_clinico: {
+      fase_1: string;
+      fase_2: string;
+      fase_3: string;
+      fase_4: string;
+      fase_5: string;
+    };
+    materiais: {
+      tipo_faceta: string;
+      sistema_adesivo: string;
+      justificativa: string;
+    };
+  };
+  analise_estetica: {
+    proporcao_dentaria: string;
+    simetria: string;
+    harmonizacao_facial: string;
+  };
+  recomendacoes_clinicas: string[];
+  cronograma: {
+    numero_sessoes: number;
+    duracao_semanas: string;
+    detalhamento: string;
+  };
+  alternativa_conservadora: {
+    descricao: string;
+    valor: number;
+    quando_indicar: string;
+  };
+  prognostico: string;
+}
+
+export interface AnalysisData {
+  analise_resumo: {
+    facetas_necessarias: number;
+    dentes_identificados: string[];
+    manchas: 'leve' | 'moderada' | 'severa';
+    complexidade: 'baixa' | 'média' | 'alta';
+    confianca: number;
+  };
+  valores: {
+    facetas: number;
+    clareamento: number;
+    total: number;
+  };
+  relatorio_tecnico: RelatorioTecnico;
+}
+
+export interface AnalysisResult {
+  analysis: AnalysisData;
+  needsClareamento: boolean;
+}

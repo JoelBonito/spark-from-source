@@ -3,45 +3,122 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Prompt conservador para análise
-const ANALYSIS_PROMPT = `Você é um dentista equilibrado analisando esta foto.
+// Prompt completo para análise técnica detalhada
+const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por ser EQUILIBRADO, ÉTICO e CONSERVADOR.
 
-Retorne APENAS este JSON (sem markdown):
+Analise esta foto e retorne um JSON completo com relatório técnico detalhado.
 
-{
-  "f": [número de 2 a 6],
-  "d": ["11","21"],
-  "m": "leve|moderada|severa",
-  "c": "baixa|média|alta",
-  "conf": [0.7 a 1.0]
-}
-
+═══════════════════════════════════════════════════════════
 REGRAS CRÍTICAS - SEJA CONSERVADOR:
+═══════════════════════════════════════════════════════════
 
-1. FACETAS (f):
-   - Padrão comum: 4 facetas
-   - Apenas incisivos: ["11","21","12","22"]
-   - Caninos (13,23): APENAS se descoloração ÓBVIA
-   - NUNCA mais de 6 facetas
-   - Se dúvida: prefira menos
+1. FACETAS:
+   - Padrão comum: 4 facetas (apenas incisivos: 11, 21, 12, 22)
+   - Máximo: 6 facetas (se caninos realmente necessários)
+   - Caninos (13, 23): APENAS se descoloração ÓBVIA
+   - NUNCA: pré-molares (14, 24)
 
-2. MANCHAS (m):
+2. MANCHAS:
    - "leve": amarelamento suave (MAIORIA)
    - "moderada": descoloração visível
-   - "severa": APENAS manchas muito escuras
+   - "severa": RARO - manchas muito escuras
 
-3. COMPLEXIDADE (c):
-   - "baixa": manchas leves (MAIORIA)
+3. COMPLEXIDADE:
+   - "baixa": manchas leves, estrutura boa (MAIORIA)
    - "média": manchas moderadas + pequenos problemas
-   - "alta": RARAMENTE - casos realmente graves
+   - "alta": RARO - casos graves
 
 4. TESTE MENTAL:
    "Clareamento resolve 70% deste caso?"
-   Se SIM → complexidade baixa, manchas leves
+   Se SIM → complexidade baixa
 
-SEJA HONESTO E CONSERVADOR. Não exagere problemas.
+═══════════════════════════════════════════════════════════
+ESTRUTURA DO JSON (COMPLETA):
+═══════════════════════════════════════════════════════════
 
-Retorne JSON agora.`;
+{
+  "analise_resumo": {
+    "facetas_necessarias": [2-6],
+    "dentes_identificados": ["11", "21", "12", "22"],
+    "manchas": "leve|moderada|severa",
+    "complexidade": "baixa|média|alta",
+    "confianca": 0.85
+  },
+  "valores": {
+    "facetas": [quantidade × 700],
+    "clareamento": 800,
+    "total": [soma]
+  },
+  "relatorio_tecnico": {
+    "avaliacao_por_dente": [
+      {
+        "dente": "11",
+        "nome": "Incisivo Central Superior Direito",
+        "condicao_atual": "descrição detalhada",
+        "alteracoes_cromaticas": "tipo e intensidade",
+        "morfologia": "formato e proporções",
+        "integridade_estrutural": "estado do esmalte",
+        "indicacao_faceta": "sim|não",
+        "justificativa": "razão específica"
+      }
+    ],
+    "diagnostico": {
+      "complexidade": "baixa|média|alta",
+      "justificativa_complexidade": "explicação detalhada",
+      "fatores_considerados": ["fator1", "fator2", "fator3"]
+    },
+    "planejamento": {
+      "objetivo_tratamento": "descrição do objetivo",
+      "protocolo_clinico": {
+        "fase_1": "Diagnóstico e planejamento - 1 sessão",
+        "fase_2": "Clareamento prévio - 2-3 semanas",
+        "fase_3": "Preparo e moldagem - 1 sessão",
+        "fase_4": "Prova e ajustes - 1 sessão",
+        "fase_5": "Cimentação definitiva - 1 sessão"
+      },
+      "materiais": {
+        "tipo_faceta": "Dissilicato de Lítio (E.max) ou Porcelana Feldspática",
+        "sistema_adesivo": "Adesivo resinoso 4ª/5ª geração",
+        "justificativa": "razões técnicas"
+      }
+    },
+    "analise_estetica": {
+      "proporcao_dentaria": "análise das proporções",
+      "simetria": "avaliação de simetria",
+      "harmonizacao_facial": "integração com face"
+    },
+    "recomendacoes_clinicas": [
+      "Recomendação técnica específica 1",
+      "Recomendação técnica específica 2",
+      "Recomendação técnica específica 3"
+    ],
+    "cronograma": {
+      "numero_sessoes": 4,
+      "duracao_semanas": "4-6",
+      "detalhamento": "descrição do cronograma"
+    },
+    "alternativa_conservadora": {
+      "descricao": "Clareamento dental isolado",
+      "valor": 800,
+      "quando_indicar": "Se manchas leves e paciente quer testar primeiro"
+    },
+    "prognostico": "Excelente|Bom|Regular"
+  }
+}
+
+═══════════════════════════════════════════════════════════
+IMPORTANTE:
+═══════════════════════════════════════════════════════════
+
+- Seja DETALHADO no relatório técnico
+- Análise dente por dente COMPLETA
+- Justificativas técnicas específicas
+- NÃO inclua opções de pagamento (clínica decide)
+- Valores fixos: R$ 700/faceta, R$ 800 clareamento
+- Seja conservador: prefira MENOS facetas
+- Complexidade baixa para casos comuns
+
+Retorne APENAS o JSON (sem markdown, sem explicações).`;
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -116,25 +193,22 @@ Deno.serve(async (req) => {
         throw new Error('Resposta da análise em formato inválido');
       }
 
-      // Calcular valores baseado nos preços dos serviços
-      const baseService = servicePrices?.find((s: any) => s.base) || { price: 700 };
-      const clarService = servicePrices?.find((s: any) => s.name.toLowerCase().includes('clareamento')) || { price: 800 };
-      
-      const facetasValue = analysis.f * baseService.price;
-      const needsClareamento = analysis.m !== 'ausente';
-      const clareamentoValue = needsClareamento ? clarService.price : 0;
-      const totalValue = facetasValue + clareamentoValue;
+      // Validar que temos o novo formato completo
+      if (!analysis.analise_resumo || !analysis.relatorio_tecnico) {
+        console.error('Formato de análise incompleto:', analysis);
+        throw new Error('Análise retornada em formato incompleto');
+      }
 
-      console.log('Análise concluída:', analysis);
+      const needsClareamento = analysis.analise_resumo.manchas !== 'ausente';
+
+      console.log('Análise completa recebida:', {
+        facetas: analysis.analise_resumo.facetas_necessarias,
+        complexidade: analysis.analise_resumo.complexidade
+      });
 
       return new Response(
         JSON.stringify({
           analysis,
-          valores: {
-            facetas: facetasValue,
-            clareamento: clareamentoValue,
-            total: totalValue
-          },
           needsClareamento
         }),
         {
@@ -153,15 +227,20 @@ Deno.serve(async (req) => {
       console.log('Gerando simulação visual...');
       
       // Construir prompt contextualizado
+      const resumo = analysisData.analise_resumo || analysisData;
+      const facetas = resumo.facetas_necessarias || analysisData.f;
+      const dentes = resumo.dentes_identificados || analysisData.d;
+      const complexidade = resumo.complexidade || analysisData.c;
+      
       const simulationPrompt = `Crie uma simulação fotorrealista de facetas dentárias.
 
 CONTEXTO DA ANÁLISE:
-- Facetas: ${analysisData.f}
-- Dentes: ${analysisData.d.join(', ')}
-- Complexidade: ${analysisData.c}
+- Facetas: ${facetas}
+- Dentes: ${dentes.join(', ')}
+- Complexidade: ${complexidade}
 
 INSTRUÇÕES:
-1. Aplique facetas APENAS nos dentes: ${analysisData.d.join(', ')}
+1. Aplique facetas APENAS nos dentes: ${dentes.join(', ')}
 2. Cor BL3 natural, uniforme
 3. Bordas incisais translúcidas (11, 21, 12, 22)
 4. Manter formato e proporção naturais
