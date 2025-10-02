@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { saveConfig, getConfig, DEFAULT_PROMPT, type Config } from "@/utils/storage";
+import { saveConfig, getConfig, DEFAULT_PROMPT, DEFAULT_SERVICES, type Config } from "@/utils/storage";
 
 export default function ConfigForm() {
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
+    servicePrices: DEFAULT_SERVICES,
   });
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
+      servicePrices: formData.servicePrices,
     };
 
     try {

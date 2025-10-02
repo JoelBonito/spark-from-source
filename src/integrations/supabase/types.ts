@@ -319,6 +319,7 @@ export type Database = {
           id: string
           max_tokens: number
           prompt_template: string
+          service_prices: Json
           temperature: number
           top_k: number
           top_p: number
@@ -332,6 +333,7 @@ export type Database = {
           id?: string
           max_tokens?: number
           prompt_template: string
+          service_prices?: Json
           temperature?: number
           top_k?: number
           top_p?: number
@@ -345,6 +347,7 @@ export type Database = {
           id?: string
           max_tokens?: number
           prompt_template?: string
+          service_prices?: Json
           temperature?: number
           top_k?: number
           top_p?: number

@@ -41,39 +41,50 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               🦷
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Dental Facets</h1>
-              <p className="text-xs text-muted-foreground">Simulador MVP</p>
+              <h1 className="text-lg font-bold text-foreground">TruSmile</h1>
+              <p className="text-xs text-muted-foreground">Análise Inteligente</p>
             </div>
           </div>
 
           <nav className="flex items-center gap-2">
             <Link
-              to="/"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                location.pathname === "/"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              <Image className="h-4 w-4" />
-              Simulador
-            </Link>
-            <Link
               to="/dashboard"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
                 location.pathname === "/dashboard"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               <BarChart3 className="h-4 w-4" />
-              Dashboard
+              Painel
+            </Link>
+            <Link
+              to="/"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
+                location.pathname === "/"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Image className="h-4 w-4" />
+              <span className="font-bold">Simulador</span>
+            </Link>
+            <Link
+              to="/crm"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
+                location.pathname === "/crm"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Kanban className="h-4 w-4" />
+              <span className="font-bold">CRM</span>
             </Link>
             <Link
               to="/pacientes"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
                 location.pathname === "/pacientes"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
@@ -81,32 +92,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               Pacientes
             </Link>
             <Link
-              to="/orcamentos"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                location.pathname === "/orcamentos"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              <DollarSign className="h-4 w-4" />
-              Orçamentos
-            </Link>
-            <Link
-              to="/crm"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                location.pathname === "/crm"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              <Kanban className="h-4 w-4" />
-              CRM
-            </Link>
-            <Link
               to="/relatorios"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
                 location.pathname === "/relatorios"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
@@ -114,10 +103,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               Relatórios
             </Link>
             <Link
+              to="/orcamentos"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
+                location.pathname === "/orcamentos"
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              Orçamentos
+            </Link>
+            <Link
               to="/config"
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors ${
                 location.pathname === "/config"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >

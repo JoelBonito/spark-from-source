@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export const DEFAULT_SERVICES = [
+  { name: "Faceta de Cerâmica Padrão", price: 700.00, base: true },
+  { name: "Clareamento Dental Prévio", price: 800.00, base: false },
+  { name: "Gengivoplastia", price: 1200.00, base: false },
+];
+
 export interface Config {
   apiKey: string;
   backendUrl: string;
@@ -8,6 +14,7 @@ export interface Config {
   topP: number;
   maxTokens: number;
   promptTemplate: string;
+  servicePrices: Array<{ name: string; price: number; base: boolean }>;
 }
 
 export const DEFAULT_PROMPT = `Você é um especialista em design de sorriso digital e odontologia estética.
@@ -76,6 +83,7 @@ export async function saveConfig(config: Config): Promise<void> {
       top_p: config.topP,
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
+      service_prices: config.servicePrices,
     }, { onConflict: 'user_id' });
 
   if (error) throw error;
@@ -102,6 +110,7 @@ export async function getConfig(): Promise<Config | null> {
     topP: Number(data.top_p),
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
+    servicePrices: (data.service_prices || DEFAULT_SERVICES) as any,
   };
 }
 
