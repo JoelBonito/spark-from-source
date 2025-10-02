@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Save, RotateCcw } from "lucide-react";
+import { Eye, EyeOff, Save, RotateCcw, DollarSign, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { saveConfig, getConfig, DEFAULT_PROMPT, DEFAULT_SERVICES, type Config } from "@/utils/storage";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ConfigForm() {
   const navigate = useNavigate();
   const [showApiKey, setShowApiKey] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Config>({
     apiKey: "",
     backendUrl: import.meta.env.VITE_SUPABASE_URL || "",
     temperature: 0.4,
@@ -21,7 +22,7 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
-    servicePrices: DEFAULT_SERVICES,
+    servicePrices: DEFAULT_SERVICES, // VALOR PADRÃO
   });
 
   useEffect(() => {
@@ -31,6 +32,55 @@ export default function ConfigForm() {
       }
     });
   }, []);
+
+  // Lógica de manipulação de serviços
+  const handleServiceChange = (index: number, field: keyof typeof formData.servicePrices[0], value: any) => {
+    const newServices = [...formData.servicePrices];
+    
+    // Converte preço para float
+    if (field === 'price') {
+      value = parseFloat(value);
+      if (isNaN(value)) return;
+    }
+    
+    newServices[index] = { 
+      ...newServices[index], 
+      [field]: value,
+    };
+    
+    // Garante que só 1 é base (se o campo alterado for 'base')
+    if (field === 'base' && value === true) {
+      newServices.forEach((service, i) => {
+        if (i !== index) service.base = false;
+      });
+    }
+
+    setFormData({ ...formData, servicePrices: newServices });
+  };
+
+  const handleAddService = () => {
+    setFormData({
+      ...formData,
+      servicePrices: [...formData.servicePrices, { name: "Novo Serviço", price: 0, base: false }],
+    });
+  };
+
+  const handleRemoveService = (index: number) => {
+    const serviceToRemove = formData.servicePrices[index];
+    if (serviceToRemove.base) {
+      toast.error("Não é possível remover o serviço base.");
+      return;
+    }
+    
+    const newServices = formData.servicePrices.filter((_, i) => i !== index);
+    setFormData({ ...formData, servicePrices: newServices });
+  };
+  
+  const handleResetServices = () => {
+    setFormData({ ...formData, servicePrices: DEFAULT_SERVICES });
+    toast.info("Serviços restaurados para o padrão");
+  };
+
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -69,6 +119,11 @@ export default function ConfigForm() {
       newErrors.promptTemplate = "Template do prompt é obrigatório";
     }
 
+    // Validação de Serviços
+    if (!formData.servicePrices.some(s => s.base)) {
+      newErrors.servicePrices = "Deve haver exatamente um serviço marcado como base (preço unitário da faceta).";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -89,7 +144,7 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
-      servicePrices: formData.servicePrices,
+      servicePrices: formData.servicePrices, // ENVIANDO SERVIÇOS
     };
 
     try {
@@ -165,76 +220,168 @@ export default function ConfigForm() {
         </div>
       </div>
 
+      {/* NOVO CARD: SERVIÇOS E PREÇOS */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Serviços e Preços da Clínica *
+        </h2>
+        
+        <p className="text-sm text-muted-foreground">
+          Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
+        </p>
+
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40%]">Serviço</TableHead>
+                <TableHead className="w-[30%] text-right">Preço Unitário</TableHead>
+                <TableHead className="w-[10%] text-center">Base</TableHead>
+                <TableHead className="w-[20%] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {formData.servicePrices.map((service, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Input
+                      type="text"
+                      value={service.name}
+                      onChange={(e) => handleServiceChange(index, 'name', e.target.value)}
+                      placeholder="Nome do Serviço"
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={service.price}
+                        onChange={(e) => handleServiceChange(index, 'price', e.target.value)}
+                        className="text-right pl-8"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <input
+                      type="checkbox"
+                      checked={service.base}
+                      onChange={(e) => handleServiceChange(index, 'base', e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      disabled={service.base} // Impede desmarcar o único base
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveService(index)}
+                      disabled={service.base || formData.servicePrices.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {errors.servicePrices && (
+          <p className="text-sm text-destructive">{errors.servicePrices}</p>
+        )}
+        
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAddService}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Serviço
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetServices}
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Restaurar Padrão
+          </Button>
+        </div>
+      </div>
+
       {/* PARÂMETROS AVANÇADOS */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          ⚙️ Parâmetros de Geração
+          ⚙️ Parâmetros de Geração (Gemini)
         </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Temperature, TopK, TopP, MaxTokens... */}
           <div className="space-y-2">
-            <Label htmlFor="temperature">
-              Temperature: {formData.temperature.toFixed(2)}
-            </Label>
-            <input
+            <Label htmlFor="temperature">Temperatura</Label>
+            <Input
               id="temperature"
-              type="range"
+              type="number"
               min="0"
               max="1"
-              step="0.01"
+              step="0.1"
               value={formData.temperature}
-              onChange={(e) =>
-                setFormData({ ...formData, temperature: parseFloat(e.target.value) })
-              }
-              className="w-full"
+              onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
+              className={errors.temperature ? "border-destructive" : ""}
             />
-            <p className="text-xs text-muted-foreground">Criatividade (0 = conservador, 1 = criativo)</p>
+            {errors.temperature && <p className="text-sm text-destructive">{errors.temperature}</p>}
+            <p className="text-xs text-muted-foreground">Randomicidade (0.0=Consistente, 1.0=Criativo)</p>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="topK">Top K</Label>
             <Input
               id="topK"
               type="number"
+              min="1"
+              step="1"
               value={formData.topK}
               onChange={(e) => setFormData({ ...formData, topK: parseInt(e.target.value) })}
-              min="1"
               className={errors.topK ? "border-destructive" : ""}
             />
             {errors.topK && <p className="text-sm text-destructive">{errors.topK}</p>}
+            <p className="text-xs text-muted-foreground">Número de tokens a considerar (maior = mais diversidade)</p>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="topP">Top P: {formData.topP.toFixed(2)}</Label>
-            <input
+            <Label htmlFor="topP">Top P</Label>
+            <Input
               id="topP"
-              type="range"
+              type="number"
               min="0"
               max="1"
-              step="0.01"
+              step="0.1"
               value={formData.topP}
-              onChange={(e) =>
-                setFormData({ ...formData, topP: parseFloat(e.target.value) })
-              }
-              className="w-full"
+              onChange={(e) => setFormData({ ...formData, topP: parseFloat(e.target.value) })}
+              className={errors.topP ? "border-destructive" : ""}
             />
+            {errors.topP && <p className="text-sm text-destructive">{errors.topP}</p>}
+            <p className="text-xs text-muted-foreground">Probabilidade cumulativa (0.0-1.0)</p>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="maxTokens">Max Tokens</Label>
             <Input
               id="maxTokens"
               type="number"
+              min="100"
+              step="1"
               value={formData.maxTokens}
-              onChange={(e) =>
-                setFormData({ ...formData, maxTokens: parseInt(e.target.value) })
-              }
-              min="1"
+              onChange={(e) => setFormData({ ...formData, maxTokens: parseInt(e.target.value) })}
               className={errors.maxTokens ? "border-destructive" : ""}
             />
-            {errors.maxTokens && (
-              <p className="text-sm text-destructive">{errors.maxTokens}</p>
-            )}
+            {errors.maxTokens && <p className="text-sm text-destructive">{errors.maxTokens}</p>}
+            <p className="text-xs text-muted-foreground">Limite de tokens na resposta (max. 8192)</p>
           </div>
         </div>
       </div>
@@ -242,9 +389,12 @@ export default function ConfigForm() {
       {/* PROMPT TEMPLATE */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          📝 Template do Prompt
+          📝 Template do Prompt (Automatizado)
         </h2>
-
+        <p className="text-sm text-muted-foreground">
+          O conceito de modelo do prompt é **automatizado** na aba Simulador. O texto abaixo é usado como base para a **Simulação de Imagem (Gemini #2)**. A **Análise e Orçamento (Gemini #1)** usa um prompt compacto interno para garantir a contagem e o diagnóstico ético.
+        </p>
+        
         <div className="space-y-2">
           <Textarea
             value={formData.promptTemplate}
@@ -269,6 +419,10 @@ export default function ConfigForm() {
             <RotateCcw className="h-4 w-4" />
             Restaurar Padrão
           </Button>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pb-6">
           <Button
             type="submit"
             className="flex items-center gap-2 bg-primary hover:bg-primary/90"
@@ -276,7 +430,6 @@ export default function ConfigForm() {
             <Save className="h-4 w-4" />
             Salvar Configuração
           </Button>
-        </div>
       </div>
     </form>
   );
