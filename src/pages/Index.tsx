@@ -17,7 +17,7 @@ import { QuickPatientForm } from "@/components/QuickPatientForm";
 import { hasConfig, getConfig } from "@/utils/storage";
 import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
-import { extractTeethCountFromGeminiResponse, calculateBudget, saveSimulationAnalysis } from "@/services/analysisService";
+import { saveSimulationAnalysis, calculateBudget as calculateBudgetLocal, CalculatedBudget } from "@/services/analysisService";
 import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 import { autoProcessSimulation } from "@/services/automationService";
 import { useTechnicalReport } from "@/hooks/useTechnicalReport";
@@ -25,6 +25,27 @@ import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
 import { createBudget } from "@/services/budgetService";
 import { addDays } from 'date-fns';
+import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
+
+// Função auxiliar para buscar conteúdo do relatório a partir da simulação
+async function getReportContentFromAnalysis(simulationId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('simulations')
+    .select('budget_data')
+    .eq('id', simulationId)
+    .single();
+  
+  if (error) throw error;
+  
+  const budgetData = data.budget_data as any;
+  const analysis = budgetData?.analysis;
+  
+  if (!analysis) {
+    return 'Análise Técnica\n\nDados de análise não disponíveis.';
+  }
+  
+  return `Análise Técnica\n\nFacetas necessárias: ${analysis.f}\nDentes identificados: ${analysis.d?.join(', ')}\nManchas: ${analysis.m}\nComplexidade: ${analysis.c}\nConfiança: ${((analysis.conf || 0) * 100).toFixed(1)}%`;
+}
 
 export default function Index() {
   const navigate = useNavigate();
@@ -36,13 +57,12 @@ export default function Index() {
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [teethCount, setTeethCount] = useState(4);
-  const [budget, setBudget] = useState<any>(null);
+  const [budget, setBudget] = useState<CalculatedBudget | null>(null);
   const [budgetPdfUrl, setBudgetPdfUrl] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
-  const [geminiApiKey, setGeminiApiKey] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [showQuickPatientForm, setShowQuickPatientForm] = useState(false);
   
@@ -51,7 +71,6 @@ export default function Index() {
     generating: generatingReport, 
     reportContent, 
     reportPdfUrl,
-    generateReport 
   } = useTechnicalReport();
 
   const { createPatient } = usePatientForm();
@@ -64,18 +83,11 @@ export default function Index() {
         return;
       }
 
-      // Check if config exists and load API key
+      // Check if config exists
       hasConfig().then((exists) => {
         setHasApiConfig(exists);
         if (!exists) {
           navigate("/config");
-        } else {
-          // Load API key for technical reports
-          getConfig().then((config) => {
-            if (config?.apiKey) {
-              setGeminiApiKey(config.apiKey);
-            }
-          });
         }
       });
     });
@@ -151,6 +163,14 @@ export default function Index() {
     setOriginalImage(null);
     setProcessedImage(null);
     setError(null);
+    setBudget(null);
+    setBudgetPdfUrl(null);
+    setCurrentSimulationId(null);
+    // Limpar apenas se nenhum paciente estiver selecionado
+    if (!selectedPatientId) {
+      setPatientName("");
+      setPatientPhone("");
+    }
   };
 
   const handleProcessImage = async () => {
@@ -162,7 +182,7 @@ export default function Index() {
     setProcessingTime(0);
     setBudget(null);
     setBudgetPdfUrl(null);
-
+    
     const startTime = Date.now();
 
     try {
@@ -171,11 +191,13 @@ export default function Index() {
         throw new Error("Configuração não encontrada");
       }
 
+      // 1. CHAMA O NOVO BACKEND UNIFICADO (Gemini #1 Análise + Gemini #2 Imagem)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.apiKey}`
         },
         body: JSON.stringify({
           imageBase64: originalImage,
@@ -186,6 +208,7 @@ export default function Index() {
             topP: config.topP,
             maxOutputTokens: config.maxTokens,
           },
+          servicePrices: config.servicePrices, // CRÍTICO: PREÇOS DA CLÍNICA
         }),
       });
 
@@ -196,53 +219,50 @@ export default function Index() {
 
       const result = await response.json();
       
-      if (!result.imageBase64) {
+      if (!result.processedImageBase64) {
         throw new Error("Resposta inválida do servidor: imagem não encontrada");
       }
 
-      setProcessedImage(result.imageBase64);
-      setProcessingTime(Date.now() - startTime);
+      // --- TRATAMENTO DA RESPOSTA UNIFICADA ---
+      const { analysis, budget: calculatedBudget, processedImageBase64 } = result;
       
-      // Extrair número de facetas da resposta
-      const detectedTeethCount = await extractTeethCountFromGeminiResponse(result.fullResponse || "");
-      setTeethCount(detectedTeethCount);
-      
-      // Calcular orçamento
-      const calculatedBudget = calculateBudget(detectedTeethCount);
-      setBudget(calculatedBudget);
-      
-      // Salvar análise no banco
       const { data: { user } } = await supabase.auth.getUser();
+      
+      let simulation;
       if (user) {
-        const simulation = await saveSimulationAnalysis(
+        simulation = await saveSimulationAnalysis(
           user.id,
-          originalImage,
-          result.imageBase64,
-          detectedTeethCount,
-          calculatedBudget
+          originalImage, // Base64 original
+          processedImageBase64, // Base64 processada
+          result // JSON completo
         );
         setCurrentSimulationId(simulation.id);
-
-        // Auto-create lead and draft budget if patient info is available
-        if (patientName && patientPhone) {
-          try {
-            await autoProcessSimulation(
-              simulation.id,
-              selectedPatientId,
-              patientName,
-              patientPhone,
-              detectedTeethCount,
-              calculatedBudget.finalPrice
-            );
-            console.log('Lead e orçamento draft criados automaticamente');
-          } catch (error) {
-            console.error('Erro na automação:', error);
-            // Don't block the main flow if automation fails
-          }
+      }
+      
+      setProcessedImage(simulation?.processed_image_url || processedImageBase64);
+      setProcessingTime(Date.now() - startTime);
+      
+      setTeethCount(analysis.f);
+      setBudget(calculatedBudget);
+      
+      // Auto-create lead and draft budget (CRM)
+      if (user && simulation && patientName && patientPhone) {
+        try {
+          await autoProcessSimulation(
+            simulation.id,
+            selectedPatientId,
+            patientName,
+            patientPhone,
+            analysis.f,
+            calculatedBudget.finalPrice
+          );
+          console.log('Lead e orçamento draft criados automaticamente');
+        } catch (error) {
+          console.error('Erro na automação:', error);
         }
       }
       
-      toast.success("Simulação gerada com sucesso!");
+      toast.success("Análise e Simulação geradas com sucesso!");
     } catch (err) {
       console.error("Erro ao processar:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
@@ -255,10 +275,25 @@ export default function Index() {
 
   const handleDownload = () => {
     if (processedImage) {
-      const filename = `facetas-resultado-${getTimestamp()}.jpg`;
+      const filename = `trusmile-resultado-${getTimestamp()}.jpg`;
       downloadImage(processedImage, filename);
       toast.success("Download iniciado!");
     }
+  };
+
+  const handleDownloadAntesDepois = () => {
+    if (!originalImage || !processedImage) {
+      toast.error("Imagens não disponíveis.");
+      return;
+    }
+    toast.info("Iniciando download da imagem ANTES...");
+    downloadImage(originalImage, `trusmile-antes-${getTimestamp()}.jpg`);
+    
+    setTimeout(() => { 
+      toast.info("Iniciando download da imagem DEPOIS...");
+      downloadImage(processedImage, `trusmile-depois-${getTimestamp()}.jpg`);
+      toast.success("Download das imagens concluído!");
+    }, 1000);
   };
 
   const handleNewSimulation = () => {
@@ -268,14 +303,16 @@ export default function Index() {
     setProcessingTime(0);
     setBudget(null);
     setBudgetPdfUrl(null);
-    setPatientName("");
-    setPatientPhone("");
     setCurrentSimulationId(null);
+    if (!selectedPatientId) {
+      setPatientName("");
+      setPatientPhone("");
+    }
   };
 
   const handleGeneratePDF = async () => {
-    if (!budget || !patientName) {
-      toast.error("Por favor, preencha o nome do paciente");
+    if (!budget || !patientName || !currentSimulationId) {
+      toast.error("Por favor, preencha o nome do paciente e processe a simulação");
       return;
     }
     
@@ -288,16 +325,15 @@ export default function Index() {
         patientPhone: patientPhone || undefined,
         date: new Date(),
         teethCount: teethCount,
-        pricePerTooth: 600,
+        pricePerTooth: budget.pricePerTooth,
         subtotal: budget.subtotal,
         paymentOptions: budget.paymentOptions
       });
       
       setBudgetPdfUrl(pdfUrl);
       
-      // Update simulation with PDF URL and patient_id
-      if (currentSimulationId) {
-        await supabase
+      // Update simulation and budget status
+      await supabase
           .from('simulations')
           .update({ 
             budget_pdf_url: pdfUrl,
@@ -306,65 +342,23 @@ export default function Index() {
             patient_id: selectedPatientId
           })
           .eq('id', currentSimulationId);
-      }
 
-      // Update existing draft budget to 'sent' status or create new one
-      const { data: existingBudget } = await supabase
-        .from('budgets')
-        .select('id')
-        .eq('simulation_id', currentSimulationId)
-        .eq('status', 'draft')
-        .single();
-
-      if (existingBudget) {
-        // Update draft to sent
-        await supabase
-          .from('budgets')
-          .update({
-            pdf_url: pdfUrl,
-            status: 'sent',
-            budget_number: budgetNumber,
-            payment_conditions: budget.paymentOptions,
-          })
-          .eq('id', existingBudget.id);
-
-        // Create activity for PDF generation
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && selectedPatientId) {
-          const { data: lead } = await supabase
-            .from('leads')
-            .select('id')
-            .eq('patient_id', selectedPatientId)
-            .eq('user_id', user.id)
-            .single();
-
-          if (lead) {
-            await supabase.from('activities').insert({
-              lead_id: lead.id,
-              type: 'budget_sent',
-              title: 'Orçamento enviado',
-              description: `Orçamento ${budgetNumber} gerado e enviado - R$ ${budget.finalPrice.toFixed(2)}`,
-              user_id: user.id,
-            });
-          }
-        }
-      } else {
-        // Create new budget as 'sent'
-        await createBudget({
-          budget_number: budgetNumber,
+      const today = new Date();
+      const expirationDate = addDays(today, 30);
+      
+      await createBudget({
+          simulation_id: currentSimulationId,
           patient_id: selectedPatientId || undefined,
-          simulation_id: currentSimulationId || undefined,
           teeth_count: teethCount,
-          price_per_tooth: 600,
           subtotal: budget.subtotal,
           final_price: budget.finalPrice,
           payment_conditions: budget.paymentOptions,
-          pdf_url: pdfUrl,
+          valid_until: expirationDate,
           status: 'sent',
-          valid_until: addDays(new Date(), 30),
-        });
-      }
-      
+          pdf_url: pdfUrl,
+          budget_number: budgetNumber,
+      });
+
       window.open(pdfUrl, '_blank');
       toast.success("PDF e orçamento gerados com sucesso!");
       
@@ -377,32 +371,53 @@ export default function Index() {
   };
 
   const handleTeethCountChange = (count: number) => {
-    if (count >= 2 && count <= 8) {
+    if (count >= 2 && count <= 8 && budget) {
       setTeethCount(count);
-      setBudget(calculateBudget(count));
+      
+      const fixedPrice = budget.pricePerTooth;
+      const complexidade = (budget.complexidade || 'média') as 'baixa' | 'média' | 'alta'; 
+      const needsClareamento = budget.needsClareamento || false;
+      
+      const recalculatedBudget = calculateBudgetLocal(count, fixedPrice, needsClareamento, complexidade);
+      setBudget(recalculatedBudget as CalculatedBudget);
     }
   };
-
+  
+  // Função para gerar o Relatório Técnico (agora usa o JSON salvo)
   const handleGenerateTechnicalReport = async () => {
-    if (!originalImage || !patientName) {
-      toast.error("Por favor, preencha o nome do paciente");
-      return;
-    }
-    
-    if (!geminiApiKey) {
-      toast.error("API Key do Gemini não configurada");
+    if (!currentSimulationId || !patientName) {
+      toast.error("Simulação ou nome do paciente não disponíveis");
       return;
     }
     
     try {
-      await generateReport(
-        originalImage,
+      const content = await getReportContentFromAnalysis(currentSimulationId); 
+      
+      const reportNumber = generateReportNumber();
+      
+      // Gerar PDF do relatório técnico
+      const pdfUrl = await generateTechnicalReportPDF({
+        reportNumber,
         patientName,
-        patientPhone || undefined,
-        teethCount,
-        geminiApiKey,
-        currentSimulationId || undefined
-      );
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: teethCount,
+        reportContent: content,
+        simulationId: currentSimulationId
+      });
+      
+      // Salvar URL do PDF na simulação
+      if (currentSimulationId) {
+        await supabase
+          .from('simulations')
+          .update({ 
+            technical_report_url: pdfUrl,
+            technical_notes: reportNumber
+          })
+          .eq('id', currentSimulationId);
+      }
+      
+      window.open(pdfUrl, '_blank');
       toast.success("Relatório técnico gerado com sucesso!");
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
@@ -465,7 +480,7 @@ export default function Index() {
                 className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                Gerar Simulação
+                Gerar Análise e Simulação
               </Button>
             </div>
           </div>
@@ -475,7 +490,7 @@ export default function Index() {
           <div className="space-y-6">
             <div className="rounded-lg border bg-card shadow-sm p-6">
               <h2 className="text-2xl font-semibold text-foreground mb-6 text-center">
-                Comparação de Resultados
+                Simulação (Antes e Depois)
               </h2>
               <ComparisonView
                 beforeImage={originalImage}
@@ -539,6 +554,30 @@ export default function Index() {
                   onGenerate={handleGenerateTechnicalReport}
                 />
 
+                {/* Botões de Ação Principal: Relatório e Orçamento */}
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button
+                    onClick={handleGenerateTechnicalReport}
+                    disabled={generatingReport || !patientName || !currentSimulationId}
+                    size="lg"
+                    variant="secondary"
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Relatório Técnico
+                  </Button>
+                  <Button
+                    onClick={handleGeneratePDF}
+                    disabled={generatingPdf || !patientName || !currentSimulationId}
+                    size="lg"
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Gerar Orçamento PDF
+                  </Button>
+                </div>
+
+                {/* Botões de Download */}
                 <div className="flex flex-wrap gap-3 justify-center">
                   <Button
                     onClick={handleNewSimulation}
@@ -550,7 +589,7 @@ export default function Index() {
                     Nova Simulação
                   </Button>
                   <Button
-                    onClick={handleDownload}
+                    onClick={() => downloadImage(processedImage!, `trusmile-resultado-${getTimestamp()}.jpg`)}
                     variant="outline"
                     size="lg"
                     className="flex items-center gap-2"
@@ -559,77 +598,39 @@ export default function Index() {
                     Baixar Resultado
                   </Button>
                   <Button
-                    onClick={handleGeneratePDF}
-                    disabled={generatingPdf || !patientName}
+                    onClick={handleDownloadAntesDepois}
+                    variant="default"
                     size="lg"
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
                   >
-                    {generatingPdf ? (
-                      <>Gerando PDF...</>
-                    ) : (
-                      <>
-                        <FileText className="h-5 w-5" />
-                        Gerar Orçamento PDF
-                      </>
-                    )}
+                    <Download className="h-5 w-5" />
+                    Baixar Antes e Depois
                   </Button>
-                  {budgetPdfUrl && (
-                    <Button
-                      onClick={() => window.open(budgetPdfUrl, '_blank')}
-                      size="lg"
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                    >
-                      <FileText className="h-5 w-5" />
-                      Abrir PDF
-                    </Button>
-                  )}
                 </div>
               </>
             )}
             
-            {processedImage && !budget && (
-              <div className="flex flex-wrap gap-3 justify-center">
-                <Button
-                  onClick={handleNewSimulation}
-                  variant="outline"
-                  size="lg"
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-5 w-5" />
-                  Nova Simulação
-                </Button>
-                <Button
-                  onClick={handleDownload}
-                  size="lg"
-                  className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-                >
-                  <Download className="h-5 w-5" />
-                  Baixar Resultado
-                </Button>
-              </div>
+            {error && (
+              <ErrorAlert
+                message={error}
+                suggestions={[
+                  "Verifique sua API Key nas configurações",
+                  "Backend não está rodando ou URL está incorreta",
+                  "Imagem em formato inválido ou muito grande",
+                  "Tempo limite excedido - tente novamente",
+                ]}
+                onClose={() => setError(null)}
+              />
             )}
           </div>
         )}
 
-        {error && (
-          <ErrorAlert
-            message={error}
-            suggestions={[
-              "Verifique sua API Key nas configurações",
-              "Backend não está rodando ou URL está incorreta",
-              "Imagem em formato inválido ou muito grande",
-              "Tempo limite excedido - tente novamente",
-            ]}
-            onClose={() => setError(null)}
-          />
-        )}
+        <QuickPatientForm
+          isOpen={showQuickPatientForm}
+          onClose={() => setShowQuickPatientForm(false)}
+          onSave={handleQuickPatientCreate}
+        />
       </div>
-
-      <QuickPatientForm
-        isOpen={showQuickPatientForm}
-        onClose={() => setShowQuickPatientForm(false)}
-        onSave={handleQuickPatientCreate}
-      />
     </Layout>
   );
 }

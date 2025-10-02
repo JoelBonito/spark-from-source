@@ -48,6 +48,17 @@ export const Budgets = () => {
     }
   };
 
+  const filteredBudgets = budgets.filter(budget => {
+    if (filters.search) {
+      const patientName = budget.patient?.name || '';
+      if (!patientName.toLowerCase().includes(filters.search.toLowerCase()) && 
+          !budget.budget_number.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <Layout>
       <div className="space-y-6">

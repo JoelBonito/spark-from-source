@@ -86,7 +86,8 @@ export async function getAllBudgets(filters?: BudgetFilters): Promise<Budget[]> 
 
   return (data || []).map(budget => ({
     ...budget,
-    patient: budget.patient?.[0] || null,
+    // Usar o nome do paciente da tabela patients se disponível
+    patient: (budget.patient as any) || null,
     status: budget.status as Budget['status']
   }));
 }
