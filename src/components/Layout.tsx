@@ -38,7 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src={trusmileLogo} alt="TruSmile" className="h-12" />
+            <img src={trusmileLogo} alt="TruSmile" className="h-16" />
           </div>
 
           <nav className="flex items-center gap-2">
