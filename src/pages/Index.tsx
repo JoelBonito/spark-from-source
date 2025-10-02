@@ -12,6 +12,7 @@ import ImageUpload from "@/components/ImageUpload";
 import ComparisonView from "@/components/ComparisonView";
 import { PatientSelector } from "@/components/PatientSelector";
 import { QuickPatientForm } from "@/components/QuickPatientForm";
+import { PDFViewerModal } from "@/components/PDFViewerModal";
 import { hasConfig, getConfig } from "@/utils/storage";
 import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
@@ -67,6 +68,12 @@ export default function Index() {
   // Loading states
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  
+  // PDFs
+  const [budgetPdfUrl, setBudgetPdfUrl] = useState<string | null>(null);
+  const [reportPdfUrl, setReportPdfUrl] = useState<string | null>(null);
+  const [showBudgetPdfModal, setShowBudgetPdfModal] = useState(false);
+  const [showReportPdfModal, setShowReportPdfModal] = useState(false);
 
   // Auth e Config check
   useEffect(() => {
@@ -372,7 +379,8 @@ Valores:
         })
         .eq('id', currentSimulationId);
       
-      window.open(pdfUrl, '_blank');
+      setReportPdfUrl(pdfUrl);
+      setShowReportPdfModal(true);
       toast.success("Relatório técnico gerado com sucesso!");
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
@@ -410,7 +418,8 @@ Valores:
         .update({ budget_pdf_url: pdfUrl })
         .eq('id', currentSimulationId);
 
-      window.open(pdfUrl, '_blank');
+      setBudgetPdfUrl(pdfUrl);
+      setShowBudgetPdfModal(true);
       toast.success("Orçamento gerado com sucesso!");
       
     } catch (error) {
@@ -714,6 +723,24 @@ Valores:
           onClose={() => setShowQuickPatientForm(false)}
           onSave={handleQuickPatientCreate}
         />
+
+        {budgetPdfUrl && (
+          <PDFViewerModal
+            isOpen={showBudgetPdfModal}
+            onClose={() => setShowBudgetPdfModal(false)}
+            pdfUrl={budgetPdfUrl}
+            title="Orçamento"
+          />
+        )}
+
+        {reportPdfUrl && (
+          <PDFViewerModal
+            isOpen={showReportPdfModal}
+            onClose={() => setShowReportPdfModal(false)}
+            pdfUrl={reportPdfUrl}
+            title="Relatório Técnico"
+          />
+        )}
       </div>
     </Layout>
   );

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PDFViewerModal } from '@/components/PDFViewerModal';
 
 interface Report {
   id: string;
@@ -22,6 +23,8 @@ export default function TechnicalReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedPdfUrl, setSelectedPdfUrl] = useState<string | null>(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   useEffect(() => {
     loadReports();
@@ -58,6 +61,11 @@ export default function TechnicalReports() {
     r.technical_notes?.toLowerCase().includes(search.toLowerCase()) ||
     r.patient_name?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleViewPdf = (pdfUrl: string) => {
+    setSelectedPdfUrl(pdfUrl);
+    setShowPdfModal(true);
+  };
 
   return (
     <Layout>
@@ -106,7 +114,7 @@ export default function TechnicalReports() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
-                            onClick={() => window.open(report.technical_report_url, '_blank')}
+                            onClick={() => handleViewPdf(report.technical_report_url)}
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
@@ -131,6 +139,15 @@ export default function TechnicalReports() {
             </div>
           )}
         </Card>
+
+        {selectedPdfUrl && (
+          <PDFViewerModal
+            isOpen={showPdfModal}
+            onClose={() => setShowPdfModal(false)}
+            pdfUrl={selectedPdfUrl}
+            title="Relatório Técnico"
+          />
+        )}
       </div>
     </Layout>
   );
