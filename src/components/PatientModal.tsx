@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,9 @@ export const PatientModal: React.FC<PatientModalProps> = ({
           <DialogTitle>
             {patient ? 'Editar Paciente' : 'Novo Paciente'}
           </DialogTitle>
+          <DialogDescription>
+            {patient ? 'Atualize as informações do paciente' : 'Cadastre um novo paciente no sistema'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
 
@@ -27,6 +27,9 @@ export function PDFViewerModal({ isOpen, onClose, pdfUrl, title }: PDFViewerModa
               </Button>
             </div>
           </DialogTitle>
+          <DialogDescription>
+            Visualização do documento PDF
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-hidden rounded-lg border bg-muted">
           <iframe

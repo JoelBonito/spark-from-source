@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useLeadDetail } from '@/hooks/useLeadDetail';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -87,6 +87,9 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
               <div className="flex items-start justify-between">
                 <div>
                   <DialogTitle className="text-2xl">{lead.name}</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Detalhes completos e histórico do lead
+                  </DialogDescription>
                   <p className="text-sm text-muted-foreground mt-1">
                     {lead.phone}
                   </p>

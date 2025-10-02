@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 interface BudgetDetailModalProps {
@@ -33,6 +34,9 @@ export const BudgetDetailModal: React.FC<BudgetDetailModalProps> = ({
       <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes do Orçamento</DialogTitle>
+          <DialogDescription>
+            Informações completas sobre o orçamento do paciente
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (

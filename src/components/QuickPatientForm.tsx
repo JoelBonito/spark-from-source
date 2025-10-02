@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,9 @@ export const QuickPatientForm: React.FC<QuickPatientFormProps> = ({
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Criar Paciente Rápido</DialogTitle>
+          <DialogDescription>
+            Cadastro simplificado com nome e telefone
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

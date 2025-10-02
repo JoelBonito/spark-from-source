@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 interface PatientDetailModalProps {
@@ -32,6 +33,9 @@ export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Detalhes do Paciente</DialogTitle>
+          <DialogDescription>
+            Informações cadastrais e histórico de simulações do paciente
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (
