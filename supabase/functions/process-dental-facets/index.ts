@@ -182,14 +182,27 @@ Deno.serve(async (req) => {
       const analysisResult = await analysisResponse.json();
       const analysisText = analysisResult.choices?.[0]?.message?.content || '';
       
-      // Parse JSON da resposta
+      // Parse JSON da resposta (remove markdown se presente)
       let analysis;
       try {
-        const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('JSON não encontrado na resposta');
+        let cleanText = analysisText.trim();
+        
+        // Remove markdown code blocks se presentes
+        if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        }
+        
+        // Extrai JSON do texto
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          console.error('JSON não encontrado na resposta:', cleanText.substring(0, 500));
+          throw new Error('JSON não encontrado na resposta');
+        }
+        
         analysis = JSON.parse(jsonMatch[0]);
       } catch (e) {
-        console.error('Erro ao parsear análise:', analysisText);
+        console.error('Erro ao parsear análise:', e);
+        console.error('Texto recebido (primeiros 1000 chars):', analysisText.substring(0, 1000));
         throw new Error('Resposta da análise em formato inválido');
       }
 
