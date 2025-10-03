@@ -314,6 +314,59 @@ export default function Index() {
         setProcessedImage(processedUrl);
       }
 
+      // ========================================
+      // PASSO 3: GERAR PDFs AUTOMATICAMENTE
+      // ========================================
+      setProcessingStep('Gerando documentos...');
+
+      const reportNumber = generateReportNumber();
+      const budgetNumber = generateBudgetNumber();
+
+      // Gerar Relatório Técnico
+      const reportPdf = await generateTechnicalReportPDF({
+        reportNumber,
+        patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: 0,
+        reportContent: analysisResult.relatorio_tecnico,
+        simulationId: simulationId || currentSimulationId || '',
+        beforeImage: originalImage,
+        afterImage: processedImage || ''
+      });
+
+      // Gerar Orçamento
+      const budgetPdf = await generateBudgetPDF({
+        budgetNumber,
+        patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: 4,
+        pricePerTooth: 700,
+        subtotal: 3600,
+        paymentOptions: [
+          { name: 'À vista', installments: 1, discount: 10, value: 3240, installmentValue: 3240 },
+          { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
+          { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
+          { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
+        ],
+        beforeImage: originalImage,
+        afterImage: processedImage || ''
+      });
+
+      // Atualizar simulação com os PDFs
+      if (simulationId) {
+        await supabase
+          .from('simulations')
+          .update({
+            technical_report_url: reportPdf,
+            budget_pdf_url: budgetPdf
+          })
+          .eq('id', simulationId);
+      }
+
+      setReportPdfUrl(reportPdf);
+      setBudgetPdfUrl(budgetPdf);
       setCurrentState('completed');
       toast.success("Simulação concluída com sucesso!");
       
@@ -325,87 +378,20 @@ export default function Index() {
     }
   };
 
-  const handleGenerateTechnicalReport = async () => {
-    if (!currentSimulationId || !patientName || !analysisData) {
-      toast.error("Dados insuficientes para gerar relatório");
-      return;
-    }
-    
-    try {
-      const reportNumber = generateReportNumber();
-      const pdfUrl = await generateTechnicalReportPDF({
-        reportNumber,
-        patientName,
-        patientPhone: patientPhone || undefined,
-        date: new Date(),
-        teethCount: 0,
-        reportContent: analysisData.relatorio_tecnico,
-        simulationId: currentSimulationId,
-        beforeImage: originalImage || undefined,
-        afterImage: processedImage || undefined
-      });
-      
-      await supabase
-        .from('simulations')
-        .update({ 
-          technical_report_url: pdfUrl,
-          technical_notes: reportNumber
-        })
-        .eq('id', currentSimulationId);
-      
-      setReportPdfUrl(pdfUrl);
+  const handleViewTechnicalReport = () => {
+    if (reportPdfUrl) {
       setShowReportPdfModal(true);
-      toast.success("Relatório técnico gerado!");
-    } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
-      toast.error('Erro ao gerar relatório técnico');
     }
   };
 
-  const handleGenerateBudget = async () => {
-    if (!analysisData || !patientName || !currentSimulationId) {
-      toast.error("Dados insuficientes para gerar orçamento");
-      return;
-    }
-    
-    try {
-      const budgetNumber = generateBudgetNumber();
-      
-      const pdfUrl = await generateBudgetPDF({
-        budgetNumber,
-        patientName,
-        patientPhone: patientPhone || undefined,
-        date: new Date(),
-        teethCount: 4,
-        pricePerTooth: 700,
-        subtotal: 3600,
-        paymentOptions: [
-          { name: 'À vista', installments: 1, discount: 10, value: 3240, installmentValue: 3240 },
-          { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
-          { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
-          { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
-        ],
-        beforeImage: originalImage || undefined,
-        afterImage: processedImage || undefined
-      });
-      
-      await supabase
-        .from('simulations')
-        .update({ budget_pdf_url: pdfUrl })
-        .eq('id', currentSimulationId);
-
-      setBudgetPdfUrl(pdfUrl);
+  const handleViewBudget = () => {
+    if (budgetPdfUrl) {
       setShowBudgetPdfModal(true);
-      toast.success("Orçamento gerado!");
-      
-    } catch (error) {
-      console.error('Erro ao gerar orçamento:', error);
-      toast.error('Erro ao gerar orçamento');
     }
   };
 
   const handleSaveSimulation = async () => {
-    if (!currentSimulationId || !patientName || !analysisData || !originalImage || !processedImage) {
+    if (!currentSimulationId || !patientName || !analysisData || !originalImage || !processedImage || !reportPdfUrl || !budgetPdfUrl) {
       toast.error("Dados insuficientes para salvar simulação");
       return;
     }
@@ -415,47 +401,22 @@ export default function Index() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // Extrair números dos PDFs já gerados
+      const { data: simulation } = await supabase
+        .from('simulations')
+        .select('*')
+        .eq('id', currentSimulationId)
+        .single();
+
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
 
-      // Gerar PDFs
-      const reportPdfUrl = await generateTechnicalReportPDF({
-        reportNumber,
-        patientName,
-        patientPhone: patientPhone || undefined,
-        date: new Date(),
-        teethCount: 0,
-        reportContent: analysisData.relatorio_tecnico,
-        simulationId: currentSimulationId,
-        beforeImage: originalImage,
-        afterImage: processedImage
-      });
-
-      const budgetPdfUrl = await generateBudgetPDF({
-        budgetNumber,
-        patientName,
-        patientPhone: patientPhone || undefined,
-        date: new Date(),
-        teethCount: 4,
-        pricePerTooth: 700,
-        subtotal: 3600,
-        paymentOptions: [
-          { name: 'À vista', installments: 1, discount: 10, value: 3240, installmentValue: 3240 },
-          { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
-          { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
-          { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
-        ],
-        beforeImage: originalImage,
-        afterImage: processedImage
-      });
-
-      // Salvar em todas as tabelas
+      // Atualizar status da simulação
       await supabase.from('simulations').update({
-        technical_report_url: reportPdfUrl,
-        budget_pdf_url: budgetPdfUrl,
         status: 'saved'
       }).eq('id', currentSimulationId);
 
+      // Salvar na tabela reports
       await supabase.from('reports').insert({
         simulation_id: currentSimulationId,
         patient_id: selectedPatientId,
@@ -467,6 +428,7 @@ export default function Index() {
         after_image: processedImage
       });
 
+      // Salvar na tabela budgets
       await supabase.from('budgets').insert({
         patient_id: selectedPatientId,
         user_id: user.id,
@@ -475,9 +437,10 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: 8,
+        teeth_count: 4,
         subtotal: 3600,
-        final_price: 3600
+        final_price: 3600,
+        price_per_tooth: 700
       });
 
       if (selectedPatientId) {
@@ -654,19 +617,21 @@ export default function Index() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Button 
                     variant="outline"
-                    onClick={handleGenerateTechnicalReport}
+                    onClick={handleViewTechnicalReport}
+                    disabled={!reportPdfUrl}
                     className="w-full"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    {reportPdfUrl ? 'Ver Relatório Técnico' : 'Gerar Relatório'}
+                    Ver Relatório Técnico
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={handleGenerateBudget}
+                    onClick={handleViewBudget}
+                    disabled={!budgetPdfUrl}
                     className="w-full"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    {budgetPdfUrl ? 'Ver Orçamento' : 'Gerar Orçamento'}
+                    Ver Orçamento
                   </Button>
                 </div>
               </CardContent>
