@@ -14,17 +14,15 @@ import { PatientSelector } from "@/components/PatientSelector";
 import { QuickPatientForm } from "@/components/QuickPatientForm";
 import { PDFViewerModal } from "@/components/PDFViewerModal";
 import { hasConfig, getConfig } from "@/utils/storage";
-import { downloadImage } from "@/utils/imageProcessing";
 import { getTimestamp } from "@/utils/formatters";
 import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
 import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
 
-// Tipos
-type SimulatorState = 'select_patient' | 'upload_photo' | 'analyzing' | 'analysis_ready' | 'generating_image' | 'completed';
+// Tipos simplificados
+type SimulatorState = 'input' | 'processing' | 'completed';
 
-// NOVA INTERFACE - compatível com Edge Function atualizada
 interface AnalysisResult {
   relatorio_tecnico: string;
   orcamento: string;
@@ -42,7 +40,7 @@ export default function Index() {
   const { createPatient } = usePatientForm();
 
   // Estados principais
-  const [currentState, setCurrentState] = useState<SimulatorState>('select_patient');
+  const [currentState, setCurrentState] = useState<SimulatorState>('input');
   const [hasApiConfig, setHasApiConfig] = useState(false);
   
   // Paciente
@@ -61,7 +59,7 @@ export default function Index() {
   
   // Loading states
   const [processingTime, setProcessingTime] = useState<number>(0);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [processingStep, setProcessingStep] = useState<string>('');
   const [savingSimulation, setSavingSimulation] = useState(false);
   
   // PDFs
@@ -105,7 +103,7 @@ export default function Index() {
   // Timer para loading
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (currentState === 'analyzing' || currentState === 'generating_image') {
+    if (currentState === 'processing') {
       const startTime = Date.now();
       interval = setInterval(() => {
         setProcessingTime(Date.now() - startTime);
@@ -148,7 +146,6 @@ export default function Index() {
 
   const handleImageSelect = (base64: string) => {
     setOriginalImage(base64);
-    setCurrentState('upload_photo');
   };
 
   const handleClearImage = () => {
@@ -156,18 +153,17 @@ export default function Index() {
     setProcessedImage(null);
     setAnalysisData(null);
     setCurrentSimulationId(null);
-    setCurrentState('select_patient');
-    if (!selectedPatientId) {
-      setPatientName("");
-      setPatientPhone("");
-    }
+    setCurrentState('input');
   };
 
-  // FLUXO 1: Processar Análise - ATUALIZADO
-  const handleProcessAnalysis = async () => {
-    if (!originalImage) return;
+  // FLUXO UNIFICADO: Análise + Geração em uma única função
+  const handleProcessAndGenerate = async () => {
+    if (!originalImage || !patientName) {
+      toast.error("Preencha o nome do paciente e faça o upload da foto");
+      return;
+    }
 
-    setCurrentState('analyzing');
+    setCurrentState('processing');
     setProcessingTime(0);
 
     try {
@@ -177,7 +173,13 @@ export default function Index() {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
+
+      // ========================================
+      // PASSO 1: ANÁLISE (3-5 segundos)
+      // ========================================
+      setProcessingStep('Analisando foto e gerando documentos...');
+      
+      const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -189,31 +191,30 @@ export default function Index() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+      if (!analysisResponse.ok) {
+        const errorData = await analysisResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro na análise: ${analysisResponse.status}`);
       }
 
-      const result = await response.json();
+      const analysisResult = await analysisResponse.json();
       
-      // Verificar se recebeu os documentos
-      if (!result.relatorio_tecnico || !result.orcamento) {
+      if (!analysisResult.relatorio_tecnico || !analysisResult.orcamento) {
         throw new Error("Resposta incompleta da análise");
       }
 
-      // Verificar se foi truncado
-      if (result.metadata?.truncated) {
-        toast.warning("Atenção: Resposta foi truncada. O relatório pode estar incompleto.");
+      if (analysisResult.metadata?.truncated) {
+        toast.warning("Atenção: Resposta foi truncada.");
       }
 
-      setAnalysisData(result);
-      
-      // Salvar simulação inicial no banco
+      setAnalysisData(analysisResult);
+
+      // Salvar simulação inicial
       const { data: { user } } = await supabase.auth.getUser();
+      let simulationId: string | null = null;
+
       if (user) {
         const timestamp = getTimestamp();
         
-        // Upload imagem original
         const fetchResponse = await fetch(originalImage);
         const blob = await fetchResponse.blob();
         const originalFileName = `${user.id}/original-${timestamp}.jpeg`;
@@ -238,44 +239,26 @@ export default function Index() {
             patient_name: patientName,
             patient_phone: patientPhone || null,
             original_image_url: originalUrl,
-            technical_notes: result.relatorio_tecnico,
+            technical_notes: analysisResult.relatorio_tecnico,
             budget_data: {
-              orcamento: result.orcamento,
-              metadata: result.metadata,
+              orcamento: analysisResult.orcamento,
+              metadata: analysisResult.metadata,
             },
             status: 'analyzed',
           })
           .select()
           .single();
 
-        setCurrentSimulationId(simulation.id);
+        simulationId = simulation.id;
+        setCurrentSimulationId(simulationId);
       }
 
-      setCurrentState('analysis_ready');
-      toast.success("Análise concluída!");
-    } catch (err) {
-      console.error("Erro ao processar análise:", err);
-      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
-      toast.error(errorMessage);
-      setCurrentState('upload_photo');
-    }
-  };
+      // ========================================
+      // PASSO 2: GERAÇÃO DE IMAGEM (5-8 segundos)
+      // ========================================
+      setProcessingStep('Gerando simulação visual...');
 
-  // FLUXO 2: Gerar Simulação Visual - ATUALIZADO
-  const handleGenerateSimulation = async () => {
-    if (!originalImage || !analysisData) return;
-
-    setCurrentState('generating_image');
-    setProcessingTime(0);
-
-    try {
-      const config = await getConfig();
-      if (!config) {
-        throw new Error("Configuração não encontrada");
-      }
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
+      const imageResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -284,7 +267,7 @@ export default function Index() {
         body: JSON.stringify({
           action: 'generate',
           imageBase64: originalImage,
-          reportText: analysisData.relatorio_tecnico,
+          reportText: analysisResult.relatorio_tecnico,
           config: {
             temperature: config.temperature,
             topK: config.topK,
@@ -294,18 +277,17 @@ export default function Index() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+      if (!imageResponse.ok) {
+        const errorData = await imageResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro na geração: ${imageResponse.status}`);
       }
 
-      const result = await response.json();
+      const imageResult = await imageResponse.json();
       
       // Upload imagem processada
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && currentSimulationId) {
+      if (user && simulationId) {
         const timestamp = getTimestamp();
-        const fetchResponse = await fetch(result.processedImageBase64);
+        const fetchResponse = await fetch(imageResult.processedImageBase64);
         const blob = await fetchResponse.blob();
         const processedFileName = `${user.id}/processed-${timestamp}.jpeg`;
         
@@ -327,18 +309,19 @@ export default function Index() {
             processed_image_url: processedUrl,
             status: 'completed',
           })
-          .eq('id', currentSimulationId);
+          .eq('id', simulationId);
 
         setProcessedImage(processedUrl);
       }
 
       setCurrentState('completed');
-      toast.success("Simulação visual gerada!");
+      toast.success("Simulação concluída com sucesso!");
+      
     } catch (err) {
-      console.error("Erro ao gerar simulação:", err);
+      console.error("Erro ao processar:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error(errorMessage);
-      setCurrentState('analysis_ready');
+      setCurrentState('input');
     }
   };
 
@@ -366,13 +349,13 @@ export default function Index() {
         .from('simulations')
         .update({ 
           technical_report_url: pdfUrl,
-          technical_notes: analysisData.relatorio_tecnico
+          technical_notes: reportNumber
         })
         .eq('id', currentSimulationId);
       
       setReportPdfUrl(pdfUrl);
       setShowReportPdfModal(true);
-      toast.success("Relatório técnico gerado com sucesso!");
+      toast.success("Relatório técnico gerado!");
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
       toast.error('Erro ao gerar relatório técnico');
@@ -385,11 +368,9 @@ export default function Index() {
       return;
     }
     
-    setGeneratingPdf(true);
     try {
       const budgetNumber = generateBudgetNumber();
       
-      // Valores padrão (você pode extrair do texto do orçamento se necessário)
       const pdfUrl = await generateBudgetPDF({
         budgetNumber,
         patientName,
@@ -415,13 +396,11 @@ export default function Index() {
 
       setBudgetPdfUrl(pdfUrl);
       setShowBudgetPdfModal(true);
-      toast.success("Orçamento gerado com sucesso!");
+      toast.success("Orçamento gerado!");
       
     } catch (error) {
       console.error('Erro ao gerar orçamento:', error);
       toast.error('Erro ao gerar orçamento');
-    } finally {
-      setGeneratingPdf(false);
     }
   };
 
@@ -439,7 +418,7 @@ export default function Index() {
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
 
-      // 1. Gerar PDFs com fotos
+      // Gerar PDFs
       const reportPdfUrl = await generateTechnicalReportPDF({
         reportNumber,
         patientName,
@@ -470,14 +449,13 @@ export default function Index() {
         afterImage: processedImage
       });
 
-      // 2. Atualizar simulação
+      // Salvar em todas as tabelas
       await supabase.from('simulations').update({
         technical_report_url: reportPdfUrl,
         budget_pdf_url: budgetPdfUrl,
         status: 'saved'
       }).eq('id', currentSimulationId);
 
-      // 3. Criar em reports
       await supabase.from('reports').insert({
         simulation_id: currentSimulationId,
         patient_id: selectedPatientId,
@@ -489,7 +467,6 @@ export default function Index() {
         after_image: processedImage
       });
 
-      // 4. Criar em budgets
       await supabase.from('budgets').insert({
         simulation_id: currentSimulationId,
         patient_id: selectedPatientId,
@@ -499,20 +476,15 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: 4,
-        price_per_tooth: 700,
-        subtotal: 3600,
-        final_price: 3600
+        total_value: 3600
       });
 
-      // 5. Atualizar patients
       if (selectedPatientId) {
         await supabase.from('patients').update({
           last_simulation_date: new Date().toISOString()
         }).eq('id', selectedPatientId);
       }
 
-      // 6. Criar lead no CRM
       await supabase.from('crm_leads').insert({
         patient_id: selectedPatientId,
         simulation_id: currentSimulationId,
@@ -525,10 +497,10 @@ export default function Index() {
         source: 'simulator'
       });
 
-      toast.success("Simulação salva com sucesso!");
+      toast.success("Simulação salva!");
       handleNewSimulation();
     } catch (error) {
-      console.error('Erro ao salvar simulação:', error);
+      console.error('Erro ao salvar:', error);
       toast.error('Erro ao salvar simulação');
     } finally {
       setSavingSimulation(false);
@@ -541,7 +513,10 @@ export default function Index() {
     setAnalysisData(null);
     setCurrentSimulationId(null);
     setProcessingTime(0);
-    setCurrentState('select_patient');
+    setProcessingStep('');
+    setCurrentState('input');
+    setBudgetPdfUrl(null);
+    setReportPdfUrl(null);
     if (!selectedPatientId) {
       setPatientName("");
       setPatientPhone("");
@@ -557,21 +532,22 @@ export default function Index() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            TruSmile - Análise de Sorriso
+            TruSmile - Simulador de Sorriso
           </h1>
           <p className="text-muted-foreground">
-            Análise diagnóstica → Relatórios → Simulação visual
+            Transforme sorrisos com IA
           </p>
         </div>
 
-        {/* ETAPA 1: Seleção de Paciente */}
-        {currentState === 'select_patient' && (
+        {/* TELA 1: INPUT (Dados + Upload) */}
+        {currentState === 'input' && (
           <Card>
             <CardHeader>
-              <CardTitle>Etapa 1: Selecionar Paciente</CardTitle>
-              <CardDescription>Escolha ou crie um novo paciente para iniciar</CardDescription>
+              <CardTitle>Nova Simulação</CardTitle>
+              <CardDescription>Preencha os dados e faça o upload da foto</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Seletor de Paciente */}
               <div className="space-y-2">
                 <Label>Paciente</Label>
                 <PatientSelector
@@ -580,6 +556,8 @@ export default function Index() {
                   onCreateNew={() => setShowQuickPatientForm(true)}
                 />
               </div>
+
+              {/* Dados do Paciente */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="patientName">Nome do Paciente *</Label>
@@ -602,117 +580,68 @@ export default function Index() {
                   />
                 </div>
               </div>
-              <Button 
-                onClick={() => setCurrentState('upload_photo')}
-                disabled={!patientName}
-                className="w-full mt-4"
-                size="lg"
-              >
-                Continuar para Upload
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* ETAPA 2: Upload da Foto */}
-        {currentState === 'upload_photo' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Etapa 2: Upload da Foto</CardTitle>
-              <CardDescription>Paciente: {patientName}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ImageUpload
-                onImageSelect={handleImageSelect}
-                currentImage={originalImage}
-                onClear={handleClearImage}
-                disabled={false}
-              />
-              {originalImage && (
-                <Button
-                  onClick={handleProcessAnalysis}
-                  size="lg"
-                  className="w-full"
-                >
-                  <Zap className="h-5 w-5 mr-2" />
-                  Processar Análise
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* LOADING: Analisando */}
-        {currentState === 'analyzing' && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-lg font-medium">Analisando foto...</p>
-              <p className="text-sm text-muted-foreground">Aguarde 3-5 segundos</p>
-              {processingTime > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  {(processingTime / 1000).toFixed(1)}s
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ETAPA 3: Resultado da Análise */}
-        {currentState === 'analysis_ready' && analysisData && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Etapa 3: Análise Concluída</CardTitle>
-              <CardDescription>Relatório técnico e orçamento gerados</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Documentos Disponíveis:</p>
-                <ul className="text-sm space-y-1">
-                  <li>✓ Relatório Técnico ({analysisData.relatorio_tecnico.length} caracteres)</li>
-                  <li>✓ Orçamento ({analysisData.orcamento.length} caracteres)</li>
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Os documentos serão incluídos após a geração da simulação visual
-                </p>
+              {/* Upload de Imagem */}
+              <div className="space-y-2">
+                <Label>Foto do Sorriso *</Label>
+                <ImageUpload
+                  onImageSelect={handleImageSelect}
+                  currentImage={originalImage}
+                  onClear={handleClearImage}
+                  disabled={false}
+                />
               </div>
 
-              <Button 
-                onClick={handleGenerateSimulation}
+              {/* Botão Processar */}
+              <Button
+                onClick={handleProcessAndGenerate}
+                disabled={!patientName || !originalImage}
                 size="lg"
-                className="w-full mt-4"
+                className="w-full"
               >
-                Gerar Simulação Visual
+                <Zap className="h-5 w-5 mr-2" />
+                Processar e Gerar Simulação
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* LOADING: Gerando Imagem */}
-        {currentState === 'generating_image' && (
+        {/* LOADING: Processando */}
+        {currentState === 'processing' && (
           <Card>
-            <CardContent className="py-12 text-center">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-lg font-medium">Gerando simulação visual...</p>
-              <p className="text-sm text-muted-foreground">Aguarde 5-8 segundos</p>
+            <CardContent className="py-16 text-center">
+              <Loader2 className="h-16 w-16 animate-spin mx-auto mb-6 text-primary" />
+              <p className="text-xl font-medium mb-2">{processingStep}</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Aguarde 8-15 segundos
+              </p>
               {processingTime > 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  {(processingTime / 1000).toFixed(1)}s
-                </p>
+                <div className="space-y-2">
+                  <p className="text-lg font-mono text-muted-foreground">
+                    {(processingTime / 1000).toFixed(1)}s
+                  </p>
+                  <div className="w-64 mx-auto bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min((processingTime / 15000) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
         )}
 
-        {/* ETAPA 4: Resultado Completo */}
+        {/* TELA 2: RESULTADO */}
         {currentState === 'completed' && analysisData && processedImage && originalImage && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Resultado da Simulação</CardTitle>
+                <CardTitle>Simulação Concluída</CardTitle>
                 <CardDescription>Paciente: {patientName}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                {/* Comparação Antes/Depois */}
                 <ComparisonView
                   beforeImage={originalImage}
                   afterImage={processedImage}
@@ -720,37 +649,36 @@ export default function Index() {
                   processingTime={0}
                 />
 
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <p className="text-sm">
-                    Análise completa • Documentos disponíveis para download
+                {/* Info */}
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm font-medium">
+                    ✓ Análise completa • Documentos disponíveis
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-6">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button 
-                      variant="outline"
-                      onClick={handleGenerateTechnicalReport}
-                      disabled={generatingPdf}
-                      className="flex-1"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {reportPdfUrl ? 'Ver Relatório' : 'Gerar Relatório'}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={handleGenerateBudget}
-                      disabled={generatingPdf}
-                      className="flex-1"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {budgetPdfUrl ? 'Ver Orçamento' : 'Gerar Orçamento'}
-                    </Button>
-                  </div>
+                {/* Botões de Documentos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline"
+                    onClick={handleGenerateTechnicalReport}
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {reportPdfUrl ? 'Ver Relatório Técnico' : 'Gerar Relatório'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleGenerateBudget}
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {budgetPdfUrl ? 'Ver Orçamento' : 'Gerar Orçamento'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Botão Salvar */}
             <div className="flex justify-end">
               <Button 
                 onClick={handleSaveSimulation}
@@ -764,6 +692,7 @@ export default function Index() {
           </div>
         )}
 
+        {/* Modais */}
         <QuickPatientForm
           isOpen={showQuickPatientForm}
           onClose={() => setShowQuickPatientForm(false)}
