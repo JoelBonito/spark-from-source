@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
       } catch (error) {
         clearTimeout(timeoutId);
         
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Requisição cancelada por timeout (90s). Tente novamente ou simplifique a análise.');
         }
         
@@ -580,7 +580,7 @@ Deno.serve(async (req) => {
       } catch (error) {
         clearTimeout(timeoutId);
         
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Geração de imagem cancelada por timeout (120s). Tente novamente.');
         }
         
