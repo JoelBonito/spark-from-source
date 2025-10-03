@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 500,
+          max_tokens: 4000,
         }),
       });
 
