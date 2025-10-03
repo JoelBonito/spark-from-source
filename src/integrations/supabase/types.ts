@@ -57,6 +57,8 @@ export type Database = {
       }
       budgets: {
         Row: {
+          after_image: string | null
+          before_image: string | null
           budget_number: string
           created_at: string | null
           discount_amount: number | null
@@ -64,6 +66,7 @@ export type Database = {
           final_price: number
           id: string
           patient_id: string | null
+          patient_name: string | null
           payment_conditions: Json | null
           pdf_url: string | null
           price_per_tooth: number | null
@@ -76,6 +79,8 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          after_image?: string | null
+          before_image?: string | null
           budget_number: string
           created_at?: string | null
           discount_amount?: number | null
@@ -83,6 +88,7 @@ export type Database = {
           final_price: number
           id?: string
           patient_id?: string | null
+          patient_name?: string | null
           payment_conditions?: Json | null
           pdf_url?: string | null
           price_per_tooth?: number | null
@@ -95,6 +101,8 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          after_image?: string | null
+          before_image?: string | null
           budget_number?: string
           created_at?: string | null
           discount_amount?: number | null
@@ -102,6 +110,7 @@ export type Database = {
           final_price?: number
           id?: string
           patient_id?: string | null
+          patient_name?: string | null
           payment_conditions?: Json | null
           pdf_url?: string | null
           price_per_tooth?: number | null
@@ -123,6 +132,63 @@ export type Database = {
           },
           {
             foreignKeyName: "budgets_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          after_image: string | null
+          before_image: string | null
+          created_at: string
+          id: string
+          patient_id: string | null
+          patient_name: string
+          patient_phone: string | null
+          simulation_id: string | null
+          source: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          after_image?: string | null
+          before_image?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          simulation_id?: string | null
+          source?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          after_image?: string | null
+          before_image?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          simulation_id?: string | null
+          source?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_simulation_id_fkey"
             columns: ["simulation_id"]
             isOneToOne: false
             referencedRelation: "simulations"
@@ -202,6 +268,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          last_simulation_date: string | null
           name: string
           notes: string | null
           phone: string
@@ -215,6 +282,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          last_simulation_date?: string | null
           name: string
           notes?: string | null
           phone: string
@@ -228,6 +296,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          last_simulation_date?: string | null
           name?: string
           notes?: string | null
           phone?: string
@@ -236,6 +305,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          after_image: string | null
+          before_image: string | null
+          created_at: string
+          id: string
+          patient_id: string | null
+          patient_name: string
+          pdf_url: string | null
+          report_number: string
+          simulation_id: string | null
+          user_id: string
+        }
+        Insert: {
+          after_image?: string | null
+          before_image?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string | null
+          patient_name: string
+          pdf_url?: string | null
+          report_number: string
+          simulation_id?: string | null
+          user_id: string
+        }
+        Update: {
+          after_image?: string | null
+          before_image?: string | null
+          created_at?: string
+          id?: string
+          patient_id?: string | null
+          patient_name?: string
+          pdf_url?: string | null
+          report_number?: string
+          simulation_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       simulations: {
         Row: {

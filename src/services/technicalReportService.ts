@@ -13,6 +13,8 @@ export interface TechnicalReportData {
   teethCount: number;
   reportContent: string;
   simulationId?: string;
+  beforeImage?: string;
+  afterImage?: string;
 }
 
 export function generateReportNumber(): string {
@@ -86,6 +88,33 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   doc.text(`Nome: ${data.patientName}`, margin, y);
   if (data.patientPhone) {
     doc.text(`Telefone: ${data.patientPhone}`, margin + 100, y);
+  }
+  
+  // Análise Visual Comparativa (se disponível)
+  if (data.beforeImage && data.afterImage) {
+    y += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('ANÁLISE VISUAL COMPARATIVA', margin, y);
+    y += 8;
+    
+    const imgWidth = 75;
+    const imgHeight = 56;
+    const spacing = 10;
+    const startX = margin;
+    
+    doc.setFontSize(9);
+    doc.text('CONDIÇÃO INICIAL', startX + (imgWidth / 2), y, { align: 'center' });
+    y += 3;
+    doc.rect(startX, y, imgWidth, imgHeight);
+    doc.addImage(data.beforeImage, 'JPEG', startX, y, imgWidth, imgHeight);
+    
+    const afterX = startX + imgWidth + spacing;
+    doc.text('SIMULAÇÃO PÓS-TRATAMENTO', afterX + (imgWidth / 2), y - 3, { align: 'center' });
+    doc.rect(afterX, y, imgWidth, imgHeight);
+    doc.addImage(data.afterImage, 'JPEG', afterX, y, imgWidth, imgHeight);
+    
+    y += imgHeight + 18;
   }
   
   // Conteúdo do Relatório

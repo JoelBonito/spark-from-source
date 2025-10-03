@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, RefreshCw, Zap, FileText, Loader2 } from "lucide-react";
+import { Save, Zap, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +62,7 @@ export default function Index() {
   // Loading states
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [savingSimulation, setSavingSimulation] = useState(false);
   
   // PDFs
   const [budgetPdfUrl, setBudgetPdfUrl] = useState<string | null>(null);
@@ -356,7 +357,9 @@ export default function Index() {
         date: new Date(),
         teethCount: 0,
         reportContent: analysisData.relatorio_tecnico,
-        simulationId: currentSimulationId
+        simulationId: currentSimulationId,
+        beforeImage: originalImage || undefined,
+        afterImage: processedImage || undefined
       });
       
       await supabase
@@ -400,7 +403,9 @@ export default function Index() {
           { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
           { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
           { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
-        ]
+        ],
+        beforeImage: originalImage || undefined,
+        afterImage: processedImage || undefined
       });
       
       await supabase
@@ -420,19 +425,114 @@ export default function Index() {
     }
   };
 
-  const handleDownloadAntesDepois = () => {
-    if (!originalImage || !processedImage) {
-      toast.error("Imagens não disponíveis.");
+  const handleSaveSimulation = async () => {
+    if (!currentSimulationId || !patientName || !analysisData || !originalImage || !processedImage) {
+      toast.error("Dados insuficientes para salvar simulação");
       return;
     }
-    toast.info("Iniciando download da imagem ANTES...");
-    downloadImage(originalImage, `trusmile-antes-${getTimestamp()}.jpg`);
-    
-    setTimeout(() => { 
-      toast.info("Iniciando download da imagem DEPOIS...");
-      downloadImage(processedImage, `trusmile-depois-${getTimestamp()}.jpg`);
-      toast.success("Download das imagens concluído!");
-    }, 1000);
+
+    setSavingSimulation(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const reportNumber = generateReportNumber();
+      const budgetNumber = generateBudgetNumber();
+
+      // 1. Gerar PDFs com fotos
+      const reportPdfUrl = await generateTechnicalReportPDF({
+        reportNumber,
+        patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: 0,
+        reportContent: analysisData.relatorio_tecnico,
+        simulationId: currentSimulationId,
+        beforeImage: originalImage,
+        afterImage: processedImage
+      });
+
+      const budgetPdfUrl = await generateBudgetPDF({
+        budgetNumber,
+        patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        teethCount: 4,
+        pricePerTooth: 700,
+        subtotal: 3600,
+        paymentOptions: [
+          { name: 'À vista', installments: 1, discount: 10, value: 3240, installmentValue: 3240 },
+          { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
+          { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
+          { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
+        ],
+        beforeImage: originalImage,
+        afterImage: processedImage
+      });
+
+      // 2. Atualizar simulação
+      await supabase.from('simulations').update({
+        technical_report_url: reportPdfUrl,
+        budget_pdf_url: budgetPdfUrl,
+        status: 'saved'
+      }).eq('id', currentSimulationId);
+
+      // 3. Criar em reports
+      await supabase.from('reports').insert({
+        simulation_id: currentSimulationId,
+        patient_id: selectedPatientId,
+        user_id: user.id,
+        patient_name: patientName,
+        report_number: reportNumber,
+        pdf_url: reportPdfUrl,
+        before_image: originalImage,
+        after_image: processedImage
+      });
+
+      // 4. Criar em budgets
+      await supabase.from('budgets').insert({
+        simulation_id: currentSimulationId,
+        patient_id: selectedPatientId,
+        user_id: user.id,
+        patient_name: patientName,
+        budget_number: budgetNumber,
+        pdf_url: budgetPdfUrl,
+        before_image: originalImage,
+        after_image: processedImage,
+        teeth_count: 4,
+        price_per_tooth: 700,
+        subtotal: 3600,
+        final_price: 3600
+      });
+
+      // 5. Atualizar patients
+      if (selectedPatientId) {
+        await supabase.from('patients').update({
+          last_simulation_date: new Date().toISOString()
+        }).eq('id', selectedPatientId);
+      }
+
+      // 6. Criar lead no CRM
+      await supabase.from('crm_leads').insert({
+        patient_id: selectedPatientId,
+        simulation_id: currentSimulationId,
+        user_id: user.id,
+        patient_name: patientName,
+        patient_phone: patientPhone || null,
+        before_image: originalImage,
+        after_image: processedImage,
+        status: 'new',
+        source: 'simulator'
+      });
+
+      toast.success("Simulação salva com sucesso!");
+      handleNewSimulation();
+    } catch (error) {
+      console.error('Erro ao salvar simulação:', error);
+      toast.error('Erro ao salvar simulação');
+    } finally {
+      setSavingSimulation(false);
+    }
   };
 
   const handleNewSimulation = () => {
@@ -574,27 +674,6 @@ export default function Index() {
                 </ul>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleGenerateTechnicalReport}
-                  disabled={!patientName}
-                  className="flex-1"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Relatório Técnico
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={handleGenerateBudget}
-                  disabled={generatingPdf || !patientName}
-                  className="flex-1"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Orçamento
-                </Button>
-              </div>
-
               <Button 
                 onClick={handleGenerateSimulation}
                 size="lg"
@@ -647,43 +726,38 @@ export default function Index() {
                 <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   <Button 
                     variant="outline"
-                    onClick={handleGenerateTechnicalReport}
+                    onClick={() => {
+                      setShowReportPdfModal(true);
+                    }}
+                    disabled={!reportPdfUrl}
                     className="flex-1"
                   >
-                    Relatório Técnico
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ver Relatório
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={handleGenerateBudget}
-                    disabled={generatingPdf}
+                    onClick={() => {
+                      setShowBudgetPdfModal(true);
+                    }}
+                    disabled={!budgetPdfUrl}
                     className="flex-1"
                   >
-                    Orçamento
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ver Orçamento
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-end">
+            <div className="flex justify-end">
               <Button 
-                variant="outline"
-                onClick={handleNewSimulation}
+                onClick={handleSaveSimulation}
+                disabled={savingSimulation}
+                size="lg"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Nova Simulação
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => downloadImage(processedImage, `trusmile-resultado-${getTimestamp()}.jpg`)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Baixar Resultado
-              </Button>
-              <Button
-                onClick={handleDownloadAntesDepois}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Baixar Antes/Depois
+                <Save className="h-4 w-4 mr-2" />
+                {savingSimulation ? 'Salvando...' : 'Salvar Simulação'}
               </Button>
             </div>
           </div>

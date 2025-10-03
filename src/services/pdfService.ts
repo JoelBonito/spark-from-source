@@ -18,6 +18,8 @@ export interface BudgetPDFData {
     installmentValue: number;
     discount: number;
   }>;
+  beforeImage?: string;
+  afterImage?: string;
 }
 
 export function generateBudgetNumber(): string {
@@ -74,6 +76,33 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
   if (data.patientPhone) {
     y += 5;
     doc.text(`Telefone: ${data.patientPhone}`, 20, y);
+  }
+  
+  // Simulação Visual (se disponível)
+  if (data.beforeImage && data.afterImage) {
+    y += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('SIMULAÇÃO VISUAL DO TRATAMENTO', 20, y);
+    y += 8;
+    
+    const imgWidth = 75;
+    const imgHeight = 56;
+    const spacing = 10;
+    const startX = 20;
+    
+    doc.setFontSize(10);
+    doc.text('ANTES', startX + (imgWidth / 2), y, { align: 'center' });
+    y += 3;
+    doc.rect(startX, y, imgWidth, imgHeight);
+    doc.addImage(data.beforeImage, 'JPEG', startX, y, imgWidth, imgHeight);
+    
+    const afterX = startX + imgWidth + spacing;
+    doc.text('DEPOIS', afterX + (imgWidth / 2), y - 3, { align: 'center' });
+    doc.rect(afterX, y, imgWidth, imgHeight);
+    doc.addImage(data.afterImage, 'JPEG', afterX, y, imgWidth, imgHeight);
+    
+    y += imgHeight + 10;
   }
   
   // Descrição do Procedimento
