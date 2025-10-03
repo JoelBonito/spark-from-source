@@ -38,16 +38,16 @@ ESTRUTURA DO JSON (COMPLETA):
 
 {
   "analise_resumo": {
-    "facetas_necessarias": [2-6],
+    "facetas_necessarias": 4,
     "dentes_identificados": ["11", "21", "12", "22"],
-    "manchas": "leve|moderada|severa",
-    "complexidade": "baixa|média|alta",
+    "manchas": "leve",
+    "complexidade": "baixa",
     "confianca": 0.85
   },
   "valores": {
-    "facetas": [quantidade × 700],
+    "facetas": 2800,
     "clareamento": 800,
-    "total": [soma]
+    "total": 3600
   },
   "relatorio_tecnico": {
     "avaliacao_por_dente": [
@@ -58,12 +58,12 @@ ESTRUTURA DO JSON (COMPLETA):
         "alteracoes_cromaticas": "tipo e intensidade",
         "morfologia": "formato e proporções",
         "integridade_estrutural": "estado do esmalte",
-        "indicacao_faceta": "sim|não",
+        "indicacao_faceta": "sim",
         "justificativa": "razão específica"
       }
     ],
     "diagnostico": {
-      "complexidade": "baixa|média|alta",
+      "complexidade": "baixa",
       "justificativa_complexidade": "explicação detalhada",
       "fatores_considerados": ["fator1", "fator2", "fator3"]
     },
@@ -102,7 +102,7 @@ ESTRUTURA DO JSON (COMPLETA):
       "valor": 800,
       "quando_indicar": "Se manchas leves e paciente quer testar primeiro"
     },
-    "prognostico": "Excelente|Bom|Regular"
+    "prognostico": "Excelente"
   }
 }
 
