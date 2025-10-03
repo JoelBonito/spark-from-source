@@ -13,10 +13,9 @@ import { PDFViewerModal } from '@/components/PDFViewerModal';
 interface Report {
   id: string;
   created_at: string;
-  technical_report_url: string;
-  technical_notes: string;
+  report_number: string;
   patient_name: string;
-  patient?: { name: string } | null;
+  pdf_url: string | null;
 }
 
 export default function TechnicalReports() {
@@ -33,23 +32,14 @@ export default function TechnicalReports() {
   const loadReports = async () => {
     try {
       const { data, error } = await supabase
-        .from('simulations')
-        .select(`
-          id, created_at, technical_report_url, technical_notes, patient_name,
-          patient:patients(name)
-        `)
-        .not('technical_report_url', 'is', null)
+        .from('reports')
+        .select('id, created_at, report_number, patient_name, pdf_url')
+        .not('pdf_url', 'is', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      const formattedData = (data || []).map(r => ({
-        ...r,
-        // Usar o nome do paciente da tabela patients se disponível, ou o nome salvo na simulação
-        patient_name: (r.patient as any)?.name || r.patient_name || 'N/A'
-      }));
-      
-      setReports(formattedData as Report[]);
+      setReports((data || []) as Report[]);
     } catch (error) {
       console.error('Erro ao carregar relatórios:', error);
     } finally {
@@ -58,7 +48,7 @@ export default function TechnicalReports() {
   };
 
   const filteredReports = reports.filter(r =>
-    r.technical_notes?.toLowerCase().includes(search.toLowerCase()) ||
+    r.report_number?.toLowerCase().includes(search.toLowerCase()) ||
     r.patient_name?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -74,7 +64,7 @@ export default function TechnicalReports() {
           <h1 className="text-3xl font-bold text-foreground">Relatórios Técnicos</h1>
         </header>
 
-        <div className="relative">
+        <div className="relative max-w-md">
           <Input
             placeholder="Buscar por nome do paciente ou número do relatório..."
             value={search}
@@ -84,61 +74,56 @@ export default function TechnicalReports() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
 
-        {/* Tabela de Relatórios (List View) */}
-        <Card className="rounded-lg border overflow-hidden">
-          {loading ? (
-            <div className="col-span-full text-center py-12 text-muted-foreground">
-              Carregando...
-            </div>
-          ) : filteredReports.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
-              Nenhum relatório técnico encontrado
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table className="w-full">
-                <TableHeader className="bg-muted/50 border-b">
-                  <TableRow>
-                    <TableHead className="w-[150px]">Número</TableHead>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead className="w-[150px]">Data Geração</TableHead>
-                    <TableHead className="w-[150px] text-right">Ações</TableHead>
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Carregando...
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground">
+            Nenhum relatório técnico encontrado
+          </div>
+        ) : (
+          <div className="bg-card rounded-lg overflow-hidden">
+            <Table>
+              <TableBody className="divide-y divide-border">
+                {filteredReports.map((report) => (
+                  <TableRow key={report.id} className="hover:bg-muted/20 transition-colors border-0">
+                    <TableCell className="font-semibold py-6 px-6">
+                      {report.report_number}
+                    </TableCell>
+                    <TableCell className="py-6 px-6">
+                      {report.patient_name || 'N/A'}
+                    </TableCell>
+                    <TableCell className="py-6 px-6 text-right">
+                      {format(new Date(report.created_at), 'dd/MM/yyyy')}
+                    </TableCell>
+                    <TableCell className="py-6 px-6 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <Button
+                          onClick={() => handleViewPdf(report.pdf_url!)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0 hover:bg-muted"
+                          title="Visualizar PDF"
+                        >
+                          <Eye className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                        <a
+                          href={report.pdf_url!}
+                          download
+                          className="inline-flex items-center justify-center h-9 w-9 rounded-md hover:bg-muted transition-colors"
+                          title="Download PDF"
+                        >
+                          <Download className="w-5 h-5 text-muted-foreground" />
+                        </a>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-border">
-                  {filteredReports.map((report) => (
-                    <TableRow key={report.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium">{report.technical_notes || report.id.slice(0, 8)}</TableCell>
-                      <TableCell>{report.patient_name}</TableCell>
-                      <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            onClick={() => handleViewPdf(report.technical_report_url)}
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="Visualizar PDF"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <a
-                            href={report.technical_report_url}
-                            download
-                            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                            title="Download PDF"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {selectedPdfUrl && (
           <PDFViewerModal
