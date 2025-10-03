@@ -4,10 +4,10 @@ const corsHeaders = {
 };
 
 /**
- * Utilitários para extrair informações de um relatório técnico de facetas.
- * As seções "DENTES A SEREM TRATADOS" e "ESPECIFICAÇÕES TÉCNICAS" variam conforme o caso.
- * Esta função lê o texto completo do relatório e devolve um objeto com a lista de dentes
- * (códigos FDI) e um mapa das especificações técnicas encontradas.
+ * Extrai informações das seções "DENTES A SEREM TRATADOS" e "ESPECIFICAÇÕES TÉCNICAS"
+ * do relatório técnico gerado pelo Gemini.
+ * 
+ * IMPORTANTE: Esta função NÃO recebe JSON do Gemini, ela EXTRAI de um texto livre!
  */
 function parseReport(report: string) {
   const result: { dentes_tratados: string[]; especificacoes: Record<string, string> } = {
@@ -16,30 +16,26 @@ function parseReport(report: string) {
   };
   
   if (!report || typeof report !== 'string') {
+    console.warn('Relatório vazio ou inválido');
     return result;
   }
 
   const text = report.replace(/\r/g, '');
+  console.log('📄 Iniciando parsing do relatório...');
   
   // ========================================
   // EXTRAÇÃO DE DENTES
   // ========================================
-  // Extrair a seção de dentes entre "DENTES A SEREM TRATADOS" e "ESPECIFICAÇÕES TÉCNICAS"
+  console.log('🔍 Procurando seção "DENTES A SEREM TRATADOS"...');
+  
   let dentesSection = '';
-  const dentesMatch = text.match(/DENTES\s+A\s+SEREM\s+TRATADOS([\s\S]*?)ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS/i);
+  const dentesMatch = text.match(/DENTES\s+A\s+SEREM\s+TRATADOS([\s\S]*?)(?=ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS|PLANEJAMENTO|$)/i);
   
   if (dentesMatch) {
     dentesSection = dentesMatch[1];
+    console.log('✓ Seção de dentes encontrada');
   } else {
-    // Fallback: tenta pegar tudo após o título até a próxima quebra dupla
-    const idx = text.search(/DENTES\s+A\s+SEREM\s+TRATADOS/i);
-    if (idx >= 0) {
-      const rest = text.substring(idx);
-      const parts = rest.split(/\n\n/);
-      if (parts.length > 1) {
-        dentesSection = parts[1];
-      }
-    }
+    console.warn('✗ Seção "DENTES A SEREM TRATADOS" não encontrada');
   }
   
   if (dentesSection) {
@@ -50,23 +46,28 @@ function parseReport(report: string) {
     while ((m = teethRegex.exec(dentesSection)) !== null) {
       teeth.push(m[1]);
     }
+    
     result.dentes_tratados = teeth;
+    console.log(`✓ Dentes extraídos: [${teeth.join(', ')}]`);
+    
+    if (teeth.length === 0) {
+      console.log('ℹ️  Nenhum dente com código FDI encontrado - Caso de clareamento apenas');
+    }
   }
   
   // ========================================
   // EXTRAÇÃO DE ESPECIFICAÇÕES TÉCNICAS
   // ========================================
+  console.log('🔍 Procurando seção "ESPECIFICAÇÕES TÉCNICAS"...');
+  
   let specsSection = '';
-  const specsMatch = text.match(/ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS([\s\S]*?)(PLANEJAMENTO\s+DO\s+TRATAMENTO|CUIDADOS\s+P[ÓO]S|PROGN[ÓO]STICO|CONTRAINDICA[ÇC][ÕO]ES|OBSERVA[ÇC][ÕO]ES|IMPORTANTE|$)/i);
+  const specsMatch = text.match(/ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS([\s\S]*?)(?=PLANEJAMENTO\s+DO\s+TRATAMENTO|CUIDADOS\s+P[ÓO]S|PROGN[ÓO]STICO|CONTRAINDICA[ÇC][ÕO]ES|OBSERVA[ÇC][ÕO]ES|IMPORTANTE|$)/i);
   
   if (specsMatch) {
     specsSection = specsMatch[1];
+    console.log('✓ Seção de especificações encontrada');
   } else {
-    // Fallback: pega até o final do texto
-    const idxSpec = text.search(/ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS/i);
-    if (idxSpec >= 0) {
-      specsSection = text.substring(idxSpec);
-    }
+    console.warn('✗ Seção "ESPECIFICAÇÕES TÉCNICAS" não encontrada');
   }
   
   if (specsSection) {
@@ -93,34 +94,45 @@ function parseReport(report: string) {
       // Mapear para os campos esperados
       if (/material/.test(key)) {
         result.especificacoes.material = value;
+        console.log(`  - Material: ${value}`);
       } else if (/tecnica/.test(key)) {
         result.especificacoes.tecnica = value;
+        console.log(`  - Técnica: ${value}`);
       } else if (/espessura/.test(key)) {
         result.especificacoes.espessura = value;
+        console.log(`  - Espessura: ${value}`);
       } else if (/preparo/.test(key)) {
         result.especificacoes.preparo = value;
+        console.log(`  - Preparo: ${value}`);
       } else if (/cor/.test(key)) {
         result.especificacoes.cor = value;
+        console.log(`  - Cor: ${value}`);
       } else if (/cimenta/.test(key)) {
         result.especificacoes.cimentacao = value;
+        console.log(`  - Cimentação: ${value}`);
       }
     }
+    
+    console.log(`✓ Total de especificações extraídas: ${Object.keys(result.especificacoes).length}`);
   }
   
+  console.log('📊 Parsing concluído');
   return result;
 }
 
 /**
- * Constrói o prompt para a simulação com base nos dentes a serem tratados e nas especificações técnicas.
- * Se nenhum dente for listado, retorna instruções apenas de clareamento.
+ * Constrói o prompt para simulação de imagem baseado nos dados extraídos
  */
 function buildSimulationPrompt(
   extracted: { dentes_tratados: string[]; especificacoes: Record<string, string> }
 ): string {
   const { dentes_tratados, especificacoes } = extracted;
   
+  console.log('🎨 Construindo prompt de simulação...');
+  
   // Caso sem facetas: apenas clareamento
   if (!dentes_tratados || dentes_tratados.length === 0) {
+    console.log('→ Tipo: Clareamento apenas (sem facetas)');
     return `Crie uma simulação fotorrealista de clareamento dental.\n\n` +
       `CONTEXTO:\n` +
       `- Nenhuma faceta indicada; realizar apenas clareamento dos dentes visíveis.\n\n` +
@@ -138,6 +150,8 @@ function buildSimulationPrompt(
       `Gere a imagem agora.`;
   }
   
+  console.log(`→ Tipo: Facetas nos dentes [${dentes_tratados.join(', ')}]`);
+  
   const dentesStr = dentes_tratados.join(', ');
   const specLines: string[] = [];
   
@@ -148,7 +162,7 @@ function buildSimulationPrompt(
   if (especificacoes.cor) specLines.push(`* Cor sugerida: ${especificacoes.cor}`);
   if (especificacoes.cimentacao) specLines.push(`* Cimentação: ${especificacoes.cimentacao}`);
   
-  const specsText = specLines.join('\n');
+  const specsText = specLines.length > 0 ? specLines.join('\n') : '(Especificações padrão)';
   
   return `Crie uma simulação fotorrealista de facetas dentárias.\n\n` +
     `CONTEXTO DA ANÁLISE:\n` +
@@ -171,59 +185,99 @@ function buildSimulationPrompt(
     `Gere a imagem agora.`;
 }
 
-// Prompt fixo para análise detalhada
-const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por ser EQUILIBRADO, ÉTICO e CONSERVADOR.\n\n` +
-  `Analise esta foto e retorne um JSON completo com relatório técnico detalhado.\n\n` +
-  `═══════════════════════════════════════════════════════\n` +
-  `REGRAS CRÍTICAS - SEJA CONSERVADOR:\n` +
-  `═══════════════════════════════════════════════════════\n\n` +
-  `1. FACETAS:\n` +
-  `   - Padrão comum: 4 facetas (apenas incisivos: 11, 21, 12, 22)\n` +
-  `   - Máximo: 6 facetas (se caninos realmente necessários)\n` +
-  `   - Caninos (13, 23): APENAS se descoloração ÓBVIA\n` +
-  `   - NUNCA: pré-molares (14, 24)\n\n` +
-  `2. MANCHAS:\n` +
-  `   - "leve": amarelamento suave (MAIORIA)\n` +
-  `   - "moderada": descoloração visível\n` +
-  `   - "severa": RARO - manchas muito escuras\n\n` +
-  `3. COMPLEXIDADE:\n` +
-  `   - "baixa": manchas leves, estrutura boa (MAIORIA)\n` +
-  `   - "média": manchas moderadas + pequenos problemas\n` +
-  `   - "alta": RARO - casos graves\n\n` +
-  `4. TESTE MENTAL:\n` +
-  `   "Clareamento resolve 70% deste caso?"\n` +
-  `   Se SIM → complexidade baixa\n\n` +
-  `═══════════════════════════════════════════════════════\n` +
-  `ESTRUTURA DO JSON (COMPLETA):\n` +
-  `═══════════════════════════════════════════════════════\n\n` +
-  `{\n` +
-  `  "analise_resumo": {\n` +
-  `    "facetas_necessarias": 4,\n` +
-  `    "dentes_identificados": ["11", "21", "12", "22"],\n` +
-  `    "manchas": "leve",\n` +
-  `    "complexidade": "baixa",\n` +
-  `    "confianca": 0.85\n` +
-  `  },\n` +
-  `  "valores": {\n` +
-  `    "facetas": 2800,\n` +
-  `    "clareamento": 800,\n` +
-  `    "total": 3600\n` +
-  `  },\n` +
-  `  "relatorio_tecnico": {\n` +
-  `    ...\n` +
-  `  }\n` +
-  `}\n\n` +
-  `═══════════════════════════════════════════════════════\n` +
-  `IMPORTANTE:\n` +
-  `═══════════════════════════════════════════════════════\n\n` +
-  `- Seja DETALHADO no relatório técnico\n` +
-  `- Análise dente por dente COMPLETA\n` +
-  `- Justificativas técnicas específicas\n` +
-  `- NÃO inclua opções de pagamento (clínica decide)\n` +
-  `- Valores fixos: R$ 700/faceta, R$ 800 clareamento\n` +
-  `- Seja conservador: prefira MENOS facetas\n` +
-  `- Complexidade baixa para casos comuns\n\n` +
-  `Retorne APENAS o JSON (sem markdown, sem explicações).`;
+// Prompt para gerar RELATÓRIO TÉCNICO (não JSON!)
+const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por ser EQUILIBRADO, ÉTICO e CONSERVADOR.
+
+Analise esta foto e gere um RELATÓRIO TÉCNICO COMPLETO em formato de texto.
+
+═══════════════════════════════════════════════════════
+REGRAS CRÍTICAS - SEJA CONSERVADOR:
+═══════════════════════════════════════════════════════
+
+1. FACETAS:
+   - Padrão comum: 4 facetas (apenas incisivos: 11, 21, 12, 22)
+   - Máximo: 6 facetas (se caninos realmente necessários)
+   - Caninos (13, 23): APENAS se descoloração ÓBVIA
+   - NUNCA: pré-molares (14, 24)
+
+2. CASOS SEM FACETAS:
+   - Se o caso pode ser resolvido APENAS com clareamento
+   - NÃO liste dentes na seção "DENTES A SEREM TRATADOS"
+   - Indique apenas "Clareamento dental" no tratamento
+
+3. MANCHAS:
+   - "leve": amarelamento suave (MAIORIA)
+   - "moderada": descoloração visível
+   - "severa": RARO - manchas muito escuras
+
+4. COMPLEXIDADE:
+   - "baixa": manchas leves, estrutura boa (MAIORIA)
+   - "média": manchas moderadas + pequenos problemas
+   - "alta": RARO - casos graves
+
+═══════════════════════════════════════════════════════
+ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
+═══════════════════════════════════════════════════════
+
+ANÁLISE CLÍNICA INICIAL
+[Descreva a análise completa da imagem - cor, formato, alinhamento, proporções, desgaste, linha gengival, necessidades estéticas e funcionais]
+
+INDICAÇÃO DO TRATAMENTO
+[Explique qual tratamento é indicado e por quê. Se for apenas clareamento, justifique. Se forem facetas, explique os benefícios]
+
+DENTES A SEREM TRATADOS
+[Se FACETAS forem necessárias, liste os dentes com códigos FDI entre parênteses:]
+Os dentes que receberão facetas de cerâmica são:
+- Incisivo central superior direito (11)
+- Incisivo central superior esquerdo (21)
+- Incisivo lateral superior direito (12)
+- Incisivo lateral superior esquerdo (22)
+
+[Se APENAS CLAREAMENTO:]
+Não serão aplicadas facetas. O tratamento será apenas clareamento dental.
+
+ESPECIFICAÇÕES TÉCNICAS
+[Se FACETAS:]
+* **Material:** [tipo de cerâmica]
+* **Técnica:** [técnica de confecção]
+* **Espessura:** [espessura em mm]
+* **Preparo:** [tipo de preparo]
+* **Cor sugerida:** [escala de cor]
+* **Cimentação:** [sistema de cimentação]
+
+[Se APENAS CLAREAMENTO:]
+* **Técnica:** Clareamento dental profissional
+* **Sistema:** [tipo de clareamento]
+* **Cor objetivo:** [escala de cor desejada]
+
+PLANEJAMENTO DO TRATAMENTO
+[Descreva as sessões do tratamento - consultas, exames, procedimentos]
+
+CUIDADOS PÓS-PROCEDIMENTO
+[Liste os cuidados necessários após o tratamento]
+
+PROGNÓSTICO E DURABILIDADE
+[Descreva expectativa de durabilidade e taxa de sucesso]
+
+CONTRAINDICAÇÕES E CONSIDERAÇÕES
+[Liste contraindicações e considerações importantes]
+
+OBSERVAÇÕES PROFISSIONAIS
+[Observações finais do especialista]
+
+═══════════════════════════════════════════════════════
+IMPORTANTE:
+═══════════════════════════════════════════════════════
+
+- Seja DETALHADO e PROFISSIONAL
+- Use a estrutura EXATA mostrada acima
+- Mantenha os títulos das seções EM MAIÚSCULAS
+- Coloque códigos FDI SEMPRE entre parênteses: (11), (21), etc.
+- Use asteriscos nas especificações: * **Campo:** valor
+- Se apenas clareamento, NÃO liste dentes com códigos FDI
+- Seja conservador: prefira MENOS facetas
+
+Gere o relatório técnico completo agora:`;
 
 // Servidor principal da Edge Function
 Deno.serve(async (req) => {
@@ -247,9 +301,13 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // ANÁLISE DA IMAGEM
+    // ANÁLISE: Gera relatório técnico em TEXTO
     // ========================================
     if (action === 'analyze') {
+      console.log('═══════════════════════════════════════');
+      console.log('AÇÃO: ANÁLISE (gerar relatório técnico)');
+      console.log('═══════════════════════════════════════');
+      
       const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -268,53 +326,60 @@ Deno.serve(async (req) => {
             },
           ],
           max_tokens: 4000,
+          temperature: 0.3,
         }),
       });
       
       if (!analysisResponse.ok) {
         const text = await analysisResponse.text();
-        console.error('Erro na análise:', analysisResponse.status, text);
+        console.error('✗ Erro na análise:', analysisResponse.status, text);
         throw new Error(`Erro na análise: ${analysisResponse.status}`);
       }
       
       const analysisResult = await analysisResponse.json();
-      const raw = analysisResult.choices?.[0]?.message?.content || '';
+      const reportText = analysisResult.choices?.[0]?.message?.content || '';
       
-      // Limpar markdown e extrair JSON do texto
-      let cleaned = raw.trim();
-      cleaned = cleaned.replace(/^```(?:json)?\s*/gm, '').replace(/```\s*$/gm, '').trim();
-      
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Resposta do modelo não contém JSON válido');
+      if (!reportText) {
+        throw new Error('Gemini não retornou relatório');
       }
       
-      let parsed;
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch (err) {
-        console.error('Falha ao parsear JSON:', err);
-        throw new Error('Falha ao parsear resposta JSON');
-      }
+      console.log('✓ Relatório técnico recebido');
+      console.log(`📝 Tamanho: ${reportText.length} caracteres`);
       
+      // Retornar o relatório COMO TEXTO (não como JSON)
       return new Response(
-        JSON.stringify({ analysis: parsed }),
+        JSON.stringify({ 
+          report: reportText,
+          success: true 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
 
     // ========================================
-    // GERAÇÃO DE SIMULAÇÃO VISUAL
+    // GERAÇÃO: Extrai dados do relatório e gera simulação
     // ========================================
     if (action === 'generate') {
-      // reportText deve conter o relatório técnico completo
-      const report = reportText || analysisData?.relatorio_completo || '';
+      console.log('═══════════════════════════════════════');
+      console.log('AÇÃO: GERAÇÃO (criar imagem simulada)');
+      console.log('═══════════════════════════════════════');
+      
+      // Obter o relatório técnico (texto)
+      const report = reportText || analysisData?.report || '';
+      
+      if (!report) {
+        throw new Error('Relatório técnico não fornecido para geração');
+      }
+      
+      console.log(`📄 Relatório recebido: ${report.length} caracteres`);
+      
+      // EXTRAIR dados das seções relevantes
       const extracted = parseReport(report);
       
-      console.log('Dentes extraídos:', extracted.dentes_tratados);
-      console.log('Especificações extraídas:', extracted.especificacoes);
-      
+      // Construir prompt de simulação
       const simulationPrompt = buildSimulationPrompt(extracted);
+      
+      console.log('🚀 Enviando para geração de imagem...');
       
       const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -345,7 +410,7 @@ Deno.serve(async (req) => {
       
       if (!imageResponse.ok) {
         const text = await imageResponse.text();
-        console.error('Erro ao gerar imagem:', imageResponse.status, text);
+        console.error('✗ Erro ao gerar imagem:', imageResponse.status, text);
         throw new Error(`Erro na geração de imagem: ${imageResponse.status}`);
       }
       
@@ -353,13 +418,16 @@ Deno.serve(async (req) => {
       const generatedImage = imageResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       
       if (!generatedImage) {
-        throw new Error('Nenhuma imagem foi gerada');
+        throw new Error('Nenhuma imagem foi gerada pelo modelo');
       }
+      
+      console.log('✓ Imagem simulada gerada com sucesso');
       
       return new Response(
         JSON.stringify({
           processedImageBase64: generatedImage,
           simulationData: extracted,
+          success: true
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
@@ -369,9 +437,18 @@ Deno.serve(async (req) => {
     
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro interno';
-    console.error('Erro no processamento:', message);
+    console.error('═══════════════════════════════════════');
+    console.error('❌ ERRO NO PROCESSAMENTO');
+    console.error('═══════════════════════════════════════');
+    console.error('Mensagem:', message);
+    console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
+    console.error('═══════════════════════════════════════');
+    
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ 
+        error: message,
+        success: false
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
     );
   }
