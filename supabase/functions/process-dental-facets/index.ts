@@ -139,6 +139,14 @@ Deno.serve(async (req) => {
       throw new Error('API Key não configurada');
     }
 
+    // Verificar tamanho do prompt
+    const promptLength = ANALYSIS_PROMPT.length;
+    console.log('📏 Tamanho do prompt:', promptLength, 'caracteres');
+    
+    if (promptLength > 15000) {
+      console.warn('⚠️ Prompt muito longo, pode causar problemas');
+    }
+
     // Fluxo 1: ANÁLISE (retorna JSON)
     if (action === 'analyze') {
       console.log('Iniciando análise da imagem...');
@@ -182,41 +190,73 @@ Deno.serve(async (req) => {
       const analysisResult = await analysisResponse.json();
       const analysisText = analysisResult.choices?.[0]?.message?.content || '';
       
-      // Parse JSON da resposta (remove markdown se presente)
+      // Parse JSON da resposta (COM LOGGING DETALHADO)
       let analysis;
       try {
         let cleanText = analysisText.trim();
         
         // Remove markdown code blocks se presentes
-        if (cleanText.startsWith('```')) {
-          cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-        }
+        cleanText = cleanText
+          .replace(/^```(?:json)?\s*/gm, '')
+          .replace(/```\s*$/gm, '')
+          .trim();
+        
+        // Log do texto limpo para debug
+        console.log('📝 Texto após limpeza (primeiros 500 chars):', cleanText.substring(0, 500));
         
         // Extrai JSON do texto
         const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        
         if (!jsonMatch) {
-          console.error('JSON não encontrado na resposta:', cleanText.substring(0, 500));
-          throw new Error('JSON não encontrado na resposta');
+          console.error('❌ JSON NÃO ENCONTRADO na resposta');
+          console.error('📄 Texto COMPLETO recebido:', cleanText);
+          throw new Error(`Gemini não retornou JSON válido. Resposta: "${cleanText.substring(0, 300)}..."`);
         }
         
+        // Log do JSON encontrado
+        console.log('🔍 JSON encontrado (primeiros 500 chars):', jsonMatch[0].substring(0, 500));
+        
+        // Tentar parsear
         analysis = JSON.parse(jsonMatch[0]);
+        
+        // Validar estrutura obrigatória
+        if (!analysis.analise_resumo) {
+          console.error('❌ Campo "analise_resumo" ausente');
+          console.error('📊 Estrutura recebida:', Object.keys(analysis));
+          throw new Error('JSON sem campo obrigatório: analise_resumo');
+        }
+        
+        if (!analysis.relatorio_tecnico) {
+          console.error('❌ Campo "relatorio_tecnico" ausente');
+          console.error('📊 Estrutura recebida:', Object.keys(analysis));
+          throw new Error('JSON sem campo obrigatório: relatorio_tecnico');
+        }
+        
+        console.log('✅ JSON parseado com sucesso');
+        console.log('📊 Facetas:', analysis.analise_resumo.facetas_necessarias);
+        console.log('📊 Complexidade:', analysis.analise_resumo.complexidade);
+        
       } catch (e) {
-        console.error('Erro ao parsear análise:', e);
-        console.error('Texto recebido (primeiros 1000 chars):', analysisText.substring(0, 1000));
-        throw new Error('Resposta da análise em formato inválido');
+        // Log crítico de erro
+        console.error('❌ ERRO AO PARSEAR JSON');
+        console.error('🐛 Tipo do erro:', e instanceof Error ? e.constructor.name : typeof e);
+        console.error('📝 Mensagem:', e instanceof Error ? e.message : String(e));
+        console.error('📄 Resposta COMPLETA do Gemini:', analysisText);
+        
+        // Retornar erro descritivo
+        const errorMessage = e instanceof Error ? e.message : 'Erro desconhecido';
+        throw new Error(`Falha ao processar resposta do Gemini: ${errorMessage}. Verifique os logs da Edge Function no Supabase Dashboard.`);
       }
 
-      // Validar que temos o novo formato completo
-      if (!analysis.analise_resumo || !analysis.relatorio_tecnico) {
-        console.error('Formato de análise incompleto:', analysis);
-        throw new Error('Análise retornada em formato incompleto');
-      }
-
+      // Validação adicional da estrutura
       const needsClareamento = analysis.analise_resumo.manchas !== 'ausente';
 
-      console.log('Análise completa recebida:', {
+      // Log para monitoramento
+      console.log('📋 Análise completa:', {
         facetas: analysis.analise_resumo.facetas_necessarias,
-        complexidade: analysis.analise_resumo.complexidade
+        dentes: analysis.analise_resumo.dentes_identificados,
+        complexidade: analysis.analise_resumo.complexidade,
+        needsClareamento
       });
 
       return new Response(
