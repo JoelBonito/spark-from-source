@@ -468,7 +468,6 @@ export default function Index() {
       });
 
       await supabase.from('budgets').insert({
-        simulation_id: currentSimulationId,
         patient_id: selectedPatientId,
         user_id: user.id,
         patient_name: patientName,
@@ -476,7 +475,9 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        total_value: 3600
+        teeth_count: 8,
+        subtotal: 3600,
+        final_price: 3600
       });
 
       if (selectedPatientId) {
@@ -648,13 +649,6 @@ export default function Index() {
                   isProcessing={false}
                   processingTime={0}
                 />
-
-                {/* Info */}
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">
-                    ✓ Análise completa • Documentos disponíveis
-                  </p>
-                </div>
 
                 {/* Botões de Documentos */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
