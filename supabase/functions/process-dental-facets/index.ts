@@ -4,6 +4,37 @@ const corsHeaders = {
 };
 
 /**
+ * ═════════════════════════════════════════════════════════════════════════
+ * EDGE FUNCTION: PROCESSAMENTO DE ANÁLISE DENTAL E SIMULAÇÃO DE FACETAS
+ * ═════════════════════════════════════════════════════════════════════════
+ * 
+ * FLUXO COMPLETO:
+ * 
+ * 1. ANÁLISE (action='analyze'):
+ *    - Envia imagem para Gemini
+ *    - Gemini gera 2 DOCUMENTOS EM TEXTO:
+ *      a) Relatório Técnico (para dentista) - com seções estruturadas
+ *      b) Orçamento (para paciente) - com valores e formas de pagamento
+ *    - Retorna: { relatorio_tecnico: "...", orcamento: "..." }
+ * 
+ * 2. GERAÇÃO (action='generate'):
+ *    - Recebe: relatório técnico (texto)
+ *    - Extrai automaticamente:
+ *      • Seção "DENTES A SEREM TRATADOS" → códigos FDI: (11), (21), etc.
+ *      • Seção "ESPECIFICAÇÕES TÉCNICAS" → material, cor, técnica, etc.
+ *    - Converte para JSON: { dentes_tratados: [...], especificacoes: {...} }
+ *    - Constrói prompt customizado baseado nos dados extraídos
+ *    - Gemini gera imagem simulada fotorrealista
+ *    - Retorna: { processedImageBase64: "...", simulationData: {...} }
+ * 
+ * IMPORTANTE:
+ * - O ORÇAMENTO não é usado para geração de imagem
+ * - Cada caso é diferente (pode ter 0, 4, 6 facetas ou apenas clareamento)
+ * - Extração é DINÂMICA, não usa valores fixos
+ * ═════════════════════════════════════════════════════════════════════════
+ */
+
+/**
  * Extrai informações das seções "DENTES A SEREM TRATADOS" e "ESPECIFICAÇÕES TÉCNICAS"
  * do relatório técnico gerado pelo Gemini.
  * 
@@ -185,10 +216,12 @@ function buildSimulationPrompt(
     `Gere a imagem agora.`;
 }
 
-// Prompt para gerar RELATÓRIO TÉCNICO (não JSON!)
+// Prompt para gerar AMBOS os documentos (Relatório Técnico + Orçamento)
 const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por ser EQUILIBRADO, ÉTICO e CONSERVADOR.
 
-Analise esta foto e gere um RELATÓRIO TÉCNICO COMPLETO em formato de texto.
+Analise esta foto e gere DOIS DOCUMENTOS:
+1. RELATÓRIO TÉCNICO (para o dentista)
+2. ORÇAMENTO (para o paciente)
 
 ═══════════════════════════════════════════════════════
 REGRAS CRÍTICAS - SEJA CONSERVADOR:
@@ -205,20 +238,16 @@ REGRAS CRÍTICAS - SEJA CONSERVADOR:
    - NÃO liste dentes na seção "DENTES A SEREM TRATADOS"
    - Indique apenas "Clareamento dental" no tratamento
 
-3. MANCHAS:
-   - "leve": amarelamento suave (MAIORIA)
-   - "moderada": descoloração visível
-   - "severa": RARO - manchas muito escuras
-
-4. COMPLEXIDADE:
-   - "baixa": manchas leves, estrutura boa (MAIORIA)
-   - "média": manchas moderadas + pequenos problemas
-   - "alta": RARO - casos graves
+3. VALORES FIXOS:
+   - Faceta individual: R$ 700,00
+   - Clareamento: R$ 800,00
+   - Calcule o total automaticamente
 
 ═══════════════════════════════════════════════════════
-ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
+FORMATO DE RESPOSTA OBRIGATÓRIO:
 ═══════════════════════════════════════════════════════
 
+<RELATORIO_TECNICO>
 ANÁLISE CLÍNICA INICIAL
 [Descreva a análise completa da imagem - cor, formato, alinhamento, proporções, desgaste, linha gengival, necessidades estéticas e funcionais]
 
@@ -264,20 +293,56 @@ CONTRAINDICAÇÕES E CONSIDERAÇÕES
 
 OBSERVAÇÕES PROFISSIONAIS
 [Observações finais do especialista]
+</RELATORIO_TECNICO>
+
+<ORCAMENTO>
+ORÇAMENTO PARA O PACIENTE
+
+TRATAMENTO PROPOSTO
+[Descreva de forma simples e clara o tratamento proposto]
+
+DETALHAMENTO DE VALORES
+
+[Se FACETAS:]
+Facetas de Cerâmica:
+- Quantidade: [X] unidades
+- Valor unitário: R$ 700,00
+- Subtotal: R$ [X * 700],00
+
+Clareamento Dental:
+- Valor: R$ 800,00
+
+VALOR TOTAL: R$ [total],00
+
+[Se APENAS CLAREAMENTO:]
+Clareamento Dental Profissional:
+- Valor: R$ 800,00
+
+VALOR TOTAL: R$ 800,00
+
+FORMAS DE PAGAMENTO
+[A clínica definirá as opções de parcelamento disponíveis]
+
+IMPORTANTE
+- Orçamento válido por 30 dias
+- Valores sujeitos a alteração após avaliação clínica presencial
+- Consulta de avaliação obrigatória
+</ORCAMENTO>
 
 ═══════════════════════════════════════════════════════
 IMPORTANTE:
 ═══════════════════════════════════════════════════════
 
-- Seja DETALHADO e PROFISSIONAL
-- Use a estrutura EXATA mostrada acima
+- Seja DETALHADO no relatório técnico
+- Seja CLARO e OBJETIVO no orçamento
+- Use as tags <RELATORIO_TECNICO> e <ORCAMENTO> para separar os documentos
 - Mantenha os títulos das seções EM MAIÚSCULAS
 - Coloque códigos FDI SEMPRE entre parênteses: (11), (21), etc.
 - Use asteriscos nas especificações: * **Campo:** valor
 - Se apenas clareamento, NÃO liste dentes com códigos FDI
 - Seja conservador: prefira MENOS facetas
 
-Gere o relatório técnico completo agora:`;
+Gere os dois documentos agora:`;
 
 // Servidor principal da Edge Function
 Deno.serve(async (req) => {
@@ -301,59 +366,119 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // ANÁLISE: Gera relatório técnico em TEXTO
+    // ANÁLISE: Gera relatório técnico + orçamento
     // ========================================
     if (action === 'analyze') {
       console.log('═══════════════════════════════════════');
-      console.log('AÇÃO: ANÁLISE (gerar relatório técnico)');
+      console.log('AÇÃO: ANÁLISE (gerar documentos)');
       console.log('═══════════════════════════════════════');
       
-      const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: ANALYSIS_PROMPT },
-                { type: 'image_url', image_url: { url: imageBase64 } },
-              ],
-            },
-          ],
-          max_tokens: 4000,
-          temperature: 0.3,
-        }),
-      });
+      // Timeout de 90 segundos para a requisição
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Timeout: requisição excedeu 90 segundos');
+        controller.abort();
+      }, 90000);
       
-      if (!analysisResponse.ok) {
-        const text = await analysisResponse.text();
-        console.error('✗ Erro na análise:', analysisResponse.status, text);
-        throw new Error(`Erro na análise: ${analysisResponse.status}`);
+      try {
+        const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: ANALYSIS_PROMPT },
+                  { type: 'image_url', image_url: { url: imageBase64 } },
+                ],
+              },
+            ],
+            max_tokens: 10000,  // AUMENTADO de 4000 para 10000
+            temperature: 0.3,
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!analysisResponse.ok) {
+          const text = await analysisResponse.text();
+          console.error('✗ Erro na análise:', analysisResponse.status, text);
+          throw new Error(`Erro na análise: ${analysisResponse.status}`);
+        }
+        
+        const analysisResult = await analysisResponse.json();
+        const fullResponse = analysisResult.choices?.[0]?.message?.content || '';
+        
+        if (!fullResponse) {
+          throw new Error('Gemini não retornou conteúdo');
+        }
+        
+        console.log('✓ Resposta recebida do Gemini');
+        console.log(`📝 Tamanho total: ${fullResponse.length} caracteres`);
+        
+        // Verificar se a resposta foi truncada
+        const finishReason = analysisResult.choices?.[0]?.finish_reason;
+        if (finishReason === 'length') {
+          console.warn('⚠️ AVISO: Resposta truncada devido a max_tokens');
+          console.warn('⚠️ Considere aumentar max_tokens ou simplificar o prompt');
+        }
+        
+        // Extrair os dois documentos usando as tags
+        const relatorioMatch = fullResponse.match(/<RELATORIO_TECNICO>([\s\S]*?)<\/RELATORIO_TECNICO>/i);
+        const orcamentoMatch = fullResponse.match(/<ORCAMENTO>([\s\S]*?)<\/ORCAMENTO>/i);
+        
+        const relatorioTecnico = relatorioMatch ? relatorioMatch[1].trim() : fullResponse;
+        const orcamento = orcamentoMatch ? orcamentoMatch[1].trim() : '';
+        
+        if (!relatorioTecnico) {
+          throw new Error('Relatório técnico não encontrado na resposta');
+        }
+        
+        // Validar se os documentos estão completos
+        if (relatorioTecnico.length < 500) {
+          console.warn('⚠️ AVISO: Relatório técnico muito curto, pode estar incompleto');
+        }
+        
+        console.log('✓ Relatório Técnico extraído');
+        console.log(`  Tamanho: ${relatorioTecnico.length} caracteres`);
+        
+        if (orcamento) {
+          console.log('✓ Orçamento extraído');
+          console.log(`  Tamanho: ${orcamento.length} caracteres`);
+        } else {
+          console.warn('⚠️ Orçamento não encontrado - usando resposta completa');
+        }
+        
+        // Retornar ambos os documentos
+        return new Response(
+          JSON.stringify({ 
+            relatorio_tecnico: relatorioTecnico,
+            orcamento: orcamento || fullResponse,
+            success: true,
+            metadata: {
+              total_chars: fullResponse.length,
+              finish_reason: finishReason,
+              truncated: finishReason === 'length'
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        );
+        
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+          throw new Error('Requisição cancelada por timeout (90s). Tente novamente ou simplifique a análise.');
+        }
+        
+        throw error;
       }
-      
-      const analysisResult = await analysisResponse.json();
-      const reportText = analysisResult.choices?.[0]?.message?.content || '';
-      
-      if (!reportText) {
-        throw new Error('Gemini não retornou relatório');
-      }
-      
-      console.log('✓ Relatório técnico recebido');
-      console.log(`📝 Tamanho: ${reportText.length} caracteres`);
-      
-      // Retornar o relatório COMO TEXTO (não como JSON)
-      return new Response(
-        JSON.stringify({ 
-          report: reportText,
-          success: true 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      );
     }
 
     // ========================================
@@ -365,7 +490,11 @@ Deno.serve(async (req) => {
       console.log('═══════════════════════════════════════');
       
       // Obter o relatório técnico (texto)
-      const report = reportText || analysisData?.report || '';
+      // Aceita múltiplos formatos para retrocompatibilidade
+      const report = reportText || 
+                     analysisData?.relatorio_tecnico || 
+                     analysisData?.report || 
+                     '';
       
       if (!report) {
         throw new Error('Relatório técnico não fornecido para geração');
@@ -374,6 +503,7 @@ Deno.serve(async (req) => {
       console.log(`📄 Relatório recebido: ${report.length} caracteres`);
       
       // EXTRAIR dados das seções relevantes
+      // (Orçamento é IGNORADO - não é usado para geração de imagem)
       const extracted = parseReport(report);
       
       // Construir prompt de simulação
@@ -381,56 +511,81 @@ Deno.serve(async (req) => {
       
       console.log('🚀 Enviando para geração de imagem...');
       
-      const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image-preview',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: simulationPrompt },
-                { type: 'image_url', image_url: { url: imageBase64 } },
-              ],
-            },
-          ],
-          modalities: ['image', 'text'],
-          ...(config && {
-            temperature: config.temperature,
-            top_k: config.topK,
-            top_p: config.topP,
-            max_tokens: config.maxOutputTokens,
+      // Timeout de 120 segundos para geração de imagem (mais demorada)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Timeout: geração de imagem excedeu 120 segundos');
+        controller.abort();
+      }, 120000);
+      
+      try {
+        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-image-preview',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: simulationPrompt },
+                  { type: 'image_url', image_url: { url: imageBase64 } },
+                ],
+              },
+            ],
+            modalities: ['image', 'text'],
+            max_tokens: 8000,  // Tokens suficientes para geração de imagem
+            ...(config && {
+              temperature: config.temperature,
+              top_k: config.topK,
+              top_p: config.topP,
+              max_tokens: config.maxOutputTokens,
+            }),
           }),
-        }),
-      });
-      
-      if (!imageResponse.ok) {
-        const text = await imageResponse.text();
-        console.error('✗ Erro ao gerar imagem:', imageResponse.status, text);
-        throw new Error(`Erro na geração de imagem: ${imageResponse.status}`);
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!imageResponse.ok) {
+          const text = await imageResponse.text();
+          console.error('✗ Erro ao gerar imagem:', imageResponse.status, text);
+          throw new Error(`Erro na geração de imagem: ${imageResponse.status}`);
+        }
+        
+        const imageResult = await imageResponse.json();
+        const generatedImage = imageResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        
+        if (!generatedImage) {
+          console.error('❌ Resposta do modelo não contém imagem');
+          console.error('Estrutura recebida:', JSON.stringify(imageResult, null, 2));
+          throw new Error('Nenhuma imagem foi gerada pelo modelo');
+        }
+        
+        console.log('✓ Imagem simulada gerada com sucesso');
+        console.log(`ℹ️  Dentes tratados: [${extracted.dentes_tratados.join(', ') || 'nenhum - clareamento apenas'}]`);
+        
+        return new Response(
+          JSON.stringify({
+            processedImageBase64: generatedImage,
+            simulationData: extracted,
+            success: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+        );
+        
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+          throw new Error('Geração de imagem cancelada por timeout (120s). Tente novamente.');
+        }
+        
+        throw error;
       }
-      
-      const imageResult = await imageResponse.json();
-      const generatedImage = imageResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      
-      if (!generatedImage) {
-        throw new Error('Nenhuma imagem foi gerada pelo modelo');
-      }
-      
-      console.log('✓ Imagem simulada gerada com sucesso');
-      
-      return new Response(
-        JSON.stringify({
-          processedImageBase64: generatedImage,
-          simulationData: extracted,
-          success: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-      );
     }
 
     throw new Error('Ação não especificada ou inválida');
