@@ -78,7 +78,7 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
     doc.text(`Telefone: ${data.patientPhone}`, 20, y);
   }
   
-  // Simulação Visual (se disponível)
+  // Simulação Visual do Tratamento (se disponível)
   if (data.beforeImage && data.afterImage) {
     y += 15;
     doc.setFont('helvetica', 'bold');

@@ -672,6 +672,9 @@ export default function Index() {
                   <li>✓ Relatório Técnico ({analysisData.relatorio_tecnico.length} caracteres)</li>
                   <li>✓ Orçamento ({analysisData.orcamento.length} caracteres)</li>
                 </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Os documentos serão incluídos após a geração da simulação visual
+                </p>
               </div>
 
               <Button 
@@ -723,29 +726,27 @@ export default function Index() {
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setShowReportPdfModal(true);
-                    }}
-                    disabled={!reportPdfUrl}
-                    className="flex-1"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Ver Relatório
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setShowBudgetPdfModal(true);
-                    }}
-                    disabled={!budgetPdfUrl}
-                    className="flex-1"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Ver Orçamento
-                  </Button>
+                <div className="flex flex-col gap-3 mt-6">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      variant="outline"
+                      onClick={handleGenerateTechnicalReport}
+                      disabled={generatingPdf}
+                      className="flex-1"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      {reportPdfUrl ? 'Ver Relatório' : 'Gerar Relatório'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={handleGenerateBudget}
+                      disabled={generatingPdf}
+                      className="flex-1"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      {budgetPdfUrl ? 'Ver Orçamento' : 'Gerar Orçamento'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
