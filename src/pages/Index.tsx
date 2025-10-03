@@ -467,7 +467,7 @@ Valores:
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            🦷 Simulador de Facetas
+            🦷 TruSmile - Análise de Sorriso
           </h1>
           <p className="text-muted-foreground">
             Análise diagnóstica → Relatórios → Simulação visual
