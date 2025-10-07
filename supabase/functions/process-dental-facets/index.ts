@@ -31,6 +31,7 @@ const corsHeaders = {
  * - O ORÇAMENTO não é usado para geração de imagem
  * - Cada caso é diferente (pode ter 0, 4, 6 facetas ou apenas clareamento)
  * - Extração é DINÂMICA, não usa valores fixos
+ * - NOVO PROMPT: Pró-conversão equilibrado, prefere 4 facetas quando possível
  * ═════════════════════════════════════════════════════════════════════════
  */
 
@@ -216,168 +217,92 @@ function buildSimulationPrompt(
     `Gere a imagem agora.`;
 }
 
-// Prompt para gerar AMBOS os documentos (Relatório Técnico + Orçamento)
-const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por sua ATENÇÃO AOS DETALHES, análise MINUCIOSA e senso clínico apurado.
+// ═══════════════════════════════════════════════════════════════════════
+// NOVO PROMPT: Equilibrado e Pró-Conversão (Prefere 4 Facetas)
+// ═══════════════════════════════════════════════════════════════════════
+const ANALYSIS_PROMPT = `Você é dentista especialista em odontologia estética. Escreva em PT-BR.
 
-Analise esta foto COM MUITA ATENÇÃO e gere DOIS DOCUMENTOS CONSISTENTES:
-1. RELATÓRIO TÉCNICO (para o dentista)
-2. ORÇAMENTO (para o paciente)
+Missão comercial: propor o menor tratamento capaz de entregar um "sorriso perfeito" de forma crível e eficiente em custo.
+Sorriso perfeito alvo: incisivos (11, 21, 12, 22) simétricos e proporcionais, linha incisal harmoniosa, alinhamento sem rotações/projeções perceptíveis, cor natural clara (BL2–BL3) e aspecto uniforme.
 
-═══════════════════════════════════════════════════════
-METODOLOGIA DE ANÁLISE - SEJA EXTREMAMENTE DETALHISTA:
-═══════════════════════════════════════════════════════
+Regras cruciais:
+- Avaliar apenas 13, 12, 11, 21, 22, 23.
+- Visibilidade por dente: OK, NAO_VISIVEL ou AUSENTE. Não inferir quando NAO_VISIVEL/AUSENTE.
+- Se iluminação prejudicar cor, declare "cor indeterminada pela iluminação".
+- Use algarismos e moeda no formato brasileiro (ex.: R$ 1.400,00).
+- "ESPECIFICAÇÕES TÉCNICAS" deve ter linhas "Label: Valor".
+- Em "DENTES A SEREM TRATADOS", liste códigos FDI entre parênteses, separados por vírgula e espaço: (11), (21), (12), (22), (13), (23).
+- O orçamento DEVE usar exatamente a lista e a contagem de códigos FDI listados em "DENTES A SEREM TRATADOS".
 
-ATENÇÃO: Esta análise determinará se a paciente confia ou não na clínica.
-Se você perder algum detalhe, a credibilidade será comprometida.
+Escala de severidade por dente (0–3):
+- Alinhamento (A): rotação/projeção/recuo — 0 alinhado; 1 leve; 2 moderado visível; 3 severo evidente
+- Proporção/Simetria (P): 12 vs 22; 11 vs 21; relação de tamanhos — 0 harmônica; 1 leve; 2 moderada; 3 marcante
+- Forma (S): bordas, fraturas, irregularidades — 0 adequada; 1 leve; 2 moderada; 3 severa
+- Cor (C) é global; não indica facetas sozinha.
 
-PASSO 1: ANÁLISE DENTE POR DENTE (olhe CADA dente individualmente)
+Política de decisão pró-conversão (equilibrada):
+1) CLAREAMENTO apenas se: incisivos têm burden estrutural mínimo (0–1 leve isolada, sem impacto estético) e o problema principal é cor.
+2) 4 FACETAS (11, 21, 12, 22) se QUALQUER:
+   - ≥2 incisivos com A/P/S em nível moderado (≥2); OU
+   - 1 incisor com A/P/S severo (3); OU
+   - Assimetria perceptível 12 vs 22 + outro fator leve/moderado nos incisivos; OU
+   - Soma de leves (várias notas 1) que ainda não alcançam o "alvo" mesmo com clareamento → prefira 4 (não 6).
+3) 6 FACETAS (adicionar 13, 23) somente se: pelo menos 1 canino com A≥2 impactando a estética frontal (rotação/projeção visível). Se apenas 1 canino for duvidoso, mantenha 4, descreva a dúvida e sugira avaliação presencial.
+4) Empate/Borderline: escolha UMA opção final priorizando 4 facetas (não 6) OU clareamento quando a estrutura já atende ao alvo. Registre a alternativa conservadora em "Observações Profissionais".
 
-Para CADA dente visível (13, 12, 11, 21, 22, 23), observe:
-
-Dente 13 (canino direito):
-- Está alinhado com os outros ou projetado/recuado?
-- Está rotacionado?
-- Cor igual aos outros ou diferente?
-- Forma e tamanho harmonizam?
-
-Dente 12 (lateral direito):
-- Tamanho igual ao 22 (lateral esquerdo)?
-- Forma simétrica ao 22?
-- Posição adequada?
-- Proporção correta em relação ao 11?
-
-Dente 11 (central direito):
-- Simétrico ao 21?
-- Tamanho e forma adequados?
-- Desgaste nas bordas?
-
-Dente 21 (central esquerdo):
-- Simétrico ao 11?
-- Posição adequada?
-
-Dente 22 (lateral esquerdo):
-- Compare COM ATENÇÃO com o 12
-- São do mesmo tamanho?
-
-Dente 23 (canino esquerdo):
-- Posição semelhante ao 13?
-
-PASSO 2: AVALIAÇÃO POR CATEGORIAS
-
-A. ALINHAMENTO (olhe com MUITO cuidado):
-   - Algum dente está rodado? (mesmo que levemente)
-   - Algum dente está mais à frente/atrás?
-   - Os caninos estão bem posicionados?
-   - Há sobreposições?
-   
-   ⚠️ CRÍTICO: Pacientes PERCEBEM quando um dente está "torto"
-   Se você não identificar, perde credibilidade!
-
-B. PROPORÇÃO E SIMETRIA:
-   - O 12 é do mesmo tamanho que o 22?
-   - Os centrais são simétricos?
-   - As proporções entre os dentes são harmônicas?
-
-C. FORMA:
-   - Formato dos dentes (quadrado, oval, triangular?)
-   - Bordas incisais regulares ou desgastadas?
-   - Forma individual de cada dente
-
-D. COR:
-   - Todos os dentes têm a mesma cor?
-   - Algum mais amarelo que outros?
-   - Escala Vita estimada
-
-E. RESTAURAÇÕES:
-   - Alguma restauração visível?
-   - Manchas ao redor de restaurações?
-
-PASSO 3: DECISÃO BASEADA EM EVIDÊNCIAS
-
-Regra de Indicação:
-
-FACETAS se:
-- 2+ fatores comprometidos (alinhamento + proporção)
-- OU 1 fator SEVERAMENTE comprometido
-- OU paciente tem queixa estética clara (dente "torto")
-
-CLAREAMENTO se:
-- TODOS os fatores estruturais estão perfeitos
-- Alinhamento impecável
-- Proporções simétricas
-- Formas harmoniosas
-- ÚNICO problema é cor uniforme
-
-═══════════════════════════════════════════════════════
-QUANTIDADE DE FACETAS:
-═══════════════════════════════════════════════════════
-
-- Problemas nos incisivos: 4 facetas (11, 21, 12, 22)
-- Problemas também nos caninos: 6 facetas (adicionar 13, 23)
-- Se apenas 1 canino problemático: mencionar no relatório para avaliação presencial
-
-VALORES FIXOS:
-- Faceta individual: R$ 700,00
+Preços fixos:
+- Faceta: R$ 700,00 (cada)
 - Clareamento: R$ 800,00
-- Total: (quantidade × 700) + 800
+- Total facetas = quantidade × R$ 700,00; Total geral = Total facetas + R$ 800,00 (se houver facetas) ou R$ 800,00 (se apenas clareamento).
 
-═══════════════════════════════════════════════════════
-FORMATO DE RESPOSTA OBRIGATÓRIO:
-═══════════════════════════════════════════════════════
+FORMATO DE SAÍDA (obrigatório):
 
 <RELATORIO_TECNICO>
 ANÁLISE CLÍNICA INICIAL
 
-[Descreva a análise DETALHADA, dente por dente:]
-
 Avaliação por Dente:
-- Incisivo Central Superior Direito (11): [cor, forma, posição, desgaste]
-- Incisivo Central Superior Esquerdo (21): [cor, forma, posição, desgaste]
-- Incisivo Lateral Superior Direito (12): [cor, forma, posição, COMPARAR com 22]
-- Incisivo Lateral Superior Esquerdo (22): [cor, forma, posição, COMPARAR com 12]
-- Canino Superior Direito (13): [ATENÇÃO à posição, rotação, projeção]
-- Canino Superior Esquerdo (23): [ATENÇÃO à posição, rotação, projeção]
+- Incisivo Central Superior Direito (11): [cor; forma; posição; desgaste; visibilidade: OK/NAO_VISIVEL/AUSENTE; severidade A/P/S: x/x/x]
+- Incisivo Central Superior Esquerdo (21): [...]
+- Incisivo Lateral Superior Direito (12): [comparar com 22; severidade A/P/S]
+- Incisivo Lateral Superior Esquerdo (22): [comparar com 12; severidade A/P/S]
+- Canino Superior Direito (13): [posição/rotação/projeção; severidade A/P/S]
+- Canino Superior Esquerdo (23): [posição/rotação/projeção; severidade A/P/S]
 
 Avaliação Geral:
-- Alinhamento: [Seja específico! Algum dente desalinhado?]
-- Proporção: [Há assimetrias entre 12 e 22?]
-- Forma: [Adequada ou irregular?]
-- Cor: [Uniforme? Escala Vita estimada]
-- Linha gengival: [Simétrica?]
+- Alinhamento: [...]
+- Proporção e simetria: [12 vs 22; 11 vs 21]
+- Forma: [...]
+- Cor: [tendência; escala Vita aproximada ou "indeterminada pela iluminação"]
+- Linha gengival: [...]
+- Qualidade/visibilidade da imagem: [curto]
+
+Evidências para decisão (curtas):
+- (achado → dente → impacto no sorriso)
+- (achado → dente → impacto no sorriso)
+- (achado → dente → impacto no sorriso)
+- Contraponto: [o que reduziria intervenção]
 
 INDICAÇÃO DO TRATAMENTO
-
-[Baseado na análise detalhada acima, justifique:]
-
-Se FACETAS:
-"Facetas são indicadas devido a: [liste os problemas específicos encontrados, seja muito específico sobre QUAL dente tem QUAL problema]"
-
-Se CLAREAMENTO:
-"Clareamento é suficiente pois todos os fatores estruturais estão adequados: alinhamento perfeito, proporções simétricas, formas harmoniosas. O único fator a otimizar é a cor."
+- Opção indicada (uma): [FACETAS (4 ou 6) OU CLAREAMENTO] — justificar em 1–2 frases.
 
 DENTES A SEREM TRATADOS
-
-[Se FACETAS - seja específico:]
-Os dentes que receberão facetas de cerâmica são:
-- Incisivo central superior direito (11)
-- Incisivo central superior esquerdo (21)
-- Incisivo lateral superior direito (12)
-- Incisivo lateral superior esquerdo (22)
-[Se caninos também comprometidos: adicionar (13) e/ou (23)]
-
-[Se problema específico em 1 canino:]
-Os dentes que receberão facetas de cerâmica são:
-- Incisivos: (11), (21), (12), (22)
-- Observação: O canino (13) apresenta [descrever problema], podendo ser incluído no tratamento após avaliação presencial detalhada.
-
-[Se CLAREAMENTO:]
-Não serão aplicadas facetas. Todos os dentes apresentam alinhamento, proporção e forma adequados. O tratamento será apenas clareamento dental.
+[Se FACETAS]
+Os dentes que receberão facetas de cerâmica são (FDI):
+(11), (21), (12), (22)[, (13), (23) se indicado]
+[Se dúvida apenas em 1 canino, manter 4 facetas e detalhar a dúvida]
+[Se CLAREAMENTO]
+Não serão aplicadas facetas (lista vazia).
 
 ESPECIFICAÇÕES TÉCNICAS
-[Especificações padrão para facetas ou clareamento]
+Material: [ex.: Cerâmica E-max]
+Técnica: [ex.: Facetas laminadas ultrafinas]
+Espessura: [ex.: 0,3–0,5 mm]
+Preparo: [ex.: minimamente invasivo]
+Cor: [ex.: BL2–BL3]
+Cimentação: [ex.: Resina dual fotopolimerizável]
 
 PLANEJAMENTO DO TRATAMENTO
-[Sessões do tratamento]
+[Sessões resumidas]
 
 CUIDADOS PÓS-PROCEDIMENTO
 [Cuidados necessários]
@@ -386,24 +311,23 @@ PROGNÓSTICO E DURABILIDADE
 [Expectativas realistas]
 
 CONTRAINDICAÇÕES E CONSIDERAÇÕES
-[Contraindicações relevantes]
+[Relevantes ao caso]
 
 OBSERVAÇÕES PROFISSIONAIS
-[Reforçar os achados específicos que justificam a escolha]
+[Registrar alternativa conservadora e incertezas, se houver]
 </RELATORIO_TECNICO>
 
 <ORCAMENTO>
 ORÇAMENTO PARA O PACIENTE
 
 TRATAMENTO PROPOSTO
-[Deve ser IDÊNTICO ao relatório]
+[Repita exatamente a indicação (FACETAS com lista FDI ou CLAREAMENTO) do relatório]
 
 DETALHAMENTO DE VALORES
-
-[Se FACETAS:]
+[Se FACETAS]
 Facetas de Cerâmica:
-- Quantidade: [X] unidades
-- Dentes: [listar códigos FDI]
+- Quantidade: X            // X = número de códigos FDI listados em "DENTES A SEREM TRATADOS"
+- Dentes: (lista FDI exatamente como no relatório)
 - Valor unitário: R$ 700,00
 - Subtotal Facetas: R$ [X × 700],00
 
@@ -412,7 +336,7 @@ Clareamento Dental (incluído):
 
 VALOR TOTAL: R$ [(X × 700) + 800],00
 
-[Se CLAREAMENTO:]
+[Se CLAREAMENTO]
 Clareamento Dental Profissional:
 - Consultório + caseiro supervisionado
 - Valor: R$ 800,00
@@ -430,23 +354,77 @@ IMPORTANTE
 - Valores sujeitos a alteração após exame detalhado
 </ORCAMENTO>
 
-═══════════════════════════════════════════════════════
-CHECKLIST CRÍTICO - NÃO PULE NENHUM ITEM:
-═══════════════════════════════════════════════════════
+[EXEMPLOS DE REFERÊNCIA — NÃO COPIAR; APENAS GUIA DE DECISÃO]
 
-□ Analisei CADA dente individualmente (13, 12, 11, 21, 22, 23)
-□ Verifiquei especificamente se o canino 13 está alinhado
-□ Comparei tamanho do 12 com o 22
-□ Verifiquei rotações em todos os dentes
-□ Avaliei projeções/recuos de cada dente
-□ Identifiquei TODOS os problemas visíveis
-□ Justifiquei tecnicamente a escolha
-□ Relatório e orçamento são consistentes
-□ Se houver dente problemático, mencionei especificamente
+Exemplo A — CLAREAMENTO APENAS
+<RELATORIO_TECNICO>
+Avaliação por Dente:
+- 11: cor amarelada uniforme; forma/posição adequadas; visibilidade: OK; severidade A/P/S: 0/0/0
+- 21: idem 11; severidade A/P/S: 0/0/0
+- 12: similar ao 22; posição alinhada; severidade: 0/0/0
+- 22: similar ao 12; severidade: 0/0/0
+- 13: posição adequada; severidade: 0/0/0
+- 23: posição adequada; severidade: 0/0/0
+Avaliação Geral: estrutura harmônica; cor amarelada A2–A3; linha gengival simétrica
+Evidências: cor é o principal fator; estrutura ok; caninos sem impacto frontal
+Contraponto: leve translucidez fisiológica
+INDICAÇÃO DO TRATAMENTO: CLAREAMENTO
+DENTES A SEREM TRATADOS: Não serão aplicadas facetas (lista vazia).
+ESPECIFICAÇÕES TÉCNICAS
+Técnica: Clareamento combinado (consultório + caseiro)
+Cor: alvo BL2–BL3
+</RELATORIO_TECNICO>
+<ORCAMENTO>
+Clareamento Dental Profissional:
+- Valor: R$ 800,00
+VALOR TOTAL: R$ 800,00
+</ORCAMENTO>
 
-⚠️ LEMBRE-SE: Se você não identificar um problema que o paciente VÊ, a clínica perde credibilidade!
+Exemplo B — 4 FACETAS + CLAREAMENTO
+<RELATORIO_TECNICO>
+Avaliação por Dente:
+- 11: borda incisal irregular; severidade: 1/1/2
+- 21: microfraturas/incisal irregular; severidade: 1/1/2
+- 12: assimetria vs 22 (largura/altura); leve vestibularização; severidade: 1/2/1
+- 22: diferença de contorno vs 12; severidade: 0/2/1
+- 13: sem impacto frontal; 0/0/0
+- 23: sem impacto frontal; 0/0/0
+Avaliação Geral: assimetria 12 vs 22 e irregularidade de forma nos centrais; cor A3
+Evidências: P=2 nos laterais; S=2 nos centrais; caninos estáveis
+Contraponto: pequenas resinas não resolvem simetria/linha incisal
+INDICAÇÃO DO TRATAMENTO: FACETAS (4) + CLAREAMENTO
+DENTES A SEREM TRATADOS (FDI): (11), (21), (12), (22)
+ESPECIFICAÇÕES TÉCNICAS
+Material: Cerâmica E-max
+Cor: BL2–BL3
+</RELATORIO_TECNICO>
+<ORCAMENTO>
+Facetas: Quantidade: 4 | Dentes: (11), (21), (12), (22) | Unitário: R$ 700,00 | Subtotal: R$ 2.800,00
+Clareamento: R$ 800,00
+VALOR TOTAL: R$ 3.600,00
+</ORCAMENTO>
 
-Gere os documentos com MÁXIMA ATENÇÃO AOS DETALHES agora:`;
+Exemplo C — 6 FACETAS + CLAREAMENTO (caninos com impacto frontal)
+<RELATORIO_TECNICO>
+Avaliação por Dente:
+- 11: S=2 (borda irregular); 12: A=2/P=2; 21: S=2; 22: P=2; 
+- 13: A=2 (rotação/projeção com impacto frontal); 23: A=2 (rotação leve-moderada)
+Avaliação Geral: rotações/projeções em caninos perceptíveis; assimetria 12 vs 22; cor A3 heterogênea
+Evidências: caninos A=2 impactando estética; S=2 em centrais; P=2 em laterais
+Contraponto: resina não resolve rotação/linhas; longevidade inferior
+INDICAÇÃO DO TRATAMENTO: FACETAS (6) + CLAREAMENTO
+DENTES A SEREM TRATADOS (FDI): (11), (21), (12), (22), (13), (23)
+ESPECIFICAÇÕES TÉCNICAS
+Material: Cerâmica E-max
+Cor: BL2–BL3
+</RELATORIO_TECNICO>
+<ORCAMENTO>
+Facetas: Quantidade: 6 | Dentes: (11), (21), (12), (22), (13), (23) | Unitário: R$ 700,00 | Subtotal: R$ 4.200,00
+Clareamento: R$ 800,00
+VALOR TOTAL: R$ 5.000,00
+</ORCAMENTO>
+
+[/EXEMPLOS DE REFERÊNCIA — NÃO COPIAR]`;
 
 // Servidor principal da Edge Function
 Deno.serve(async (req) => {
@@ -502,7 +480,7 @@ Deno.serve(async (req) => {
                 ],
               },
             ],
-            max_tokens: 10000,  // AUMENTADO de 4000 para 10000
+            max_tokens: 10000,
             temperature: 0.3,
           }),
           signal: controller.signal,
@@ -641,7 +619,7 @@ Deno.serve(async (req) => {
               },
             ],
             modalities: ['image', 'text'],
-            max_tokens: 8000,  // Tokens suficientes para geração de imagem
+            max_tokens: 8000,
             ...(config && {
               temperature: config.temperature,
               top_k: config.topK,
