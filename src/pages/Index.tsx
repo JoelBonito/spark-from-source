@@ -56,6 +56,8 @@ export default function Index() {
   // Análise e simulação
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
+  const [analiseJSON, setAnaliseJSON] = useState<any>(null);
+  const [orcamentoDinamico, setOrcamentoDinamico] = useState<any>(null);
   
   // Loading states
   const [processingTime, setProcessingTime] = useState<number>(0);
@@ -129,6 +131,97 @@ export default function Index() {
     } catch (error) {
       console.error('Error loading patient:', error);
     }
+  };
+
+  const fetchActiveServices = async () => {
+    const config = await getConfig();
+    if (!config) return [];
+    
+    return config.servicePrices.filter(s => s.active);
+  };
+
+  const buildDynamicBudget = async (analiseJSON: any) => {
+    const servicosAtivos = await fetchActiveServices();
+    const orcamentoItens: any[] = [];
+    
+    // 1. Clareamento (se recomendado)
+    if (analiseJSON.procedimentos_recomendados?.includes('clareamento')) {
+      const clareamento = servicosAtivos.find(s => 
+        s.name.toLowerCase().includes('clareamento')
+      );
+      if (clareamento) {
+        orcamentoItens.push({
+          servico: clareamento.name,
+          quantidade: 1,
+          valor_unitario: clareamento.price,
+          valor_total: clareamento.price
+        });
+      }
+    }
+    
+    // 2. Facetas/Lentes (se recomendado)
+    if (analiseJSON.quantidade_facetas > 0) {
+      const faceta = servicosAtivos.find(s => 
+        s.base === true || 
+        s.name.toLowerCase().includes('faceta') ||
+        s.name.toLowerCase().includes('lente')
+      );
+      if (faceta) {
+        orcamentoItens.push({
+          servico: faceta.name,
+          quantidade: analiseJSON.quantidade_facetas,
+          dentes: analiseJSON.dentes_tratados,
+          valor_unitario: faceta.price,
+          valor_total: faceta.price * analiseJSON.quantidade_facetas
+        });
+      }
+    }
+    
+    // 3. Serviços complementares ativos
+    const servicosComplementares = ['planejamento', 'dsd', 'moldagem'];
+    servicosAtivos
+      .filter(s => servicosComplementares.some(c => 
+        s.name.toLowerCase().includes(c)
+      ))
+      .forEach(s => {
+        orcamentoItens.push({
+          servico: s.name,
+          quantidade: 1,
+          valor_unitario: s.price,
+          valor_total: s.price
+        });
+      });
+    
+    // 4. Gengivoplastia (OPCIONAL)
+    const opcionais: any[] = [];
+    if (analiseJSON.gengivoplastia_recomendada) {
+      const gengivoplastia = servicosAtivos.find(s => 
+        s.name.toLowerCase().includes('gengivo')
+      );
+      if (gengivoplastia) {
+        opcionais.push({
+          servico: gengivoplastia.name,
+          valor: gengivoplastia.price,
+          justificativa: analiseJSON.gengivoplastia_justificativa || 'Recomendado'
+        });
+      }
+    }
+    
+    // 5. Calcular totais
+    const subtotal = orcamentoItens.reduce((sum, i) => sum + i.valor_total, 0);
+    const desconto_percentual = 10;
+    const desconto_valor = subtotal * (desconto_percentual / 100);
+    const total = subtotal - desconto_valor;
+    
+    return {
+      itens: orcamentoItens,
+      opcionais,
+      subtotal,
+      desconto_percentual,
+      desconto_valor,
+      total,
+      analiseJSON
+    };
   };
 
   const handleQuickPatientCreate = async (data: { name: string; phone: string }) => {
@@ -207,6 +300,26 @@ export default function Index() {
       }
 
       setAnalysisData(analysisResult);
+
+      // Extrair JSON da análise
+      try {
+        const jsonMatch = analysisResult.orcamento.match(
+          /<ORCAMENTO_JSON>([\s\S]*?)<\/ORCAMENTO_JSON>/i
+        );
+        if (jsonMatch) {
+          const extractedAnalise = JSON.parse(jsonMatch[1]);
+          console.log('📊 Análise extraída:', extractedAnalise);
+          setAnaliseJSON(extractedAnalise);
+          
+          // Montar orçamento dinâmico
+          const dynamicBudget = await buildDynamicBudget(extractedAnalise);
+          console.log('💰 Orçamento dinâmico:', dynamicBudget);
+          setOrcamentoDinamico(dynamicBudget);
+        }
+      } catch (error) {
+        console.error('Erro ao extrair JSON:', error);
+        toast.warning('Não foi possível extrair dados estruturados da análise');
+      }
 
       // Salvar simulação inicial
       const { data: { user } } = await supabase.auth.getUser();
@@ -335,21 +448,18 @@ export default function Index() {
         afterImage: processedImage || ''
       });
 
-      // Gerar Orçamento
+      // Gerar Orçamento com dados dinâmicos
       const budgetPdf = await generateBudgetPDF({
         budgetNumber,
         patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
-        teethCount: 4,
-        pricePerTooth: 700,
-        subtotal: 3600,
-        paymentOptions: [
-          { name: 'À vista', installments: 1, discount: 10, value: 3240, installmentValue: 3240 },
-          { name: '3x sem juros', installments: 3, discount: 5, value: 3420, installmentValue: 1140 },
-          { name: '6x sem juros', installments: 6, discount: 0, value: 3600, installmentValue: 600 },
-          { name: '12x sem juros', installments: 12, discount: 0, value: 3600, installmentValue: 300 }
-        ],
+        itens: orcamentoDinamico?.itens || [],
+        opcionais: orcamentoDinamico?.opcionais || [],
+        subtotal: orcamentoDinamico?.subtotal || 0,
+        desconto_percentual: orcamentoDinamico?.desconto_percentual || 10,
+        desconto_valor: orcamentoDinamico?.desconto_valor || 0,
+        total: orcamentoDinamico?.total || 0,
         beforeImage: originalImage,
         afterImage: processedImage || ''
       });
@@ -428,7 +538,14 @@ export default function Index() {
         after_image: processedImage
       });
 
-      // Salvar na tabela budgets
+      // Salvar na tabela budgets com dados estruturados
+      const budgetData = orcamentoDinamico || {
+        subtotal: 0,
+        total: 0,
+        itens: [],
+        desconto_percentual: 10
+      };
+      
       await supabase.from('budgets').insert({
         patient_id: selectedPatientId,
         user_id: user.id,
@@ -437,10 +554,15 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: 4,
-        subtotal: 3600,
-        final_price: 3600,
-        price_per_tooth: 700
+        teeth_count: analiseJSON?.quantidade_facetas || 0,
+        subtotal: budgetData.subtotal,
+        final_price: budgetData.total,
+        price_per_tooth: budgetData.itens?.find((i: any) => i.dentes)?.valor_unitario || 0,
+        payment_conditions: {
+          desconto: budgetData.desconto_percentual,
+          opcao_vista: budgetData.total,
+          analise: analiseJSON
+        }
       });
 
       if (selectedPatientId) {
@@ -484,6 +606,8 @@ export default function Index() {
     setSelectedPatientId(null);
     setPatientName("");
     setPatientPhone("");
+    setAnaliseJSON(null);
+    setOrcamentoDinamico(null);
   };
 
   if (!hasApiConfig) {

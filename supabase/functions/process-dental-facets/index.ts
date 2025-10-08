@@ -224,6 +224,50 @@ Analise esta foto COM MUITA ATENÇÃO e gere DOIS DOCUMENTOS CONSISTENTES:
 2. ORÇAMENTO (para o paciente)
 
 ═══════════════════════════════════════════════════════
+ANÁLISE DE HARMONIA FACIAL E COR
+═══════════════════════════════════════════════════════
+
+Antes da análise dental, avalie:
+
+1. TOM DE PELE:
+   - Pele muito clara (fototipos I-II)
+   - Pele clara/média (fototipos III-IV)
+   - Pele morena (fototipos V)
+   - Pele escura (fototipos VI)
+
+2. COR DOS OLHOS:
+   - Olhos claros (azul, verde, cinza)
+   - Olhos médios (castanho claro, mel)
+   - Olhos escuros (castanho escuro, preto)
+
+3. RECOMENDAÇÃO DE COR (escala Vita):
+   Com base na harmonia facial:
+   - Pele clara + olhos claros → BL1, BL2 (branco frio)
+   - Pele média + olhos médios → A1, B1 (branco neutro)
+   - Pele morena/escura → A2, B2, A3 (branco quente)
+
+IMPORTANTE: Sempre recomendar "branco natural" e não "branco artificial".
+O sorriso deve estar em HARMONIA com o rosto, não contrastar excessivamente.
+
+═══════════════════════════════════════════════════════
+CASOS DE SORRISO JÁ PERFEITO
+═══════════════════════════════════════════════════════
+
+Se TODOS esses critérios forem atendidos:
+✅ Alinhamento perfeito (sem rotações, sem dentes para dentro/fora)
+✅ Proporções simétricas (12 = 22, 11 = 21)
+✅ Formas harmoniosas
+✅ Estrutura dentária íntegra
+✅ Ausência de sorriso gengival excessivo
+
+ENTÃO:
+- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
+- Tratamento: APENAS clareamento (opcional)
+- Observação: "Facetas/lentes não são necessidade clínica, apenas upgrade estético para quem busca 'Hollywood Smile'"
+
+Faça relatório 100% POSITIVO, elogiando a estrutura atual.
+
+═══════════════════════════════════════════════════════
 METODOLOGIA DE ANÁLISE - SEJA EXTREMAMENTE DETALHISTA:
 ═══════════════════════════════════════════════════════
 
@@ -292,6 +336,10 @@ E. RESTAURAÇÕES:
    - Alguma restauração visível?
    - Manchas ao redor de restaurações?
 
+F. SORRISO GENGIVAL:
+   - Há exposição excessiva da gengiva ao sorrir (>3mm)?
+   - Se sim, quantificar em milímetros
+
 PASSO 3: DECISÃO BASEADA EM EVIDÊNCIAS
 
 Regra de Indicação:
@@ -312,14 +360,20 @@ CLAREAMENTO se:
 QUANTIDADE DE FACETAS:
 ═══════════════════════════════════════════════════════
 
-- Problemas nos incisivos: 4 facetas (11, 21, 12, 22)
-- Problemas também nos caninos: 6 facetas (adicionar 13, 23)
+- 0 facetas: Sorriso perfeito (apenas clareamento)
+- 4 facetas: Problemas nos incisivos (11, 21, 12, 22)
+- 6 facetas: Problemas também nos caninos (13, 23)
 - Se apenas 1 canino problemático: mencionar no relatório para avaliação presencial
 
-VALORES FIXOS:
-- Faceta individual: R$ 700,00
-- Clareamento: R$ 800,00
-- Total: (quantidade × 700) + 800
+═══════════════════════════════════════════════════════
+GENGIVOPLASTIA - SEMPRE MENCIONAR SE APLICÁVEL
+═══════════════════════════════════════════════════════
+
+Se identificar sorriso gengival (>3mm exposição):
+- Mencionar no relatório técnico
+- Adicionar em análise JSON como recomendação OPCIONAL
+- Explicar benefício: "Reduzir exposição gengival de Xmm para 1-2mm"
+- NÃO incluir valores (será adicionado pelo sistema)
 
 ═══════════════════════════════════════════════════════
 FORMATO DE RESPOSTA OBRIGATÓRIO:
@@ -327,6 +381,11 @@ FORMATO DE RESPOSTA OBRIGATÓRIO:
 
 <RELATORIO_TECNICO>
 ANÁLISE CLÍNICA INICIAL
+
+HARMONIA FACIAL:
+- Tom de pele: [clara/média/morena/escura]
+- Cor dos olhos: [claros/médios/escuros]
+- Cor recomendada: [escala Vita baseada em harmonia]
 
 [Descreva a análise DETALHADA, dente por dente:]
 
@@ -343,7 +402,8 @@ Avaliação Geral:
 - Proporção: [Há assimetrias entre 12 e 22?]
 - Forma: [Adequada ou irregular?]
 - Cor: [Uniforme? Escala Vita estimada]
-- Linha gengival: [Simétrica?]
+- Linha gengival: [Simétrica? Exposição em mm]
+- Sorriso gengival: [Se >3mm, mencionar]
 
 INDICAÇÃO DO TRATAMENTO
 
@@ -373,6 +433,10 @@ Os dentes que receberão facetas de cerâmica são:
 [Se CLAREAMENTO:]
 Não serão aplicadas facetas. Todos os dentes apresentam alinhamento, proporção e forma adequados. O tratamento será apenas clareamento dental.
 
+[Se GENGIVOPLASTIA recomendada:]
+PROCEDIMENTO COMPLEMENTAR RECOMENDADO:
+- Gengivoplastia: Reduzir exposição gengival de [X]mm para 1-2mm
+
 ESPECIFICAÇÕES TÉCNICAS
 [Especificações padrão para facetas ou clareamento]
 
@@ -398,29 +462,26 @@ ORÇAMENTO PARA O PACIENTE
 TRATAMENTO PROPOSTO
 [Deve ser IDÊNTICO ao relatório]
 
-DETALHAMENTO DE VALORES
+<ORCAMENTO_JSON>
+{
+  "analise": {
+    "tom_pele": "clara|média|morena|escura",
+    "cor_olhos": "claros|médios|escuros",
+    "dentes_tratados": ["11", "21", "12", "22"],
+    "procedimentos_recomendados": ["clareamento", "facetas"],
+    "cor_recomendada": "A1",
+    "quantidade_facetas": 4,
+    "gengivoplastia_recomendada": true,
+    "gengivoplastia_justificativa": "Sorriso gengival 4mm"
+  }
+}
+</ORCAMENTO_JSON>
 
-[Se FACETAS:]
-Facetas de Cerâmica:
-- Quantidade: [X] unidades
-- Dentes: [listar códigos FDI]
-- Valor unitário: R$ 700,00
-- Subtotal Facetas: R$ [X × 700],00
-
-Clareamento Dental (incluído):
-- Valor: R$ 800,00
-
-VALOR TOTAL: R$ [(X × 700) + 800],00
-
-[Se CLAREAMENTO:]
-Clareamento Dental Profissional:
-- Consultório + caseiro supervisionado
-- Valor: R$ 800,00
-
-VALOR TOTAL: R$ 800,00
+OBSERVAÇÃO IMPORTANTE:
+Os valores serão calculados automaticamente pelo sistema com base nos serviços configurados pela clínica.
 
 FORMAS DE PAGAMENTO
-- À vista: 10% de desconto
+- À vista: com desconto
 - Parcelamento: até 12x sem juros
 - Condições especiais disponíveis
 

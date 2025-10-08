@@ -8,16 +8,22 @@ export interface BudgetPDFData {
   patientName: string;
   patientPhone?: string;
   date: Date;
-  teethCount: number;
-  pricePerTooth: number;
-  subtotal: number;
-  paymentOptions: Array<{
-    name: string;
-    installments: number;
-    value: number;
-    installmentValue: number;
-    discount: number;
+  itens: Array<{
+    servico: string;
+    quantidade: number;
+    valor_unitario: number;
+    valor_total: number;
+    dentes?: string[];
   }>;
+  opcionais?: Array<{
+    servico: string;
+    valor: number;
+    justificativa: string;
+  }>;
+  subtotal: number;
+  desconto_percentual: number;
+  desconto_valor: number;
+  total: number;
   beforeImage?: string;
   afterImage?: string;
 }
@@ -105,87 +111,88 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
     y += imgHeight + 10;
   }
   
-  // Descrição do Procedimento
+  // Procedimentos Propostos
   y += 12;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('Procedimento Proposto', 20, y);
-  
+  doc.text('Procedimentos Propostos', 20, y);
+
   y += 7;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('Facetas Dentárias em Cerâmica Feldspática', 20, y);
-  
-  y += 6;
-  doc.text(`• Quantidade: ${data.teethCount} facetas`, 25, y);
-  y += 5;
-  doc.text(`• Valor unitário: R$ ${data.pricePerTooth.toFixed(2)}`, 25, y);
-  y += 5;
-  doc.text('• Material: Cerâmica de alta translucidez', 25, y);
-  y += 5;
-  doc.text('• Técnica: Estratificada em camadas', 25, y);
-  
+
+  data.itens.forEach((item) => {
+    const linha = `• ${item.servico} (${item.quantidade}x) - R$ ${item.valor_unitario.toFixed(2)}`;
+    doc.text(linha, 25, y);
+    y += 5;
+    doc.text(`  Subtotal: R$ ${item.valor_total.toFixed(2)}`, 30, y);
+    y += 6;
+  });
+
+  // Opcionais
+  if (data.opcionais && data.opcionais.length > 0) {
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.text('⭐ PROCEDIMENTO OPCIONAL:', 20, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    
+    data.opcionais.forEach((opt) => {
+      doc.text(`□ ${opt.servico} - R$ ${opt.valor.toFixed(2)}`, 25, y);
+      y += 5;
+      doc.text(`  Recomendado para: ${opt.justificativa}`, 30, y);
+      y += 6;
+    });
+  }
+
   // Box de Valores
   y += 12;
   doc.setFillColor(245, 247, 250);
-  doc.rect(20, y, 170, 20, 'F');
-  
+  doc.rect(20, y, 170, 30, 'F');
+
+  y += 8;
+  doc.setFontSize(10);
+  doc.text(`Subtotal: R$ ${data.subtotal.toFixed(2)}`, 25, y);
+  y += 5;
+  doc.text(`Desconto (${data.desconto_percentual}%): -R$ ${data.desconto_valor.toFixed(2)}`, 25, y);
+
   y += 8;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('VALOR TOTAL:', 25, y);
-  doc.setTextColor(34, 197, 94); // Verde
+  doc.setTextColor(34, 197, 94);
   doc.setFontSize(16);
-  doc.text(`R$ ${data.subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 160, y, { align: 'right' });
+  doc.text(`R$ ${data.total.toFixed(2)}`, 160, y, { align: 'right' });
   doc.setTextColor(0, 0, 0);
   
-  // Opções de Pagamento
-  y += 18;
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Opções de Pagamento', 20, y);
-  
-  y += 7;
+  // Rodapé comercial
+  y += 10;
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  
-  data.paymentOptions.forEach((option) => {
-    const line = `• ${option.name}: ${option.installments}x de R$ ${option.installmentValue.toFixed(2)}`;
-    const extra = option.discount > 0 ? ` (${option.discount}% desconto)` : '';
-    doc.text(line + extra, 25, y);
-    y += 5;
-  });
-  
-  // Incluso
-  y += 5;
   doc.setFont('helvetica', 'bold');
-  doc.text('Incluso no Tratamento:', 20, y);
-  
+  doc.text('✅ INCLUSO SEM CUSTO ADICIONAL:', 20, y);
+
   y += 6;
   doc.setFont('helvetica', 'normal');
-  const included = [
-    'Planejamento digital 3D do sorriso',
-    'Mock-up para teste prévio do resultado',
-    'Acompanhamento pós-tratamento',
-    'Todas as consultas de ajuste necessárias'
-  ];
-  
-  included.forEach((item) => {
-    doc.text(`✓ ${item}`, 25, y);
-    y += 5;
-  });
-  
-  // Termos
-  y += 10;
+  doc.text('• Consulta de avaliação', 25, y);
+  y += 5;
+  doc.text('• Ajustes pós-tratamento', 25, y);
+
+  y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text('💳 FORMAS DE PAGAMENTO:', 20, y);
+
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text('• À vista: 10% desconto (aplicado)', 25, y);
+  y += 5;
+  doc.text('• Até 12x sem juros', 25, y);
+
+  y += 8;
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
-  doc.text('Termos e Condições:', 20, y);
+  doc.text('📌 Orçamento baseado em análise fotográfica.', 20, y);
   y += 4;
-  doc.text('• Orçamento válido por 30 dias a partir da data de emissão', 20, y);
-  y += 3;
-  doc.text('• Valores sujeitos a alteração após avaliação clínica presencial', 20, y);
-  y += 3;
-  doc.text('• Parcelamento disponível no cartão de crédito', 20, y);
+  doc.text('   Valores ajustáveis após consulta presencial.', 20, y);
   
   // Footer
   doc.setTextColor(150, 150, 150);
