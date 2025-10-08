@@ -337,16 +337,16 @@ export default function ConfigForm() {
           Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
         </p>
 
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[25%]">Serviço</TableHead>
-                <TableHead className="w-[30%]">Descrição</TableHead>
-                <TableHead className="w-[15%] text-right">Preço</TableHead>
-                <TableHead className="w-[8%] text-center">Base</TableHead>
-                <TableHead className="w-[10%] text-center">Ativo</TableHead>
-                <TableHead className="w-[12%] text-right">Ações</TableHead>
+                <TableHead className="min-w-[200px]">Serviço</TableHead>
+                <TableHead className="min-w-[250px]">Descrição</TableHead>
+                <TableHead className="w-[120px] text-right">Preço</TableHead>
+                <TableHead className="w-[80px] text-center">Base</TableHead>
+                <TableHead className="w-[80px] text-center">Ativo</TableHead>
+                <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -365,26 +365,26 @@ export default function ConfigForm() {
                           </TableCell>
                         </TableRow>
                       )}
-                      <TableRow key={index} className={!service.active ? "opacity-50" : ""}>
-                        <TableCell>
+                      <TableRow key={index} className={!service.active ? "opacity-50 bg-muted/30" : ""}>
+                        <TableCell className="align-top">
                           <Input 
                             type="text" 
                             value={service.name} 
                             onChange={e => handleServiceChange(index, 'name', e.target.value)} 
                             placeholder="Nome do Serviço"
-                            className="text-sm"
+                            className="text-sm w-full"
                           />
                         </TableCell>
-                        <TableCell>
-                          <Input 
-                            type="text" 
+                        <TableCell className="align-top">
+                          <Textarea 
                             value={service.description} 
                             onChange={e => handleServiceChange(index, 'description', e.target.value)} 
                             placeholder="Descrição do serviço"
-                            className="text-sm"
+                            className="text-sm resize-none min-h-[60px] w-full"
+                            rows={2}
                           />
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right align-top">
                           <div className="relative">
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
                             <Input 
