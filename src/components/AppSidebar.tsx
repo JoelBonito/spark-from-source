@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import trusmileLogo from "@/assets/trusmile-logo.png";
+import logoDenteAI from "@/assets/logo-dente-ai.png";
 
 const menuItems = [
   { title: "Painel", url: "/dashboard", icon: BarChart3 },
@@ -70,7 +71,7 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className={`flex items-center justify-center py-6 ${collapsed ? 'px-2' : 'px-4'}`}>
           <img 
-            src={trusmileLogo} 
+            src={collapsed ? logoDenteAI : trusmileLogo} 
             alt="TruSmile" 
             className={collapsed ? "h-12" : "h-20 w-auto"}
           />
