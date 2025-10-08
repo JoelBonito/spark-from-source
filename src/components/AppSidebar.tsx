@@ -21,12 +21,11 @@ import logoDenteAI from "@/assets/logo-dente-ai.png";
 
 const menuItems = [
   { title: "Painel", url: "/dashboard", icon: BarChart3 },
-  { title: "Simulador", url: "/", icon: Image },
-  { title: "CRM", url: "/crm", icon: Kanban },
+  { title: "Simulador", url: "/", icon: Image, highlight: true },
+  { title: "CRM", url: "/crm", icon: Kanban, highlight: true },
   { title: "Pacientes", url: "/pacientes", icon: Users },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Orçamentos", url: "/orcamentos", icon: DollarSign },
-  { title: "Configurações", url: "/config", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -87,7 +86,11 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && (
+                        <span className={item.highlight ? "font-bold text-[15px]" : ""}>
+                          {item.title}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -100,6 +103,17 @@ export function AppSidebar() {
       {/* User Info & Logout */}
       <SidebarFooter>
         <SidebarMenu>
+          {/* Configurações */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/config")}>
+              <Link to="/config">
+                <Settings className="h-4 w-4" />
+                {!collapsed && <span>Configurações</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          
+          {/* User Info */}
           <SidebarMenuItem>
             <div className={`flex items-center gap-3 px-3 py-2 ${collapsed ? 'justify-center' : ''}`}>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -112,6 +126,8 @@ export function AppSidebar() {
               )}
             </div>
           </SidebarMenuItem>
+          
+          {/* Logout */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Button
