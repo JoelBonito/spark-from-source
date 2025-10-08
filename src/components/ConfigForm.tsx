@@ -206,66 +206,6 @@ export default function ConfigForm() {
         </div>
       </div>
 
-      {/* NOVO CARD: SERVIÇOS E PREÇOS */}
-      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
-          Serviços e Preços da Clínica *
-        </h2>
-        
-        <p className="text-sm text-muted-foreground">
-          Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
-        </p>
-
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40%]">Serviço</TableHead>
-                <TableHead className="w-[30%] text-right">Preço Unitário</TableHead>
-                <TableHead className="w-[10%] text-center">Base</TableHead>
-                <TableHead className="w-[20%] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {formData.servicePrices.map((service, index) => <TableRow key={index}>
-                  <TableCell>
-                    <Input type="text" value={service.name} onChange={e => handleServiceChange(index, 'name', e.target.value)} placeholder="Nome do Serviço" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                      <Input type="number" min="0" step="0.01" value={service.price} onChange={e => handleServiceChange(index, 'price', e.target.value)} className="text-right pl-8" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <input type="checkbox" checked={service.base} onChange={e => handleServiceChange(index, 'base', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" disabled={service.base} // Impede desmarcar o único base
-                />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(index)} disabled={service.base || formData.servicePrices.length <= 1}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>)}
-            </TableBody>
-          </Table>
-        </div>
-
-        {errors.servicePrices && <p className="text-sm text-destructive">{errors.servicePrices}</p>}
-        
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={handleAddService} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Adicionar Serviço
-          </Button>
-          <Button type="button" variant="outline" onClick={handleResetServices} className="flex items-center gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Restaurar Padrão
-          </Button>
-        </div>
-      </div>
-
       {/* PARÂMETROS AVANÇADOS */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
@@ -383,8 +323,64 @@ export default function ConfigForm() {
         </div>
       </div>
 
-      {/* PROMPT TEMPLATE */}
-      
+      {/* SERVIÇOS E PREÇOS */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Serviços e Preços da Clínica *
+        </h2>
+        
+        <p className="text-sm text-muted-foreground">
+          Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
+        </p>
+
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40%]">Serviço</TableHead>
+                <TableHead className="w-[30%] text-right">Preço Unitário</TableHead>
+                <TableHead className="w-[10%] text-center">Base</TableHead>
+                <TableHead className="w-[20%] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {formData.servicePrices.map((service, index) => <TableRow key={index}>
+                  <TableCell>
+                    <Input type="text" value={service.name} onChange={e => handleServiceChange(index, 'name', e.target.value)} placeholder="Nome do Serviço" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                      <Input type="number" min="0" step="0.01" value={service.price} onChange={e => handleServiceChange(index, 'price', e.target.value)} className="text-right pl-8" />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <input type="checkbox" checked={service.base} onChange={e => handleServiceChange(index, 'base', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" disabled={service.base} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(index)} disabled={service.base || formData.servicePrices.length <= 1}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>)}
+            </TableBody>
+          </Table>
+        </div>
+
+        {errors.servicePrices && <p className="text-sm text-destructive">{errors.servicePrices}</p>}
+        
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleAddService} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Serviço
+          </Button>
+          <Button type="button" variant="outline" onClick={handleResetServices} className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Restaurar Padrão
+          </Button>
+        </div>
+      </div>
 
       <div className="flex justify-end gap-3 pb-6">
           <Button type="submit" className="flex items-center gap-2 bg-primary hover:bg-primary/90">
