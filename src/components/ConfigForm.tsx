@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { saveConfig, getConfig, DEFAULT_PROMPT, DEFAULT_SERVICES, type Config } from "@/utils/storage";
+import { saveConfig, getConfig, DEFAULT_PROMPT, DEFAULT_SERVICES, type Config, type ServicePrice } from "@/utils/storage";
 import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/contexts/ConfigContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,7 +40,7 @@ export default function ConfigForm() {
   }, []);
 
   // Lógica de manipulação de serviços
-  const handleServiceChange = (index: number, field: keyof typeof formData.servicePrices[0], value: any) => {
+  const handleServiceChange = (index: number, field: keyof ServicePrice, value: any) => {
     const newServices = [...formData.servicePrices];
 
     // Converte preço para float
@@ -69,8 +69,11 @@ export default function ConfigForm() {
       ...formData,
       servicePrices: [...formData.servicePrices, {
         name: "Novo Serviço",
+        description: "",
         price: 0,
-        base: false
+        base: false,
+        category: "Outros",
+        active: true
       }]
     });
   };
@@ -334,36 +337,97 @@ export default function ConfigForm() {
           Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
         </p>
 
-        <div className="border rounded-md">
+        <div className="border rounded-md overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">Serviço</TableHead>
-                <TableHead className="w-[30%] text-right">Preço Unitário</TableHead>
-                <TableHead className="w-[10%] text-center">Base</TableHead>
-                <TableHead className="w-[20%] text-right">Ações</TableHead>
+                <TableHead className="w-[25%]">Serviço</TableHead>
+                <TableHead className="w-[30%]">Descrição</TableHead>
+                <TableHead className="w-[15%] text-right">Preço</TableHead>
+                <TableHead className="w-[8%] text-center">Base</TableHead>
+                <TableHead className="w-[10%] text-center">Ativo</TableHead>
+                <TableHead className="w-[12%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {formData.servicePrices.map((service, index) => <TableRow key={index}>
-                  <TableCell>
-                    <Input type="text" value={service.name} onChange={e => handleServiceChange(index, 'name', e.target.value)} placeholder="Nome do Serviço" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                      <Input type="number" min="0" step="0.01" value={service.price} onChange={e => handleServiceChange(index, 'price', e.target.value)} className="text-right pl-8" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <input type="checkbox" checked={service.base} onChange={e => handleServiceChange(index, 'base', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" disabled={service.base} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveService(index)} disabled={service.base || formData.servicePrices.length <= 1}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>)}
+              {(() => {
+                let currentCategory = '';
+                return formData.servicePrices.map((service, index) => {
+                  const showCategoryHeader = service.category !== currentCategory;
+                  if (showCategoryHeader) currentCategory = service.category;
+                  
+                  return (
+                    <>
+                      {showCategoryHeader && (
+                        <TableRow key={`cat-${index}`} className="bg-muted/50">
+                          <TableCell colSpan={6} className="font-semibold text-sm py-2">
+                            {service.category}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      <TableRow key={index} className={!service.active ? "opacity-50" : ""}>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            value={service.name} 
+                            onChange={e => handleServiceChange(index, 'name', e.target.value)} 
+                            placeholder="Nome do Serviço"
+                            className="text-sm"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            value={service.description} 
+                            onChange={e => handleServiceChange(index, 'description', e.target.value)} 
+                            placeholder="Descrição do serviço"
+                            className="text-sm"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              step="0.01" 
+                              value={service.price} 
+                              onChange={e => handleServiceChange(index, 'price', e.target.value)} 
+                              className="text-right pl-8 text-sm" 
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <input 
+                            type="checkbox" 
+                            checked={service.base} 
+                            onChange={e => handleServiceChange(index, 'base', e.target.checked)} 
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" 
+                            disabled={service.base} 
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch
+                            checked={service.active}
+                            onCheckedChange={(checked) => handleServiceChange(index, 'active', checked)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleRemoveService(index)} 
+                            disabled={service.base || formData.servicePrices.length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  );
+                });
+              })()}
             </TableBody>
           </Table>
         </div>

@@ -1,10 +1,153 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const DEFAULT_SERVICES = [
-  { name: "Faceta de Cerâmica Padrão", price: 700.00, base: true },
-  { name: "Clareamento Dental Prévio", price: 800.00, base: false },
-  { name: "Gengivoplastia", price: 1200.00, base: false },
+  // Categoria 1 – Facetas e Lentes de Contato
+  { 
+    name: "Faceta de Porcelana (por dente)", 
+    description: "Faceta em porcelana feldspática ou dissilicato de lítio",
+    price: 2500.00, 
+    base: true,
+    category: "Facetas e Lentes de Contato",
+    active: true
+  },
+  { 
+    name: "Lente de Contato Dental (por dente)", 
+    description: "Lâmina ultra-fina de porcelana",
+    price: 2800.00, 
+    base: false,
+    category: "Facetas e Lentes de Contato",
+    active: true
+  },
+  { 
+    name: "Faceta em Resina (por dente)", 
+    description: "Faceta confeccionada em resina composta",
+    price: 800.00, 
+    base: false,
+    category: "Facetas e Lentes de Contato",
+    active: true
+  },
+  
+  // Categoria 2 – Clareamento
+  { 
+    name: "Clareamento Dental a Laser (sessão)", 
+    description: "Clareamento profissional em consultório",
+    price: 800.00, 
+    base: false,
+    category: "Clareamento",
+    active: true
+  },
+  { 
+    name: "Clareamento Caseiro Supervisionado (kit completo)", 
+    description: "Moldeira + gel clareador para uso domiciliar",
+    price: 600.00, 
+    base: false,
+    category: "Clareamento",
+    active: true
+  },
+  { 
+    name: "Clareamento Interno (por dente)", 
+    description: "Clareamento para dentes escurecidos após tratamento de canal",
+    price: 300.00, 
+    base: false,
+    category: "Clareamento",
+    active: true
+  },
+  
+  // Categoria 3 – Preparação e Procedimentos Complementares
+  { 
+    name: "Moldagem Digital (arcada completa)", 
+    description: "Escaneamento intraoral 3D",
+    price: 300.00, 
+    base: false,
+    category: "Preparação e Procedimentos Complementares",
+    active: true
+  },
+  { 
+    name: "Planejamento Digital do Sorriso (DSD)", 
+    description: "Design digital do novo sorriso",
+    price: 500.00, 
+    base: false,
+    category: "Preparação e Procedimentos Complementares",
+    active: true
+  },
+  { 
+    name: "Gengivoplastia (por sextante)", 
+    description: "Correção do contorno gengival",
+    price: 800.00, 
+    base: false,
+    category: "Preparação e Procedimentos Complementares",
+    active: true
+  },
+  { 
+    name: "Restauração em Resina (por dente)", 
+    description: "Restauração estética direta",
+    price: 250.00, 
+    base: false,
+    category: "Preparação e Procedimentos Complementares",
+    active: true
+  },
+  
+  // Categoria 4 – Tratamentos de Canal e Estruturais
+  { 
+    name: "Tratamento de Canal (por dente)", 
+    description: "Endodontia necessária antes da faceta",
+    price: 600.00, 
+    base: false,
+    category: "Tratamentos de Canal e Estruturais",
+    active: true
+  },
+  { 
+    name: "Pino de Fibra de Vidro (por dente)", 
+    description: "Reforço estrutural intra-radicular",
+    price: 300.00, 
+    base: false,
+    category: "Tratamentos de Canal e Estruturais",
+    active: true
+  },
+  { 
+    name: "Coroa Provisória (por dente)", 
+    description: "Coroa temporária durante o tratamento",
+    price: 150.00, 
+    base: false,
+    category: "Tratamentos de Canal e Estruturais",
+    active: true
+  },
+  
+  // Categoria 5 – Manutenção e Follow-up
+  { 
+    name: "Consulta de Planejamento", 
+    description: "Consulta inicial com análise e proposta",
+    price: 200.00, 
+    base: false,
+    category: "Manutenção e Follow-up",
+    active: true
+  },
+  { 
+    name: "Retorno e Ajustes (por sessão)", 
+    description: "Ajuste oclusal e polimento pós-cimentação",
+    price: 150.00, 
+    base: false,
+    category: "Manutenção e Follow-up",
+    active: true
+  },
+  { 
+    name: "Manutenção Anual", 
+    description: "Consulta de manutenção preventiva",
+    price: 200.00, 
+    base: false,
+    category: "Manutenção e Follow-up",
+    active: true
+  },
 ];
+
+export interface ServicePrice {
+  name: string;
+  description: string;
+  price: number;
+  base: boolean;
+  category: string;
+  active: boolean;
+}
 
 export interface Config {
   apiKey: string;
@@ -14,7 +157,7 @@ export interface Config {
   topP: number;
   maxTokens: number;
   promptTemplate: string;
-  servicePrices: Array<{ name: string; price: number; base: boolean }>;
+  servicePrices: ServicePrice[];
   claudeApiKey: string;
   useClaude: boolean;
   crmEnabled: boolean;
@@ -86,7 +229,7 @@ export async function saveConfig(config: Config): Promise<void> {
       top_p: config.topP,
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
-      service_prices: config.servicePrices,
+      service_prices: config.servicePrices as any,
       claude_api_key: config.claudeApiKey,
       use_claude: config.useClaude,
       crm_enabled: config.crmEnabled,
@@ -108,6 +251,17 @@ export async function getConfig(): Promise<Config | null> {
   if (error) throw error;
   if (!data) return null;
 
+  // Garantir compatibilidade com dados antigos
+  const rawServices = data.service_prices || DEFAULT_SERVICES;
+  const servicePrices = (Array.isArray(rawServices) ? rawServices : DEFAULT_SERVICES).map((service: any) => ({
+    name: service.name,
+    description: service.description || '',
+    price: service.price,
+    base: service.base || false,
+    category: service.category || 'Outros',
+    active: service.active !== undefined ? service.active : true,
+  }));
+
   return {
     apiKey: data.api_key,
     backendUrl: data.backend_url,
@@ -116,7 +270,7 @@ export async function getConfig(): Promise<Config | null> {
     topP: Number(data.top_p),
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
-    servicePrices: (data.service_prices || DEFAULT_SERVICES) as any,
+    servicePrices,
     claudeApiKey: data.claude_api_key || '',
     useClaude: data.use_claude || false,
     crmEnabled: data.crm_enabled !== false,
