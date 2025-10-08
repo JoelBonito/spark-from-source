@@ -481,10 +481,9 @@ export default function Index() {
     setCurrentState('input');
     setBudgetPdfUrl(null);
     setReportPdfUrl(null);
-    if (!selectedPatientId) {
-      setPatientName("");
-      setPatientPhone("");
-    }
+    setSelectedPatientId(null);
+    setPatientName("");
+    setPatientPhone("");
   };
 
   if (!hasApiConfig) {
