@@ -15,6 +15,9 @@ export interface Config {
   maxTokens: number;
   promptTemplate: string;
   servicePrices: Array<{ name: string; price: number; base: boolean }>;
+  claudeApiKey: string;
+  useClaude: boolean;
+  crmEnabled: boolean;
 }
 
 export const DEFAULT_PROMPT = `Você é um especialista em design de sorriso digital e odontologia estética.
@@ -84,6 +87,9 @@ export async function saveConfig(config: Config): Promise<void> {
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
       service_prices: config.servicePrices,
+      claude_api_key: config.claudeApiKey,
+      use_claude: config.useClaude,
+      crm_enabled: config.crmEnabled,
     }, { onConflict: 'user_id' });
 
   if (error) throw error;
@@ -111,6 +117,9 @@ export async function getConfig(): Promise<Config | null> {
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
     servicePrices: (data.service_prices || DEFAULT_SERVICES) as any,
+    claudeApiKey: data.claude_api_key || '',
+    useClaude: data.use_claude || false,
+    crmEnabled: data.crm_enabled !== false,
   };
 }
 

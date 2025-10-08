@@ -43,6 +43,60 @@ export async function generateTechnicalReportWithGemini(
   return response.text();
 }
 
+export async function generateTechnicalReportWithClaude(
+  imageBase64: string,
+  claudeApiKey: string
+): Promise<string> {
+  try {
+    console.log('Gerando relatório técnico com Claude...');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${claudeApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-sonnet-4-20250514',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { 
+                type: 'text', 
+                text: TECHNICAL_REPORT_PROMPT 
+              },
+              {
+                type: 'image_url',
+                image_url: { url: imageBase64 }
+              }
+            ]
+          }
+        ],
+        max_tokens: 4000,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Claude API error: ${error}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('Claude não retornou conteúdo');
+    }
+
+    return content;
+  } catch (error) {
+    console.error('Erro ao gerar relatório com Claude:', error);
+    throw error;
+  }
+}
+
 export async function generateTechnicalReportPDF(data: TechnicalReportData): Promise<string> {
   const doc = new jsPDF();
   const pageWidth = 210;

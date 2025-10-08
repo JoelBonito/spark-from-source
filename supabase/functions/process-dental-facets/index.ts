@@ -475,6 +475,7 @@ Deno.serve(async (req) => {
     if (action === 'analyze') {
       console.log('═══════════════════════════════════════');
       console.log('AÇÃO: ANÁLISE (gerar documentos)');
+      console.log(`Modelo: ${config?.useClaude ? 'Claude' : 'Gemini'}`);
       console.log('═══════════════════════════════════════');
       
       // Timeout de 90 segundos para a requisição
@@ -485,14 +486,23 @@ Deno.serve(async (req) => {
       }, 90000);
       
       try {
+        // Escolher modelo e API key baseado na configuração
+        const model = config?.useClaude 
+          ? 'anthropic/claude-sonnet-4-20250514'
+          : 'google/gemini-2.5-flash';
+        
+        const apiKeyToUse = config?.useClaude && config?.claudeApiKey
+          ? config.claudeApiKey
+          : apiKey;
+        
         const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKeyToUse}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
+            model: model,
             messages: [
               {
                 role: 'user',
@@ -502,7 +512,7 @@ Deno.serve(async (req) => {
                 ],
               },
             ],
-            max_tokens: 10000,  // AUMENTADO de 4000 para 10000
+            max_tokens: 10000,
             temperature: 0.3,
           }),
           signal: controller.signal,

@@ -69,9 +69,13 @@ export const PatientTable: React.FC<PatientTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {patient.simulations_count || 0}
-                  </span>
+                  <button
+                    onClick={() => onView(patient)}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                    title="Ver histórico de simulações"
+                  >
+                    {patient.simulations_count || 0} {(patient.simulations_count || 0) === 1 ? 'simulação' : 'simulações'}
+                  </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {format(new Date(patient.created_at), 'dd/MM/yyyy', { locale: ptBR })}

@@ -438,7 +438,9 @@ export type Database = {
         Row: {
           api_key: string
           backend_url: string
+          claude_api_key: string | null
           created_at: string
+          crm_enabled: boolean | null
           id: string
           max_tokens: number
           prompt_template: string
@@ -447,12 +449,15 @@ export type Database = {
           top_k: number
           top_p: number
           updated_at: string
+          use_claude: boolean | null
           user_id: string
         }
         Insert: {
           api_key: string
           backend_url: string
+          claude_api_key?: string | null
           created_at?: string
+          crm_enabled?: boolean | null
           id?: string
           max_tokens?: number
           prompt_template: string
@@ -461,12 +466,15 @@ export type Database = {
           top_k?: number
           top_p?: number
           updated_at?: string
+          use_claude?: boolean | null
           user_id: string
         }
         Update: {
           api_key?: string
           backend_url?: string
+          claude_api_key?: string | null
           created_at?: string
+          crm_enabled?: boolean | null
           id?: string
           max_tokens?: number
           prompt_template?: string
@@ -475,6 +483,7 @@ export type Database = {
           top_k?: number
           top_p?: number
           updated_at?: string
+          use_claude?: boolean | null
           user_id?: string
         }
         Relationships: []

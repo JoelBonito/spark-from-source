@@ -18,14 +18,13 @@ import {
 } from "@/components/ui/sidebar";
 import trusmileLogo from "@/assets/trusmile-logo.png";
 import logoDenteAI from "@/assets/logo-dente-ai.png";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const menuItems = [
   { title: "Painel", url: "/dashboard", icon: BarChart3 },
   { title: "Simulador", url: "/", icon: Image, highlight: true },
   { title: "CRM", url: "/crm", icon: Kanban, highlight: true },
   { title: "Pacientes", url: "/pacientes", icon: Users },
-  { title: "Relatórios", url: "/relatorios", icon: FileText },
-  { title: "Orçamentos", url: "/orcamentos", icon: DollarSign },
 ];
 
 export function AppSidebar() {
@@ -33,7 +32,16 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string>("");
+  const { config, loading: configLoading } = useConfig();
   const collapsed = state === "collapsed";
+  
+  // Filtrar items baseado em crmEnabled
+  const filteredMenuItems = menuItems.filter(item => {
+    if (item.title === "CRM") {
+      return config?.crmEnabled !== false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,7 +89,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>

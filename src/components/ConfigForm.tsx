@@ -7,11 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { saveConfig, getConfig, DEFAULT_PROMPT, DEFAULT_SERVICES, type Config } from "@/utils/storage";
+import { Switch } from "@/components/ui/switch";
+import { useConfig } from "@/contexts/ConfigContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ConfigForm() {
   const navigate = useNavigate();
+  const { refreshConfig } = useConfig();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showClaudeApiKey, setShowClaudeApiKey] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<Config>({
@@ -22,7 +26,10 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
-    servicePrices: DEFAULT_SERVICES, // VALOR PADRÃO
+    servicePrices: DEFAULT_SERVICES,
+    claudeApiKey: "",
+    useClaude: false,
+    crmEnabled: true,
   });
 
   useEffect(() => {
@@ -119,6 +126,11 @@ export default function ConfigForm() {
       newErrors.promptTemplate = "Template do prompt é obrigatório";
     }
 
+    // Validação Claude
+    if (formData.useClaude && !formData.claudeApiKey.trim()) {
+      newErrors.claudeApiKey = 'Claude API Key é obrigatória quando Claude está ativado';
+    }
+
     // Validação de Serviços
     if (!formData.servicePrices.some(s => s.base)) {
       newErrors.servicePrices = "Deve haver exatamente um serviço marcado como base (preço unitário da faceta).";
@@ -144,11 +156,15 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
-      servicePrices: formData.servicePrices, // ENVIANDO SERVIÇOS
+      servicePrices: formData.servicePrices,
+      claudeApiKey: formData.claudeApiKey,
+      useClaude: formData.useClaude,
+      crmEnabled: formData.crmEnabled,
     };
 
     try {
       await saveConfig(config);
+      await refreshConfig(); // Atualizar contexto
       toast.success("Configuração salva com sucesso!");
       setTimeout(() => navigate("/"), 500);
     } catch (error: any) {
@@ -382,6 +398,102 @@ export default function ConfigForm() {
             />
             {errors.maxTokens && <p className="text-sm text-destructive">{errors.maxTokens}</p>}
             <p className="text-xs text-muted-foreground">Limite de tokens na resposta (max. 8192)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* CLAUDE AI CONFIGURATION */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          🤖 Configuração Claude AI
+        </h2>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="useClaude" className="text-base font-semibold">
+                Usar Claude AI
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Ativar Claude para análise inicial (relatório técnico e orçamento)
+              </p>
+            </div>
+            <Switch
+              id="useClaude"
+              checked={formData.useClaude}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, useClaude: checked }))
+              }
+            />
+          </div>
+
+          {formData.useClaude && (
+            <div className="space-y-2">
+              <Label htmlFor="claudeApiKey">
+                Claude API Key <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="claudeApiKey"
+                  type={showClaudeApiKey ? "text" : "password"}
+                  value={formData.claudeApiKey}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    claudeApiKey: e.target.value 
+                  }))}
+                  placeholder="sk-ant-..."
+                  className={errors.claudeApiKey ? "border-destructive" : ""}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowClaudeApiKey(!showClaudeApiKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showClaudeApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.claudeApiKey && (
+                <p className="text-sm text-destructive">{errors.claudeApiKey}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                ℹ️ Obtenha em:{" "}
+                <a
+                  href="https://console.anthropic.com/settings/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  console.anthropic.com/settings/keys
+                </a>
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CRM MODULE TOGGLE */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          📊 Módulos do Sistema
+        </h2>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="crmEnabled" className="text-base font-semibold">
+                Módulo CRM
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Ativar ou desativar o módulo de gestão de leads
+              </p>
+            </div>
+            <Switch
+              id="crmEnabled"
+              checked={formData.crmEnabled}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, crmEnabled: checked }))
+              }
+            />
           </div>
         </div>
       </div>

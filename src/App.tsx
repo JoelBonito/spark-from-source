@@ -8,34 +8,51 @@ import Index from "./pages/Index";
 import Config from "./pages/Config";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import TechnicalReports from "./pages/TechnicalReports";
 import { Patients } from "./pages/Patients";
-import { Budgets } from "./pages/Budgets";
 import CRM from "./pages/CRM";
 import Dashboard from "./pages/Dashboard";
+import { ConfigProvider, useConfig } from "./contexts/ConfigContext";
 
 const queryClient = new QueryClient();
 
+function AppRoutes() {
+  const { config, loading } = useConfig();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/config" element={<Config />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/pacientes" element={<Patients />} />
+      {config?.crmEnabled !== false && (
+        <Route path="/crm" element={<CRM />} />
+      )}
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/config" element={<Config />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/pacientes" element={<Patients />} />
-          <Route path="/orcamentos" element={<Budgets />} />
-          <Route path="/crm" element={<CRM />} />
-          <Route path="/relatorios" element={<TechnicalReports />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ConfigProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </ConfigProvider>
   </QueryClientProvider>
 );
 

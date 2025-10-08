@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { 
-  generateTechnicalReportWithGemini, 
+  generateTechnicalReportWithGemini,
+  generateTechnicalReportWithClaude,
   generateTechnicalReportPDF,
   generateReportNumber,
   saveTechnicalReportToSimulation
@@ -17,14 +18,18 @@ export function useTechnicalReport() {
     patientPhone: string | undefined,
     teethCount: number,
     geminiApiKey: string,
+    useClaude: boolean = false,
+    claudeApiKey?: string,
     simulationId?: string
   ) => {
     setGenerating(true);
     
     try {
-      // Gerar conteúdo do relatório com Gemini
-      console.log('Gerando relatório técnico com IA...');
-      const content = await generateTechnicalReportWithGemini(imageBase64, geminiApiKey);
+      // Gerar conteúdo do relatório com Claude ou Gemini
+      console.log(`Gerando relatório técnico com ${useClaude ? 'Claude' : 'Gemini'}...`);
+      const content = useClaude && claudeApiKey
+        ? await generateTechnicalReportWithClaude(imageBase64, claudeApiKey)
+        : await generateTechnicalReportWithGemini(imageBase64, geminiApiKey);
       setReportContent(content);
       
       // Gerar PDF
