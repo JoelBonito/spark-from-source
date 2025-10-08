@@ -134,18 +134,45 @@ export default function Index() {
   };
 
   const fetchActiveServices = async () => {
-    const config = await getConfig();
-    if (!config) return [];
-    
-    return config.servicePrices.filter(s => s.active);
+    try {
+      const config = await getConfig();
+      if (!config || !config.servicePrices) {
+        console.warn('⚠️ Nenhuma configuração de serviços encontrada');
+        return [];
+      }
+      
+      // Filtrar apenas serviços ativos (considera true se campo não existir)
+      const ativos = config.servicePrices.filter(s => s.active !== false);
+      console.log(`✅ ${ativos.length} serviços ativos encontrados`);
+      return ativos;
+    } catch (error) {
+      console.error('Erro ao buscar serviços:', error);
+      return [];
+    }
   };
 
   const buildDynamicBudget = async (analiseJSON: any) => {
+    console.log('🔍 Iniciando montagem de orçamento dinâmico...');
+    console.log('📊 Dados da análise:', analiseJSON.analise);
+    
     const servicosAtivos = await fetchActiveServices();
+    
+    if (servicosAtivos.length === 0) {
+      toast.warning('Nenhum serviço ativo configurado. Configure na aba Configurações.');
+      return {
+        itens: [],
+        opcionais: [],
+        subtotal: 0,
+        desconto_percentual: 10,
+        desconto_valor: 0,
+        total: 0
+      };
+    }
+    
     const orcamentoItens: any[] = [];
     
     // 1. Clareamento (se recomendado)
-    if (analiseJSON.procedimentos_recomendados?.includes('clareamento')) {
+    if (analiseJSON.analise?.procedimentos_recomendados?.includes('clareamento')) {
       const clareamento = servicosAtivos.find(s => 
         s.name.toLowerCase().includes('clareamento')
       );
@@ -156,11 +183,13 @@ export default function Index() {
           valor_unitario: clareamento.price,
           valor_total: clareamento.price
         });
+      } else {
+        console.warn('⚠️ Clareamento recomendado mas serviço não encontrado');
       }
     }
     
     // 2. Facetas/Lentes (se recomendado)
-    if (analiseJSON.quantidade_facetas > 0) {
+    if (analiseJSON.analise?.quantidade_facetas > 0) {
       const faceta = servicosAtivos.find(s => 
         s.base === true || 
         s.name.toLowerCase().includes('faceta') ||
@@ -169,11 +198,13 @@ export default function Index() {
       if (faceta) {
         orcamentoItens.push({
           servico: faceta.name,
-          quantidade: analiseJSON.quantidade_facetas,
-          dentes: analiseJSON.dentes_tratados,
+          quantidade: analiseJSON.analise.quantidade_facetas,
+          dentes: analiseJSON.analise.dentes_tratados,
           valor_unitario: faceta.price,
-          valor_total: faceta.price * analiseJSON.quantidade_facetas
+          valor_total: faceta.price * analiseJSON.analise.quantidade_facetas
         });
+      } else {
+        console.warn('⚠️ Facetas recomendadas mas serviço não encontrado');
       }
     }
     
@@ -194,7 +225,7 @@ export default function Index() {
     
     // 4. Gengivoplastia (OPCIONAL)
     const opcionais: any[] = [];
-    if (analiseJSON.gengivoplastia_recomendada) {
+    if (analiseJSON.analise?.gengivoplastia_recomendada) {
       const gengivoplastia = servicosAtivos.find(s => 
         s.name.toLowerCase().includes('gengivo')
       );
@@ -202,7 +233,7 @@ export default function Index() {
         opcionais.push({
           servico: gengivoplastia.name,
           valor: gengivoplastia.price,
-          justificativa: analiseJSON.gengivoplastia_justificativa || 'Recomendado'
+          justificativa: analiseJSON.analise.gengivoplastia_justificativa || 'Recomendado'
         });
       }
     }
@@ -213,14 +244,15 @@ export default function Index() {
     const desconto_valor = subtotal * (desconto_percentual / 100);
     const total = subtotal - desconto_valor;
     
+    console.log(`💰 Orçamento montado: ${orcamentoItens.length} itens, R$ ${total.toFixed(2)}`);
+    
     return {
       itens: orcamentoItens,
       opcionais,
       subtotal,
       desconto_percentual,
       desconto_valor,
-      total,
-      analiseJSON
+      total
     };
   };
 
@@ -308,8 +340,13 @@ export default function Index() {
         );
         if (jsonMatch) {
           const extractedAnalise = JSON.parse(jsonMatch[1]);
-          console.log('📊 Análise extraída:', extractedAnalise);
           setAnaliseJSON(extractedAnalise);
+          console.log('📊 Análise extraída:', extractedAnalise);
+          console.log('  - Tom de pele:', extractedAnalise.analise?.tom_pele);
+          console.log('  - Cor dos olhos:', extractedAnalise.analise?.cor_olhos);
+          console.log('  - Quantidade de facetas:', extractedAnalise.analise?.quantidade_facetas);
+          console.log('  - Procedimentos:', extractedAnalise.analise?.procedimentos_recomendados);
+          console.log('  - Cor recomendada:', extractedAnalise.analise?.cor_recomendada);
           
           // Montar orçamento dinâmico
           const dynamicBudget = await buildDynamicBudget(extractedAnalise);
@@ -448,21 +485,27 @@ export default function Index() {
         afterImage: processedImage || ''
       });
 
+      // Validar orçamento antes de gerar PDF
+      if (!orcamentoDinamico || orcamentoDinamico.itens.length === 0) {
+        console.error('❌ Orçamento dinâmico vazio, pulando geração de PDF de orçamento');
+        toast.error('Não foi possível gerar orçamento. Verifique os serviços configurados.');
+      }
+
       // Gerar Orçamento com dados dinâmicos
-      const budgetPdf = await generateBudgetPDF({
+      const budgetPdf = orcamentoDinamico && orcamentoDinamico.itens.length > 0 ? await generateBudgetPDF({
         budgetNumber,
         patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
-        itens: orcamentoDinamico?.itens || [],
-        opcionais: orcamentoDinamico?.opcionais || [],
-        subtotal: orcamentoDinamico?.subtotal || 0,
-        desconto_percentual: orcamentoDinamico?.desconto_percentual || 10,
-        desconto_valor: orcamentoDinamico?.desconto_valor || 0,
-        total: orcamentoDinamico?.total || 0,
+        itens: orcamentoDinamico.itens || [],
+        opcionais: orcamentoDinamico.opcionais || [],
+        subtotal: orcamentoDinamico.subtotal || 0,
+        desconto_percentual: orcamentoDinamico.desconto_percentual || 10,
+        desconto_valor: orcamentoDinamico.desconto_valor || 0,
+        total: orcamentoDinamico.total || 0,
         beforeImage: originalImage,
         afterImage: processedImage || ''
-      });
+      }) : null;
 
       // Atualizar simulação com os PDFs
       if (simulationId) {
@@ -470,13 +513,15 @@ export default function Index() {
           .from('simulations')
           .update({
             technical_report_url: reportPdf,
-            budget_pdf_url: budgetPdf
+            budget_pdf_url: budgetPdf || null
           })
           .eq('id', simulationId);
       }
 
       setReportPdfUrl(reportPdf);
-      setBudgetPdfUrl(budgetPdf);
+      if (budgetPdf) {
+        setBudgetPdfUrl(budgetPdf);
+      }
       setCurrentState('completed');
       toast.success("Simulação concluída com sucesso!");
       
@@ -554,7 +599,7 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: analiseJSON?.quantidade_facetas || 0,
+        teeth_count: analiseJSON?.analise?.quantidade_facetas || 0,
         subtotal: budgetData.subtotal,
         final_price: budgetData.total,
         price_per_tooth: budgetData.itens?.find((i: any) => i.dentes)?.valor_unitario || 0,
