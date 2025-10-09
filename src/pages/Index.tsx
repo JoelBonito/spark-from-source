@@ -291,6 +291,9 @@ export default function Index() {
     setCurrentState('processing');
     setProcessingTime(0);
 
+    // Variável local para evitar race condition com setState
+    let dynamicBudgetData: any = null;
+
     try {
       const config = await getConfig();
       if (!config) {
@@ -352,6 +355,7 @@ export default function Index() {
           const dynamicBudget = await buildDynamicBudget(extractedAnalise);
           console.log('💰 Orçamento dinâmico:', dynamicBudget);
           setOrcamentoDinamico(dynamicBudget);
+          dynamicBudgetData = dynamicBudget; // Salvar em variável local para uso imediato
         }
       } catch (error) {
         console.error('Erro ao extrair JSON:', error);
@@ -485,27 +489,29 @@ export default function Index() {
         afterImage: processedImage || ''
       });
 
-      // Validar orçamento antes de gerar PDF
-      if (!orcamentoDinamico || orcamentoDinamico.itens.length === 0) {
-        console.error('❌ Orçamento dinâmico vazio, pulando geração de PDF de orçamento');
-        toast.error('Não foi possível gerar orçamento. Verifique os serviços configurados.');
+      // Gerar Orçamento com dados dinâmicos usando variável local
+      let budgetPdf: string | null = null;
+      
+      if (dynamicBudgetData && dynamicBudgetData.itens?.length > 0) {
+        budgetPdf = await generateBudgetPDF({
+          budgetNumber,
+          patientName,
+          patientPhone: patientPhone || undefined,
+          date: new Date(),
+          itens: dynamicBudgetData.itens,
+          opcionais: dynamicBudgetData.opcionais || [],
+          subtotal: dynamicBudgetData.subtotal,
+          desconto_percentual: dynamicBudgetData.desconto_percentual,
+          desconto_valor: dynamicBudgetData.desconto_valor,
+          total: dynamicBudgetData.total,
+          beforeImage: originalImage,
+          afterImage: processedImage || ''
+        });
+        console.log('✅ PDF de orçamento gerado com sucesso');
+      } else {
+        console.warn('⚠️ Orçamento sem itens, PDF não será gerado');
+        toast.warning('Orçamento não pôde ser gerado. Verifique os serviços configurados.');
       }
-
-      // Gerar Orçamento com dados dinâmicos
-      const budgetPdf = orcamentoDinamico && orcamentoDinamico.itens.length > 0 ? await generateBudgetPDF({
-        budgetNumber,
-        patientName,
-        patientPhone: patientPhone || undefined,
-        date: new Date(),
-        itens: orcamentoDinamico.itens || [],
-        opcionais: orcamentoDinamico.opcionais || [],
-        subtotal: orcamentoDinamico.subtotal || 0,
-        desconto_percentual: orcamentoDinamico.desconto_percentual || 10,
-        desconto_valor: orcamentoDinamico.desconto_valor || 0,
-        total: orcamentoDinamico.total || 0,
-        beforeImage: originalImage,
-        afterImage: processedImage || ''
-      }) : null;
 
       // Atualizar simulação com os PDFs
       if (simulationId) {
