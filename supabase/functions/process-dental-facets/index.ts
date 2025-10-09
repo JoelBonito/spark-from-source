@@ -233,23 +233,23 @@ Você é um assistente de design de sorriso. Gere uma imagem simulada realista d
 REGRAS DE RENDERIZAÇÃO:
 - **Preserve** identidade, ângulo de câmera, expressão, pele, olhos e iluminação.
 - **Modifique apenas os dentes**: forma, microalinhamento e cor segundo o plano.
-- **Cor final na escala Vita**: **somente BL2, BL3 ou BL4**.
-  - Nunca mais claro que BL2; nunca mais escuro que BL4.
+- **Cor final na escala Vita**: **SEMPRE BL2 (obrigatório)**.
+  - NÃO use BL1, BL3, BL4 ou qualquer outra cor.
 - **Serviços ativos**: aplique **apenas** procedimentos presentes em ${JSON.stringify(servicos_ativos)}.
 - Se "quantidade_facetas" for 2 ou 4, **inclua clareamento** dos demais dentes para uniformizar com a cor das facetas (etapa prévia).
 - **Proporção da imagem** deve ser preservada (sem distorções ou crop agressivo).
 - Resultado deve ser **natural e plausível** (sem brilho artificial excessivo, sem "Hollywood smile").
 
 PLANOS TÍPICOS:
-- 0 facetas → somente clareamento (uniformizar cor dentro de BL2–BL4).
-- 2 facetas (11 e 21) → harmonizar forma/cor desses dentes; clarear os demais para igualar (BL2–BL4).
-- 4 facetas (11, 12, 21, 22) → harmonizar forma/cor nesses; clarear demais dentes (BL2–BL4).
-- 6 facetas (13–23) → harmonizar frente superior; considerar ajustar tom geral (BL2–BL4).
+- 0 facetas → somente clareamento (uniformizar cor para **BL2**).
+- 2 facetas (11 e 21) → harmonizar forma/cor desses dentes; clarear os demais para igualar (**BL2**).
+- 4 facetas (11, 12, 21, 22) → harmonizar forma/cor nesses; clarear demais dentes (**BL2**).
+- 6 facetas (13–23) → harmonizar frente superior; ajustar tom geral para (**BL2**).
 
 DADOS RECEBIDOS:
 - quantidade_facetas: ${String(analiseJSON?.quantidade_facetas ?? analiseJSON?.recomendacao_tratamento?.quantidade_facetas ?? 0)}
 - dentes_tratados: ${JSON.stringify(analiseJSON?.dentes_tratados ?? analiseJSON?.recomendacao_tratamento?.dentes_fdi_tratados ?? [])}
-- cor_recomendada: ${String(analiseJSON?.cor_recomendada ?? analiseJSON?.recomendacao_tratamento?.cor_recomendada ?? 'BL3')}
+- cor_recomendada: BL2 (PADRÃO FIXO)
 - procedimentos_recomendados: ${JSON.stringify(analiseJSON?.procedimentos_recomendados ?? [])}
 
 SAÍDA:
@@ -298,7 +298,7 @@ function generateTextReportFromJSON(
     sections.push("Tratamento conservador: Apenas clareamento dental recomendado");
   }
   
-  sections.push(`Cor final recomendada: ${analiseJSON.cor_recomendada || 'BL3'} (escala Vita)\n`);
+  sections.push(`Cor final recomendada: BL2 (escala Vita) - Padrão da clínica\n`);
 
   // 3. PROCEDIMENTOS RECOMENDADOS
   if (analiseJSON.procedimentos_recomendados && analiseJSON.procedimentos_recomendados.length > 0) {
@@ -496,13 +496,14 @@ Antes da análise dental, avalie:
    - Olhos escuros (castanho escuro, preto)
 
 3. RECOMENDAÇÃO DE COR (escala Vita):
-   Com base na harmonia facial:
-   - Pele clara + olhos claros → BL1, BL2 (branco frio)
-   - Pele média + olhos médios → A1, B1 (branco neutro)
-   - Pele morena/escura → A2, B2, A3 (branco quente)
-
-IMPORTANTE: Sempre recomendar "branco natural" e não "branco artificial".
-O sorriso deve estar em HARMONIA com o rosto, não contrastar excessivamente.
+   **ATENÇÃO: Use SEMPRE e OBRIGATORIAMENTE a cor BL2.**
+   
+   Independente do tom de pele ou cor dos olhos, a cor final DEVE SER:
+   - cor_recomendada: "BL2"
+   
+   NÃO use BL1, BL3, BL4, A1, A2, A3, B1, B2 ou qualquer outra cor.
+   
+   Justificativa: BL2 é a cor padrão da clínica para resultados naturais e harmoniosos.
 
 ═══════════════════════════════════════════════════════
 CASOS DE SORRISO JÁ PERFEITO
@@ -908,6 +909,12 @@ Deno.serve(async (req) => {
         }
 
         const analise = analise_data.analise;
+        
+        // ✅ FASE 4: Forçar cor BL2 independente do que a IA retornar
+        if (analise_data.analise) {
+          analise_data.analise.cor_recomendada = 'BL2';
+          console.log('→ Cor normalizada para BL2 (padrão fixo da clínica)');
+        }
 
         // Validação condicional: se há facetas, deve haver dentes tratados
         if (analise.quantidade_facetas > 0) {
