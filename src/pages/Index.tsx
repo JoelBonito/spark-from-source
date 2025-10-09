@@ -196,10 +196,28 @@ export default function Index() {
     }
     
     // 2. Facetas/Lentes (se recomendado)
-    if (recomendacao.quantidade_facetas > 0 && recomendacao.servico_faceta_escolhido && recomendacao.servico_faceta_escolhido !== 'N/A') {
-      const faceta = servicosAtivos.find(s => 
-        s.name === recomendacao.servico_faceta_escolhido
-      );
+    if (recomendacao.quantidade_facetas > 0) {
+      let servicoFacetaRecomendado = recomendacao.servico_faceta_escolhido;
+      let faceta = servicosAtivos.find(s => s.name === servicoFacetaRecomendado);
+      
+      // 🐛 CORREÇÃO: Se o serviço recomendado pela IA estiver inativo
+      if (!faceta && servicoFacetaRecomendado && servicoFacetaRecomendado !== 'N/A') {
+        // Buscar substituto ativo por categoria
+        faceta = servicosAtivos.find(s => 
+          s.category?.toLowerCase().includes('faceta') || 
+          s.category?.toLowerCase().includes('lente') ||
+          s.name.toLowerCase().includes('faceta') ||
+          s.name.toLowerCase().includes('lente')
+        );
+        
+        if (faceta) {
+          console.warn(`⚠️ Substituição automática: '${servicoFacetaRecomendado}' (inativo) → '${faceta.name}' (ativo)`);
+          servicoFacetaRecomendado = faceta.name;
+        } else {
+          console.error('❌ Nenhuma faceta ativa encontrada para substituição');
+        }
+      }
+      
       if (faceta) {
         orcamentoItens.push({
           servico: faceta.name,
@@ -208,8 +226,6 @@ export default function Index() {
           valor_unitario: faceta.price,
           valor_total: faceta.price * recomendacao.quantidade_facetas
         });
-      } else {
-        console.warn(`⚠️ Facetas '${recomendacao.servico_faceta_escolhido}' recomendadas mas serviço não encontrado`);
       }
     }
     

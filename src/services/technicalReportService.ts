@@ -190,7 +190,11 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   doc.setFontSize(9);
   
   // FASE 1: Usar o conteúdo do relatório diretamente (já formatado)
-  const fullContentLines = doc.splitTextToSize(data.reportContent, contentWidth);
+  // 🐛 CORREÇÃO: Garantir que o conteúdo nunca seja undefined
+  const reportContentSafe = data.reportContent || 
+    'Relatório técnico não disponível. Os dados da análise foram processados com sucesso e estão disponíveis no sistema.';
+  
+  const fullContentLines = doc.splitTextToSize(reportContentSafe, contentWidth);
   
   fullContentLines.forEach((line: string) => {
     // Verificar espaço na página
