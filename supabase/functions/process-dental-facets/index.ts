@@ -229,11 +229,11 @@ function buildSimulationPrompt(
   
   console.log('🎨 Construindo prompt de simulação...');
   
-  // Extrair dados da análise com valores padrão
-  const tom_pele = analiseJSON?.analise?.tom_pele || 'média';
-  const cor_olhos = analiseJSON?.analise?.cor_olhos || 'médios';
-  const cor_recomendada = analiseJSON?.analise?.cor_recomendada || especificacoes.cor || 'A1';
-  const quantidade_facetas = analiseJSON?.analise?.quantidade_facetas || dentes_tratados.length;
+  // Extrair dados da análise JSON (nova estrutura)
+  const tom_pele = analiseJSON?.analise_clinica?.tom_pele || 'média';
+  const cor_olhos = analiseJSON?.analise_clinica?.cor_olhos || 'médios';
+  const cor_recomendada = analiseJSON?.recomendacao_tratamento?.cor_recomendada || 'BL3';
+  const quantidade_facetas = analiseJSON?.recomendacao_tratamento?.quantidade_facetas || dentes_tratados.length;
   
   console.log('→ Dados da análise:', {
     tom_pele,
@@ -381,12 +381,15 @@ function buildAnalysisPrompt(
   servicosAtivos: Array<{ name: string; category: string; price: number }>
 ): string {
   
-  // Seção 1: Introdução base (sempre presente)
-  let prompt = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por sua ATENÇÃO AOS DETALHES, análise MINUCIOSA e senso clínico apurado.
+  // Lista de nomes exatos de serviços para validação
+  const servicosExatos = servicosAtivos.map(s => s.name).join(', ');
+  
+  // Introdução: FORÇAR OUTPUT JSON EXCLUSIVO
+  let prompt = `Você é um dentista especialista em odontologia estética com 15 anos de experiência.
 
-Analise esta foto COM MUITA ATENÇÃO e gere DOIS DOCUMENTOS CONSISTENTES:
-1. RELATÓRIO TÉCNICO (para o dentista)
-2. ORÇAMENTO (para o paciente)
+IMPORTANTE: Você DEVE retornar APENAS um objeto JSON estruturado, sem texto adicional, sem tags, sem markdown.
+
+Analise esta foto dental COM MUITA ATENÇÃO e retorne um JSON com a análise clínica completa.
 
 ═══════════════════════════════════════════════════════
 SERVIÇOS DISPONÍVEIS NESTA CLÍNICA
@@ -480,14 +483,11 @@ Antes da análise dental, avalie:
    - Olhos médios (castanho claro, mel)
    - Olhos escuros (castanho escuro, preto)
 
-3. RECOMENDAÇÃO DE COR (escala Vita):
-   Com base na harmonia facial:
-   - Pele clara + olhos claros → BL1, BL2 (branco frio)
-   - Pele média + olhos médios → A1, B1 (branco neutro)
-   - Pele morena/escura → A2, B2, A3 (branco quente)
-
-IMPORTANTE: Sempre recomendar "branco natural" e não "branco artificial".
-O sorriso deve estar em HARMONIA com o rosto, não contrastar excessivamente.
+3. COR FIXA BL3:
+   ⚠️ IMPORTANTE: A cor recomendada é SEMPRE BL3 (Bleach 3)
+   - Não analise harmonização facial para cor
+   - Sempre use "BL3" em todos os campos de cor (cor_recomendada, cor_final)
+   - Justificativa: "Cor BL3 oferece branco natural ultra branco ideal para todos os tons de pele"
 
 ═══════════════════════════════════════════════════════
 CASOS DE SORRISO JÁ PERFEITO
@@ -656,10 +656,89 @@ Se identificar sorriso gengival (>3mm exposição):
   // Formato de resposta continua igual ao original
   prompt += `
 ═══════════════════════════════════════════════════════
-FORMATO DE RESPOSTA OBRIGATÓRIO:
+SERVIÇOS DISPONÍVEIS (usar nomes exatos):
+═══════════════════════════════════════════════════════
+${servicosExatos || 'Nenhum serviço configurado'}
+
+IMPORTANTE: Preencha os campos "servico_faceta_escolhido" e "servico_clareamento_escolhido" 
+APENAS com um nome EXATO da lista acima ou "N/A" se não aplicável.
+
+═══════════════════════════════════════════════════════
+FORMATO DE RESPOSTA OBRIGATÓRIO - APENAS JSON:
 ═══════════════════════════════════════════════════════
 
-<RELATORIO_TECNICO>
+Retorne APENAS o seguinte objeto JSON (sem tags, sem texto adicional):
+
+{
+  "analise_clinica": {
+    "tom_pele": "clara|média|morena|escura",
+    "cor_olhos": "claros|médios|escuros",
+    "avaliacao_geral": {
+      "alinhamento": "descrição detalhada",
+      "proporcao": "descrição detalhada",
+      "forma": "descrição detalhada",
+      "cor": "descrição detalhada",
+      "linha_gengival": "descrição detalhada"
+    },
+    "analise_por_dente": {
+      "11": { "cor": "...", "forma": "...", "posicao": "...", "desgaste": "..." },
+      "21": { "cor": "...", "forma": "...", "posicao": "..." },
+      "12": { "cor": "...", "forma": "...", "posicao": "..." },
+      "22": { "cor": "...", "forma": "...", "posicao": "..." },
+      "13": { "cor": "...", "forma": "...", "posicao": "..." },
+      "23": { "cor": "...", "forma": "...", "posicao": "..." }
+    }
+  },
+  "recomendacao_tratamento": {
+    "tipo": "facetas|clareamento|nenhum",
+    "justificativa": "justificativa técnica detalhada",
+    "dentes_fdi_tratados": ["11", "21", "12", "22"],
+    "quantidade_facetas": 4,
+    "cor_recomendada": "BL3",
+    "cor_final": "BL3",
+    "servico_faceta_escolhido": "Nome Exato do Serviço ou N/A",
+    "servico_clareamento_escolhido": "Nome Exato do Serviço ou N/A"
+  },
+  "procedimentos_complementares": {
+    "gengivoplastia_recomendada": true|false,
+    "gengivoplastia_justificativa": "justificativa se aplicável",
+    "servico_gengivoplastia_escolhido": "Nome Exato ou N/A"
+  },
+  "especificacoes_tecnicas": {
+    "material": "Cerâmica feldspática de alta translucidez",
+    "forma": "Anatômica natural",
+    "alinhamento": "Linha do sorriso harmônica",
+    "superficie": "Polimento de alta qualidade"
+  },
+  "planejamento": {
+    "sessoes": [
+      { "numero": 1, "descricao": "Moldagem e planejamento digital", "duracao": "1 hora" },
+      { "numero": 2, "descricao": "Preparo dental e moldagem final", "duracao": "2 horas" },
+      { "numero": 3, "descricao": "Prova e ajustes", "duracao": "1 hora" },
+      { "numero": 4, "descricao": "Cimentação definitiva", "duracao": "2 horas" }
+    ]
+  },
+  "cuidados_pos_procedimento": [
+    "Evitar alimentos muito duros nas primeiras 48h",
+    "Higienização cuidadosa com escova macia",
+    "Uso de fio dental diariamente",
+    "Evitar alimentos corantes nos primeiros dias"
+  ],
+  "prognostico": "Excelente prognóstico com durabilidade de 10-15 anos com manutenção adequada",
+  "contraindicacoes": [
+    "Bruxismo severo não controlado",
+    "Higiene oral inadequada",
+    "Doença periodontal ativa"
+  ],
+  "observacoes_profissionais": "Observações técnicas finais"
+}
+
+⚠️ CRÍTICO: 
+- Retorne APENAS o JSON acima
+- NÃO adicione texto antes ou depois
+- NÃO use tags como <RELATORIO_TECNICO> ou <ORCAMENTO>
+- Use SEMPRE "BL3" para cor_recomendada e cor_final
+- Use nomes EXATOS dos serviços disponíveis
 ANÁLISE CLÍNICA INICIAL
 
 HARMONIA FACIAL:
@@ -1203,6 +1282,7 @@ Deno.serve(async (req) => {
                 ],
               },
             ],
+            response_mime_type: 'application/json',  // ← FORÇAR JSON PURO
             max_tokens: 10000,
             temperature: 0.3,
           }),
@@ -1218,58 +1298,48 @@ Deno.serve(async (req) => {
         }
         
         const analysisResult = await analysisResponse.json();
-        const fullResponse = analysisResult.choices?.[0]?.message?.content || '';
+        const responseText = analysisResult.choices?.[0]?.message?.content?.trim();
         
-        if (!fullResponse) {
+        if (!responseText) {
           throw new Error('Gemini não retornou conteúdo');
         }
         
-        console.log('✓ Resposta recebida do Gemini');
-        console.log(`📝 Tamanho total: ${fullResponse.length} caracteres`);
+        console.log('✓ Resposta JSON recebida do Gemini');
+        console.log(`📝 Tamanho: ${responseText.length} caracteres`);
+        
+        // Parsear JSON diretamente (sem tags)
+        let analise_data;
+        try {
+          analise_data = JSON.parse(responseText);
+          console.log('✓ JSON parseado com sucesso');
+        } catch (parseError) {
+          console.error('❌ Erro ao parsear JSON:', parseError);
+          console.error('📄 Resposta recebida:', responseText.substring(0, 500));
+          throw new Error('Resposta da IA não está em formato JSON válido');
+        }
+        
+        // Validar campos críticos
+        if (!analise_data.analise_clinica || !analise_data.recomendacao_tratamento) {
+          console.error('❌ JSON incompleto:', analise_data);
+          throw new Error('JSON incompleto - faltam campos obrigatórios');
+        }
         
         // Verificar se a resposta foi truncada
         const finishReason = analysisResult.choices?.[0]?.finish_reason;
         if (finishReason === 'length') {
           console.warn('⚠️ AVISO: Resposta truncada devido a max_tokens');
-          console.warn('⚠️ Considere aumentar max_tokens ou simplificar o prompt');
         }
         
-        // Extrair os dois documentos usando as tags
-        const relatorioMatch = fullResponse.match(/<RELATORIO_TECNICO>([\s\S]*?)<\/RELATORIO_TECNICO>/i);
-        const orcamentoMatch = fullResponse.match(/<ORCAMENTO>([\s\S]*?)<\/ORCAMENTO>/i);
-        
-        const relatorioTecnico = relatorioMatch ? relatorioMatch[1].trim() : fullResponse;
-        const orcamento = orcamentoMatch ? orcamentoMatch[1].trim() : '';
-        
-        if (!relatorioTecnico) {
-          throw new Error('Relatório técnico não encontrado na resposta');
-        }
-        
-        // Validar se os documentos estão completos
-        if (relatorioTecnico.length < 500) {
-          console.warn('⚠️ AVISO: Relatório técnico muito curto, pode estar incompleto');
-        }
-        
-        console.log('✓ Relatório Técnico extraído');
-        console.log(`  Tamanho: ${relatorioTecnico.length} caracteres`);
-        
-        if (orcamento) {
-          console.log('✓ Orçamento extraído');
-          console.log(`  Tamanho: ${orcamento.length} caracteres`);
-        } else {
-          console.warn('⚠️ Orçamento não encontrado - usando resposta completa');
-        }
-        
-        // Retornar ambos os documentos
+        // Retornar JSON estruturado
         return new Response(
           JSON.stringify({ 
-            relatorio_tecnico: relatorioTecnico,
-            orcamento: orcamento || fullResponse,
             success: true,
+            analise_data,  // ← JSON PURO da IA
             metadata: {
-              total_chars: fullResponse.length,
-              finish_reason: finishReason,
-              truncated: finishReason === 'length'
+              model: 'google/gemini-2.5-flash',
+              timestamp: new Date().toISOString(),
+              truncated: finishReason === 'length',
+              finish_reason: finishReason
             }
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },

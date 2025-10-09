@@ -24,13 +24,16 @@ import { generateTechnicalReportPDF, generateReportNumber } from "@/services/tec
 type SimulatorState = 'input' | 'processing' | 'completed';
 
 interface AnalysisResult {
-  relatorio_tecnico: string;
-  orcamento: string;
   success: boolean;
+  relatorio_tecnico?: string;
+  orcamento?: string;
+  analise_data?: any;
   metadata?: {
-    total_chars: number;
-    finish_reason: string;
-    truncated: boolean;
+    total_chars?: number;
+    finish_reason?: string;
+    truncated?: boolean;
+    model?: string;
+    timestamp?: string;
   };
 }
 
@@ -335,42 +338,45 @@ export default function Index() {
 
       const analysisResult = await analysisResponse.json();
       
-      if (!analysisResult.relatorio_tecnico || !analysisResult.orcamento) {
-        throw new Error("Resposta incompleta da análise");
+      if (!analysisResult.success || !analysisResult.analise_data) {
+        throw new Error("JSON de análise não encontrado na resposta");
       }
 
       if (analysisResult.metadata?.truncated) {
         toast.warning("Atenção: Resposta foi truncada.");
       }
 
-      setAnalysisData(analysisResult);
+      // ✅ JSON já vem pronto da edge function
+      const analiseJSON = analysisResult.analise_data;
+      setAnaliseJSON(analiseJSON);
+      
+      console.log('📊 Análise JSON recebida:', analiseJSON);
+      console.log('  - Tom de pele:', analiseJSON.analise_clinica?.tom_pele);
+      console.log('  - Cor dos olhos:', analiseJSON.analise_clinica?.cor_olhos);
+      console.log('  - Tipo tratamento:', analiseJSON.recomendacao_tratamento?.tipo);
+      console.log('  - Quantidade de facetas:', analiseJSON.recomendacao_tratamento?.quantidade_facetas);
+      console.log('  - Cor recomendada:', analiseJSON.recomendacao_tratamento?.cor_recomendada);
 
-      // Extrair JSON da análise
-      let extractedAnalise: any = null;
-      try {
-        const jsonMatch = analysisResult.orcamento.match(
-          /<ORCAMENTO_JSON>([\s\S]*?)<\/ORCAMENTO_JSON>/i
-        );
-        if (jsonMatch) {
-          extractedAnalise = JSON.parse(jsonMatch[1]);
-          setAnaliseJSON(extractedAnalise);
-          console.log('📊 Análise extraída:', extractedAnalise);
-          console.log('  - Tom de pele:', extractedAnalise.analise?.tom_pele);
-          console.log('  - Cor dos olhos:', extractedAnalise.analise?.cor_olhos);
-          console.log('  - Quantidade de facetas:', extractedAnalise.analise?.quantidade_facetas);
-          console.log('  - Procedimentos:', extractedAnalise.analise?.procedimentos_recomendados);
-          console.log('  - Cor recomendada:', extractedAnalise.analise?.cor_recomendada);
-          
-          // Montar orçamento dinâmico
-          const dynamicBudget = await buildDynamicBudget(extractedAnalise);
-          console.log('💰 Orçamento dinâmico:', dynamicBudget);
-          setOrcamentoDinamico(dynamicBudget);
-          dynamicBudgetData = dynamicBudget; // Salvar em variável local para uso imediato
-        }
-      } catch (error) {
-        console.error('Erro ao extrair JSON:', error);
-        toast.warning('Não foi possível extrair dados estruturados da análise');
-      }
+      // ✅ Gerar texto do relatório a partir do JSON
+      const { generateTextReportFromJSON } = await import('@/services/textReportGenerator');
+      const relatorioTexto = generateTextReportFromJSON(analiseJSON);
+      
+      // ✅ Criar objeto compatível com fluxo atual
+      const analysisDataCompat: AnalysisResult = {
+        success: true,
+        relatorio_tecnico: relatorioTexto,
+        orcamento: '',  // Não mais necessário em texto
+        analise_data: analiseJSON,
+        metadata: analysisResult.metadata
+      };
+      
+      setAnalysisData(analysisDataCompat);
+
+      // ✅ Montar orçamento dinâmico
+      const dynamicBudget = await buildDynamicBudget(analiseJSON);
+      console.log('💰 Orçamento dinâmico:', dynamicBudget);
+      setOrcamentoDinamico(dynamicBudget);
+      dynamicBudgetData = dynamicBudget;
 
       // Salvar simulação inicial
       const { data: { user } } = await supabase.auth.getUser();
@@ -431,8 +437,8 @@ export default function Index() {
         body: JSON.stringify({
           action: 'generate',
           imageBase64: originalImage,
-          reportText: analysisResult.relatorio_tecnico,
-          analiseJSON: extractedAnalise, // Dados estruturados da análise para prompt enriquecido
+          reportText: analysisDataCompat.relatorio_tecnico,
+          analiseJSON: analiseJSON, // Dados estruturados da análise para prompt enriquecido
           config: {
             temperature: config.temperature,
             topK: config.topK,
