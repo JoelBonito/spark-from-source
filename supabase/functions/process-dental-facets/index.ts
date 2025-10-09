@@ -365,6 +365,137 @@ Generate the photorealistic simulation now.`;
 }
 
 /**
+ * ✅ FASE 4: GERADOR DE RELATÓRIO TÉCNICO EM TEXTO
+ * Converte JSON estruturado em relatório narrativo profissional
+ */
+function generateTextReportFromJSON(
+  analiseJSON: any,
+  servicosAtivos: Array<{ name: string; category: string; price: number }>
+): string {
+  const sections: string[] = [];
+
+  // 1. ANÁLISE CLÍNICA INICIAL
+  sections.push("═══════════════════════════════════════");
+  sections.push("ANÁLISE CLÍNICA INICIAL");
+  sections.push("═══════════════════════════════════════\n");
+  
+  if (analiseJSON.analise_clinica) {
+    const ac = analiseJSON.analise_clinica;
+    sections.push(`Tom de pele: ${ac.tom_pele || 'Não especificado'}`);
+    sections.push(`Cor dos olhos: ${ac.cor_olhos || 'Não especificado'}\n`);
+    
+    if (ac.avaliacao_geral) {
+      sections.push("Avaliação Geral:");
+      sections.push(`- Alinhamento: ${ac.avaliacao_geral.alinhamento || 'Adequado'}`);
+      sections.push(`- Proporção: ${ac.avaliacao_geral.proporcao || 'Harmônica'}`);
+      sections.push(`- Forma: ${ac.avaliacao_geral.forma || 'Adequada'}`);
+      sections.push(`- Cor: ${ac.avaliacao_geral.cor || 'Natural'}`);
+      sections.push(`- Linha gengival: ${ac.avaliacao_geral.linha_gengival || 'Normal'}\n`);
+    }
+  }
+
+  // 2. RECOMENDAÇÃO DE TRATAMENTO
+  const recom = analiseJSON.recomendacao_tratamento;
+  if (recom) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("RECOMENDAÇÃO DE TRATAMENTO");
+    sections.push("═══════════════════════════════════════\n");
+    
+    sections.push(`Tipo: ${recom.tipo || 'Não especificado'}`);
+    sections.push(`Justificativa: ${recom.justificativa || ''}\n`);
+    
+    if (recom.quantidade_facetas > 0) {
+      sections.push(`Quantidade de facetas: ${recom.quantidade_facetas}`);
+      sections.push(`Dentes tratados (FDI): ${recom.dentes_fdi_tratados?.join(', ') || ''}`);
+      sections.push(`Cor recomendada: ${recom.cor_recomendada || 'BL3'}\n`);
+    }
+  }
+
+  // 3. ESPECIFICAÇÕES TÉCNICAS
+  const espec = analiseJSON.especificacoes_tecnicas;
+  if (espec) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("ESPECIFICAÇÕES TÉCNICAS");
+    sections.push("═══════════════════════════════════════\n");
+    
+    sections.push(`Material: ${espec.material || 'Cerâmica feldspática de alta translucidez'}`);
+    sections.push(`Forma: ${espec.forma || 'Anatômica natural'}`);
+    sections.push(`Alinhamento: ${espec.alinhamento || 'Linha do sorriso harmônica'}`);
+    sections.push(`Superfície: ${espec.superficie || 'Polimento de alta qualidade'}\n`);
+  }
+
+  // 4. PLANEJAMENTO
+  const plan = analiseJSON.planejamento;
+  if (plan?.sessoes?.length > 0) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("PLANEJAMENTO DO TRATAMENTO");
+    sections.push("═══════════════════════════════════════\n");
+    
+    plan.sessoes.forEach((sessao: any) => {
+      sections.push(`Sessão ${sessao.numero}: ${sessao.descricao} (${sessao.duracao})`);
+    });
+    sections.push("");
+  }
+
+  // 5. PROCEDIMENTOS COMPLEMENTARES
+  const comp = analiseJSON.procedimentos_complementares;
+  if (comp?.gengivoplastia_recomendada) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("PROCEDIMENTOS COMPLEMENTARES");
+    sections.push("═══════════════════════════════════════\n");
+    
+    sections.push(`Gengivoplastia: ${comp.gengivoplastia_justificativa || 'Recomendada'}\n`);
+  }
+
+  // 6. CUIDADOS PÓS-PROCEDIMENTO
+  if (analiseJSON.cuidados_pos_procedimento?.length > 0) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("CUIDADOS PÓS-PROCEDIMENTO");
+    sections.push("═══════════════════════════════════════\n");
+    
+    analiseJSON.cuidados_pos_procedimento.forEach((cuidado: string) => {
+      sections.push(`- ${cuidado}`);
+    });
+    sections.push("");
+  }
+
+  // 7. PROGNÓSTICO
+  if (analiseJSON.prognostico) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("PROGNÓSTICO");
+    sections.push("═══════════════════════════════════════\n");
+    sections.push(analiseJSON.prognostico);
+    sections.push("");
+  }
+
+  // 8. CONTRAINDICAÇÕES
+  if (analiseJSON.contraindicacoes?.length > 0) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("CONTRAINDICAÇÕES");
+    sections.push("═══════════════════════════════════════\n");
+    
+    analiseJSON.contraindicacoes.forEach((contra: string) => {
+      sections.push(`- ${contra}`);
+    });
+    sections.push("");
+  }
+
+  // 9. OBSERVAÇÕES PROFISSIONAIS
+  if (analiseJSON.observacoes_profissionais) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("OBSERVAÇÕES PROFISSIONAIS");
+    sections.push("═══════════════════════════════════════\n");
+    sections.push(analiseJSON.observacoes_profissionais);
+    sections.push("\n");
+  }
+
+  sections.push("IMPORTANTE: Este relatório é baseado em análise de imagem e tem caráter orientativo.");
+  sections.push("Avaliação clínica presencial é obrigatória antes de qualquer procedimento.");
+
+  return sections.join("\n");
+}
+
+/**
  * Constrói prompt de análise dinâmico baseado em serviços ativos
  */
 function buildAnalysisPrompt(
@@ -396,28 +527,57 @@ NÃO proponha tratamentos que não estejam disponíveis.
 
 `;
 
-  // Seção 2: Lista de serviços disponíveis
-  prompt += `Tratamentos oferecidos:\n`;
+  // ✅ FASE 3: Seção dinâmica de serviços baseada em serviços REALMENTE ativos
+  prompt += `Tratamentos oferecidos nesta clínica:\n\n`;
   
-  if (tratamentosDisponiveis.facetas) {
-    prompt += `✅ FACETAS DE CERÂMICA / LENTES DE CONTATO DENTAL\n`;
-  } else {
-    prompt += `❌ Facetas NÃO disponíveis (não recomendar)\n`;
-  }
+  const servicosPorCategoria = {
+    facetas: servicosAtivos.filter(s => 
+      s.category === 'facetas' || 
+      s.name.toLowerCase().includes('faceta') || 
+      s.name.toLowerCase().includes('lente')
+    ),
+    clareamento: servicosAtivos.filter(s => 
+      s.category === 'clareamento' || 
+      s.name.toLowerCase().includes('clareamento')
+    ),
+    complementares: servicosAtivos.filter(s => 
+      s.category === 'complementares' || 
+      s.name.toLowerCase().includes('gengivo') || 
+      s.name.toLowerCase().includes('planejamento')
+    )
+  };
   
-  if (tratamentosDisponiveis.clareamento) {
-    prompt += `✅ CLAREAMENTO DENTAL\n`;
+  // Facetas
+  if (servicosPorCategoria.facetas.length > 0) {
+    prompt += `✅ FACETAS/LENTES DE CONTATO DENTAL (disponível)\n`;
+    prompt += `   Opções disponíveis:\n`;
+    servicosPorCategoria.facetas.forEach(s => {
+      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)} por dente\n`;
+    });
   } else {
-    prompt += `❌ Clareamento NÃO disponível (não recomendar)\n`;
+    prompt += `❌ FACETAS NÃO DISPONÍVEIS (não recomendar)\n`;
   }
-  
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `✅ GENGIVOPLASTIA (procedimento complementar)\n`;
-  } else {
-    prompt += `❌ Gengivoplastia NÃO disponível (não mencionar)\n`;
-  }
-
   prompt += `\n`;
+  
+  // Clareamento
+  if (servicosPorCategoria.clareamento.length > 0) {
+    prompt += `✅ CLAREAMENTO DENTAL (disponível)\n`;
+    servicosPorCategoria.clareamento.forEach(s => {
+      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)}\n`;
+    });
+  } else {
+    prompt += `❌ CLAREAMENTO NÃO DISPONÍVEL (não recomendar)\n`;
+  }
+  prompt += `\n`;
+  
+  // Complementares
+  if (servicosPorCategoria.complementares.length > 0) {
+    prompt += `✅ PROCEDIMENTOS COMPLEMENTARES:\n`;
+    servicosPorCategoria.complementares.forEach(s => {
+      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)}\n`;
+    });
+    prompt += `\n`;
+  }
 
   // Seção 3: Regras de recomendação
   prompt += `REGRAS DE RECOMENDAÇÃO:
@@ -589,19 +749,20 @@ Regra de Indicação:
   if (tratamentosDisponiveis.facetas) {
     prompt += `
 FACETAS INDICADAS APENAS SE HOUVER EVIDÊNCIA FOTOGRÁFICA CLARA DE:
-- Rotação dentária visível (>15 graus de inclinação)
-- Desgaste estrutural severo (>2mm nas bordas incisais)
+- Rotação dentária visível (>15 graus de inclinação na foto)
+- Desgaste estrutural severo (>2mm nas bordas incisais claramente visível)
 - Assimetria marcante entre dentes correspondentes (>20% diferença de tamanho)
-- Diastemas significativos (>1mm entre dentes)
+- Diastemas significativos (>1mm entre dentes, visível a olho nu)
 - Dentes projetados/recuados visivelmente em relação ao arco
-- Forma dentária gravemente irregular (triangular quando deveria ser retangular)
+- Forma dentária gravemente irregular (ex: triangular quando deveria ser retangular)
 
-⚠️ REGRA CRÍTICA: NÃO recomende facetas baseado em:
+⚠️ REGRA CRÍTICA - NÃO recomende facetas baseado em:
 - "Queixa estética genérica do paciente"
-- "Potencial de melhoria" sem problema estrutural evidente
-- Problemas menores que não são visíveis na foto
+- "Potencial de melhoria" sem problema estrutural EVIDENTE
+- Assimetrias naturais menores (<10%)
+- Pequenos desgastes naturais que não comprometem estética
 
-Se a estrutura estiver BOA (mesmo que não perfeita), priorize clareamento.
+✅ PRIORIZE CLAREAMENTO: Se estrutura estiver BOA/ADEQUADA (mesmo não perfeita), recomende apenas clareamento.
 `;
   }
 
@@ -626,21 +787,25 @@ QUANTIDADE DE FACETAS - CONTAGEM RIGOROSA:
 
   if (tratamentosDisponiveis.facetas) {
     prompt += `
-REGRA DE CONTAGEM (conte APENAS dentes com problemas VISÍVEIS na foto):
+✅ CONTAGEM RIGOROSA - Conte APENAS dentes com problemas VISÍVEIS e ESTRUTURAIS na foto:
 
-- 0 facetas: Estrutura BOA = recomendar apenas clareamento
-- 2 facetas: Apenas os incisivos centrais têm problema estrutural CLARO (11, 21)
-- 4 facetas: Incisivos centrais E laterais têm problemas VISÍVEIS (11, 21, 12, 22)
-- 6 facetas: Todos anteriores incluindo caninos têm problemas EVIDENTES (11, 21, 12, 22, 13, 23)
+Escala de 0 a 6 facetas baseada em EVIDÊNCIA fotográfica:
+- 0 facetas: Estrutura BOA → Apenas clareamento
+- 2 facetas: Somente incisivos centrais (11, 21) têm problema CLARO
+- 4 facetas: Centrais + laterais (11, 21, 12, 22) têm problemas VISÍVEIS
+- 6 facetas: Centrais + laterais + caninos (11-23) têm problemas EVIDENTES
 
-⚠️ CRITÉRIO OBRIGATÓRIO: Para contar um dente, você DEVE descrever no relatório QUAL é o problema estrutural específico daquele dente.
-NÃO use contagem padrão de 6 facetas sem justificativa fotográfica clara.
+⚠️ CRITÉRIO OBRIGATÓRIO: 
+- Para contar um dente, você DEVE identificar problema estrutural específico visível na foto
+- NÃO use 6 facetas como padrão sem justificar cada dente
+- NÃO conte dentes apenas por "potencial de melhoria"
 
 EXEMPLOS DE CONTAGEM CORRETA:
-✅ "Dente 11 apresenta rotação de ~20° e desgaste de 3mm na borda → CONTA"
-✅ "Dente 12 está bem alinhado mas é 30% menor que o 22 → CONTA"
-✅ "Dente 13 está bem posicionado, cor uniforme → NÃO CONTA"
-❌ "Paciente quer um sorriso perfeito" → ERRADO, não é critério de contagem
+✅ "Dente 11: rotação de 20° visível + desgaste 3mm → CONTA"
+✅ "Dente 12: 30% menor que dente 22 (assimetria clara) → CONTA"  
+✅ "Dente 13: bem alinhado, cor uniforme → NÃO CONTA"
+❌ "Paciente quer Hollywood Smile" → ERRADO (não é critério clínico)
+❌ "6 facetas para sorriso perfeito" → ERRADO (sem evidência por dente)
 `;
   }
 
@@ -1189,10 +1354,16 @@ Deno.serve(async (req) => {
           console.warn('⚠️ AVISO: Resposta truncada devido a max_tokens');
         }
         
-        // Retornar JSON estruturado
+        // ✅ FASE 4: Gerar relatório técnico em texto narrativo
+        console.log('→ Gerando relatório técnico em texto...');
+        const relatorio_tecnico = generateTextReportFromJSON(analise_data, servicos_ativos);
+        console.log('✓ Relatório técnico gerado:', relatorio_tecnico.substring(0, 200) + '...');
+        
+        // Retornar JSON estruturado + relatório em texto
         return new Response(
           JSON.stringify({ 
             success: true,
+            relatorio_tecnico,
             analise_data,  // ← JSON PURO da IA
             metadata: {
               model: 'google/gemini-2.5-flash',

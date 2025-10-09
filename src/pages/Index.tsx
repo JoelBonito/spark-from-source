@@ -345,9 +345,17 @@ export default function Index() {
       // ========================================
       setProcessingStep('Analisando foto e gerando documentos...');
       
-      // Buscar serviços ativos para enviar ao edge function
+      // ✅ FASE 2: Buscar serviços ativos e enviar à Edge Function
       const servicosAtivos = await fetchActiveServices();
-      console.log('🛠️ Enviando serviços ativos:', servicosAtivos.map(s => s.name));
+      console.log('✓ Serviços ativos carregados:', servicosAtivos.length);
+      
+      const servicosParaEdge = servicosAtivos.map(s => ({
+        name: s.name,
+        category: s.category || 'outros',
+        price: s.price
+      }));
+      
+      console.log('→ Enviando para Edge Function:', servicosParaEdge);
       
       const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
@@ -358,11 +366,7 @@ export default function Index() {
         body: JSON.stringify({
           action: 'analyze',
           imageBase64: originalImage,
-          servicos_ativos: servicosAtivos.map(s => ({
-            name: s.name,
-            category: s.category,
-            price: s.price
-          }))
+          servicos_ativos: servicosParaEdge
         }),
       });
 
@@ -490,7 +494,9 @@ export default function Index() {
 
       const imageResult = await imageResponse.json();
       
-      // Upload imagem processada
+      // ✅ FASE 1: Upload e armazenamento em variável local (evita race condition)
+      let processedImageUrl: string | null = null;
+      
       if (user && simulationId) {
         const timestamp = getTimestamp();
         const fetchResponse = await fetch(imageResult.processedImageBase64);
@@ -505,19 +511,20 @@ export default function Index() {
             cacheControl: '3600',
           });
         
-        const { data: { publicUrl: processedUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabase.storage
           .from('processed-images')
           .getPublicUrl(processedFileName);
 
+        console.log('✓ Imagem processada salva:', publicUrl);
+        processedImageUrl = publicUrl; // ✅ Armazenar em variável local
+        
         await supabase
           .from('simulations')
           .update({
-            processed_image_url: processedUrl,
+            processed_image_url: processedImageUrl,
             status: 'completed',
           })
           .eq('id', simulationId);
-
-        setProcessedImage(processedUrl);
       }
 
       // ========================================
@@ -528,26 +535,36 @@ export default function Index() {
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
 
-      // 🐛 CORREÇÃO FASE 2: Converter URLs para Base64 para garantir que imagens apareçam nos PDFs
-      console.log('🔄 Convertendo imagens para Base64...');
+      // ✅ FASE 1: Converter URLs para Base64 usando variável local (não estado React)
+      console.log('→ Convertendo imagens para Base64...');
       const beforeImageBase64 = originalImage ? await urlToBase64(originalImage) : '';
-      const afterImageBase64 = processedImage ? await urlToBase64(processedImage) : '';
-      console.log('✅ Imagens convertidas para Base64');
+      const afterImageBase64 = processedImageUrl ? await urlToBase64(processedImageUrl) : '';
+      
+      console.log('✓ Conversão concluída:', {
+        before: beforeImageBase64 ? 'OK' : 'VAZIO',
+        after: afterImageBase64 ? 'OK' : 'VAZIO'
+      });
 
-      // Gerar Relatório Técnico
+      // Gerar Relatório Técnico com texto narrativo
+      console.log('→ Gerando Relatório Técnico PDF...');
       const reportPdf = await generateTechnicalReportPDF({
         reportNumber,
         patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
-        teethCount: 0,
-        reportContent: analysisResult.relatorio_tecnico,
+        teethCount: analiseJSON?.recomendacao_tratamento?.quantidade_facetas || 0,
+        reportContent: analysisResult.relatorio_tecnico || analysisDataCompat.relatorio_tecnico || 'Análise não disponível',
         simulationId: simulationId || currentSimulationId || '',
         beforeImage: beforeImageBase64,
         afterImage: afterImageBase64
       });
+      
+      console.log('✓ Relatório Técnico PDF gerado:', reportPdf);
 
-      // Gerar Orçamento com dados dinâmicos usando variável local
+      // Gerar Orçamento com dados dinâmicos
+      console.log('→ Gerando Orçamento PDF...');
+      console.log('→ Usando orçamento dinâmico:', dynamicBudgetData);
+      
       let budgetPdf: string | null = null;
       
       if (dynamicBudgetData && dynamicBudgetData.itens?.length > 0) {
@@ -565,11 +582,14 @@ export default function Index() {
           beforeImage: beforeImageBase64,
           afterImage: afterImageBase64
         });
-        console.log('✅ PDF de orçamento gerado com sucesso');
+        console.log('✓ Orçamento PDF gerado:', budgetPdf);
       } else {
         console.warn('⚠️ Orçamento sem itens, PDF não será gerado');
         toast.warning('Orçamento não pôde ser gerado. Verifique os serviços configurados.');
       }
+      
+      // ✅ FASE 1: Atualizar estado APÓS gerar PDFs (não antes)
+      setProcessedImage(processedImageUrl);
 
       // Atualizar simulação com os PDFs
       if (simulationId) {
