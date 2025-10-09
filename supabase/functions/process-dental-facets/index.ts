@@ -219,149 +219,42 @@ function getColorDescription(colorCode: string, skinTone: string): string {
 }
 
 /**
- * Constrói o prompt para simulação de imagem baseado nos dados extraídos e análise
+ * ✅ NOVO: Prompt de simulação conservador BL2-BL4
+ * Constrói o prompt para geração de imagem respeitando serviços ativos e faixa cromática
  */
 function buildSimulationPrompt(
-  extracted: { dentes_tratados: string[]; especificacoes: Record<string, string> },
-  analiseJSON?: any
+  analiseJSON: any,
+  servicos_ativos: string[],
+  beforeImageRef: string
 ): string {
-  const { dentes_tratados, especificacoes } = extracted;
-  
-  console.log('🎨 Construindo prompt de simulação...');
-  
-  // FASE 2: Cor BL3 SEMPRE FIXA (sem harmonização facial)
-  const cor_recomendada = 'BL3'; // FIXO - protocolo da clínica
-  const quantidade_facetas = analiseJSON?.recomendacao_tratamento?.quantidade_facetas || dentes_tratados.length;
-  
-  // tom_pele e cor_olhos não são mais usados na simulação
-  const tom_pele = 'N/A';
-  const cor_olhos = 'N/A';
-  
-  console.log('→ Dados da análise:', {
-    cor_recomendada: 'BL3 (fixo)',
-    quantidade_facetas
-  });
-  
-  // Caso sem facetas: apenas clareamento
-  if (!dentes_tratados || dentes_tratados.length === 0) {
-    console.log('→ Tipo: Clareamento apenas (sem facetas)');
-    
-    // FASE 2: Descrição fixa para BL3 (sem harmonização)
-    const colorDesc = 'Cor BL3 ultra-branca, ideal para um sorriso de alto impacto e estética moderna.';
-    // FASE 2: Sem lógica de tom de pele
-    const whitenessIntensity = 'cool bright white';
-    
-    return `PROFESSIONAL TEETH WHITENING SIMULATION
+  return `
+Você é um assistente de design de sorriso. Gere uma imagem simulada realista do "depois" com base na foto "antes" (${beforeImageRef}) e nos dados de "analiseJSON".
 
-TARGET SHADE: BL3 Vita scale
-→ ${colorDesc}
+REGRAS DE RENDERIZAÇÃO:
+- **Preserve** identidade, ângulo de câmera, expressão, pele, olhos e iluminação.
+- **Modifique apenas os dentes**: forma, microalinhamento e cor segundo o plano.
+- **Cor final na escala Vita**: **somente BL2, BL3 ou BL4**.
+  - Nunca mais claro que BL2; nunca mais escuro que BL4.
+- **Serviços ativos**: aplique **apenas** procedimentos presentes em ${JSON.stringify(servicos_ativos)}.
+- Se "quantidade_facetas" for 2 ou 4, **inclua clareamento** dos demais dentes para uniformizar com a cor das facetas (etapa prévia).
+- **Proporção da imagem** deve ser preservada (sem distorções ou crop agressivo).
+- Resultado deve ser **natural e plausível** (sem brilho artificial excessivo, sem "Hollywood smile").
 
-WHITENING INSTRUCTIONS:
-1. Apply DRAMATIC but natural whitening to ALL visible teeth
-2. Target shade: ${whitenessIntensity}
-3. Achieve BL3 shade level - ultra-white for maximum aesthetic impact
-4. Maintain natural tooth translucency at incisal edges
-5. Result must be OBVIOUS, IMPRESSIVE, and celebrity-quality
-6. Create a transformative "Hollywood smile" effect while keeping it natural
+PLANOS TÍPICOS:
+- 0 facetas → somente clareamento (uniformizar cor dentro de BL2–BL4).
+- 2 facetas (11 e 21) → harmonizar forma/cor desses dentes; clarear os demais para igualar (BL2–BL4).
+- 4 facetas (11, 12, 21, 22) → harmonizar forma/cor nesses; clarear demais dentes (BL2–BL4).
+- 6 facetas (13–23) → harmonizar frente superior; considerar ajustar tom geral (BL2–BL4).
 
-CRITICAL REQUIREMENTS:
-- Transformation MUST be DRAMATIC and clearly visible
-- BL3 white for maximum brightness and modern aesthetics
-- Natural glossy finish with subtle highlights
-- Professional dental aesthetics - inspire confidence
+DADOS RECEBIDOS:
+- quantidade_facetas: ${String(analiseJSON?.quantidade_facetas ?? analiseJSON?.recomendacao_tratamento?.quantidade_facetas ?? 0)}
+- dentes_tratados: ${JSON.stringify(analiseJSON?.dentes_tratados ?? analiseJSON?.recomendacao_tratamento?.dentes_fdi_tratados ?? [])}
+- cor_recomendada: ${String(analiseJSON?.cor_recomendada ?? analiseJSON?.recomendacao_tratamento?.cor_recomendada ?? 'BL3')}
+- procedimentos_recomendados: ${JSON.stringify(analiseJSON?.procedimentos_recomendados ?? [])}
 
-PRESERVE COMPLETELY:
-- Facial skin texture and tone
-- Hair structure and color
-- Eye color and shape
-- Facial expression
-- Lighting and shadows
-- Background environment
-- All unique patient characteristics
-
-Generate the photorealistic image now.`;
-  }
-  
-  console.log(`→ Tipo: Facetas nos dentes [${dentes_tratados.join(', ')}]`);
-  
-  // Formatação dos dentes tratados
-  const teethMap: Record<string, string> = {
-    '11': 'Upper right central incisor',
-    '21': 'Upper left central incisor',
-    '12': 'Upper right lateral incisor',
-    '22': 'Upper left lateral incisor',
-    '13': 'Upper right canine',
-    '23': 'Upper left canine'
-  };
-  
-  const teethList = dentes_tratados.map(t => `${teethMap[t] || t} (${t})`).join(', ');
-  
-  // FASE 2: Descrição fixa para BL3
-  const colorDesc = 'Cor BL3 ultra-branca, que confere um resultado de branco puro, consistente com os padrões estéticos modernos.';
-  
-  const specLines: string[] = [];
-  if (especificacoes.material) specLines.push(`- Material: ${especificacoes.material}`);
-  if (especificacoes.tecnica) specLines.push(`- Technique: ${especificacoes.tecnica}`);
-  if (especificacoes.espessura) specLines.push(`- Thickness: ${especificacoes.espessura}`);
-  if (especificacoes.preparo) specLines.push(`- Preparation: ${especificacoes.preparo}`);
-  
-  const techSpecs = specLines.length > 0 ? '\n' + specLines.join('\n') : '';
-  
-  return `PROFESSIONAL DENTAL VENEERS SIMULATION
-
-PATIENT PROFILE:
-- Recommended shade: BL3 Vita scale
-  → ${colorDesc}
-
-TEETH REQUIRING VENEERS:
-${teethList}
-Total: ${quantidade_facetas} professional ceramic veneers
-
-VENEER SPECIFICATIONS:
-
-COLOR: BL3 Vita scale
-→ ${colorDesc}
-This shade is a pure, bright white chosen for maximum aesthetic impact.
-
-SHAPE & ALIGNMENT:
-- Perfectly symmetrical rectangular forms
-- Straight alignment with harmonious proportions following the golden ratio
-- Natural incisal translucency preserved for realistic appearance
-- Width-to-height proportions optimized for facial aesthetics
-
-SURFACE QUALITY:
-- Smooth high-quality porcelain ceramic texture
-- Natural gloss with subtle professional light reflection
-- Micro-texture for photorealistic appearance
-- Professional-grade aesthetic finish
-
-VISUAL RESULT TARGET:
-- Celebrity-quality professional dental veneers
-- Bright confident "Hollywood smile" with BL3 ultra-white finish
-- Premium dental aesthetics with natural charm
-- DRAMATIC improvement that is IMMEDIATELY obvious and impressive
-- Transformative result that inspires confidence and admiration
-
-TECHNICAL SPECIFICATIONS:${techSpecs}
-
-CRITICAL REQUIREMENTS:
-- Transformation MUST be OBVIOUS, DRAMATIC, and IMPRESSIVE
-- Veneers should look expensive, professional, and flawless
-- BL3 color for maximum brightness and modern aesthetics
-- Result should be stunning and aspirational - "before and after" difference must be clear
-- Create the "WOW factor" - this is a life-changing smile transformation
-
-PRESERVE COMPLETELY:
-- Facial skin tone and texture
-- Hair structure and color
-- Eye color and shape
-- Facial expression and personality
-- Lighting conditions and shadows
-- Background environment
-- All unique patient characteristics
-- Natural facial features
-
-Generate the photorealistic simulation now.`;
+SAÍDA:
+- Retorne **apenas** a imagem simulada final (ex.: JPEG base64) sem legendas ou texto.
+`;
 }
 
 /**
@@ -496,424 +389,76 @@ function generateTextReportFromJSON(
 }
 
 /**
- * Constrói prompt de análise dinâmico baseado em serviços ativos
+ * ✅ NOVO: Prompt de análise conservador BL2-BL4
+ * Construção dinâmica baseada em serviços ativos, retorna APENAS JSON válido
  */
 function buildAnalysisPrompt(
-  tratamentosDisponiveis: {
-    facetas: boolean;
-    clareamento: boolean;
-    gengivoplastia: boolean;
-    planejamento: boolean;
-  },
-  servicosAtivos: Array<{ name: string; category: string; price: number }>
+  analiseJSON: any,
+  servicos_ativos: string[]
 ): string {
-  
-  // Lista de nomes exatos de serviços para validação
-  const servicosExatos = servicosAtivos.map(s => s.name).join(', ');
-  
-  // Introdução: FORÇAR OUTPUT JSON EXCLUSIVO
-  let prompt = `Você é um dentista especialista em odontologia estética com 15 anos de experiência.
+  return `
+Você é dentista especialista em odontologia estética. Analise a foto e o objeto "analiseJSON" e gere uma ANÁLISE CLÍNICA e RECOMENDAÇÃO DE TRATAMENTO conservadoras, realistas e alinhadas aos serviços disponíveis.
 
-IMPORTANTE: Você DEVE retornar APENAS um objeto JSON estruturado, sem texto adicional, sem tags, sem markdown.
+DADOS RECEBIDOS (resumo):
+- quantidade_facetas: ${String(analiseJSON?.quantidade_facetas ?? '')}
+- cor_recomendada (se houver): ${String(analiseJSON?.cor_recomendada ?? '')}
+- procedimentos_recomendados: ${JSON.stringify(analiseJSON?.procedimentos_recomendados ?? [])}
+- tom_pele: ${String(analiseJSON?.tom_pele ?? '')}
+- cor_olhos: ${String(analiseJSON?.cor_olhos ?? '')}
+- dentes_tratados (se houver): ${JSON.stringify(analiseJSON?.dentes_tratados ?? [])}
+- servicos_ativos: ${JSON.stringify(servicos_ativos)}
 
-Analise esta foto dental COM MUITA ATENÇÃO e retorne um JSON com a análise clínica completa.
+RESTRIÇÕES:
+- Use **somente** procedimentos presentes em servicos_ativos.
+- Postura **conservadora**: resultados naturais, sem exageros.
+- Cor final **apenas** dentro de **BL2–BL4** (BL2, BL3 ou BL4).
+  - Nunca use mais claro que BL2 (BL1/BL0).
+  - Nunca use mais escuro que BL4 (A1/A2/A3).
+- Se indicar **2 ou 4 facetas**, inclua **obrigatoriamente** "Clareamento Dental" como **primeira etapa**.
 
-═══════════════════════════════════════════════════════
-SERVIÇOS DISPONÍVEIS NESTA CLÍNICA
-═══════════════════════════════════════════════════════
+REGRAS DE AVALIAÇÃO (resuma, sem inventar):
+1) Classifique: alinhamento, proporção/simetria, forma, cor e linha gengival como
+   "adequado", "levemente comprometido" ou "comprometido".
+   - Variações naturais discretas (<10%) **não** indicam facetas.
+2) Indique facetas **somente** com evidência clara de:
+   - diastema > 1 mm, desgaste > 2 mm, fratura visível,
+   - rotação/desalinhamento > 15°, diferença de forma > 20% entre homólogos.
+   Caso contrário, **clareamento** é a conduta padrão (se ativo).
+3) Quantidade de facetas (quando aplicável):
+   - 0 → estrutura adequada → apenas clareamento (se ativo).
+   - 2 → 11 e 21 comprometidos.
+   - 4 → 11, 12, 21, 22 comprometidos.
+   - 6 → 13 a 23 comprometidos. **Nunca** proponha 6 por padrão.
+4) Gengivoplastia só se ativa **e** sorriso gengival > 3 mm.
 
-IMPORTANTE: Você deve recomendar APENAS os tratamentos abaixo listados.
-NÃO proponha tratamentos que não estejam disponíveis.
-
-`;
-
-  // ✅ FASE 3: Seção dinâmica de serviços baseada em serviços REALMENTE ativos
-  prompt += `Tratamentos oferecidos nesta clínica:\n\n`;
-  
-  const servicosPorCategoria = {
-    facetas: servicosAtivos.filter(s => 
-      s.category === 'facetas' || 
-      s.name.toLowerCase().includes('faceta') || 
-      s.name.toLowerCase().includes('lente')
-    ),
-    clareamento: servicosAtivos.filter(s => 
-      s.category === 'clareamento' || 
-      s.name.toLowerCase().includes('clareamento')
-    ),
-    complementares: servicosAtivos.filter(s => 
-      s.category === 'complementares' || 
-      s.name.toLowerCase().includes('gengivo') || 
-      s.name.toLowerCase().includes('planejamento')
-    )
-  };
-  
-  // Facetas
-  if (servicosPorCategoria.facetas.length > 0) {
-    prompt += `✅ FACETAS/LENTES DE CONTATO DENTAL (disponível)\n`;
-    prompt += `   Opções disponíveis:\n`;
-    servicosPorCategoria.facetas.forEach(s => {
-      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)} por dente\n`;
-    });
-  } else {
-    prompt += `❌ FACETAS NÃO DISPONÍVEIS (não recomendar)\n`;
-  }
-  prompt += `\n`;
-  
-  // Clareamento
-  if (servicosPorCategoria.clareamento.length > 0) {
-    prompt += `✅ CLAREAMENTO DENTAL (disponível)\n`;
-    servicosPorCategoria.clareamento.forEach(s => {
-      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)}\n`;
-    });
-  } else {
-    prompt += `❌ CLAREAMENTO NÃO DISPONÍVEL (não recomendar)\n`;
-  }
-  prompt += `\n`;
-  
-  // Complementares
-  if (servicosPorCategoria.complementares.length > 0) {
-    prompt += `✅ PROCEDIMENTOS COMPLEMENTARES:\n`;
-    servicosPorCategoria.complementares.forEach(s => {
-      prompt += `   - ${s.name}: R$ ${s.price.toFixed(2)}\n`;
-    });
-    prompt += `\n`;
-  }
-
-  // Seção 3: Regras de recomendação
-  prompt += `REGRAS DE RECOMENDAÇÃO:
-`;
-
-  if (!tratamentosDisponiveis.facetas && !tratamentosDisponiveis.clareamento) {
-    prompt += `⚠️ ATENÇÃO CRÍTICA: Esta clínica não oferece facetas nem clareamento.
-Você deve fazer uma análise educativa, mas NÃO pode fazer proposta de tratamento.
-Apenas descreva o estado atual dos dentes e mencione que tratamentos estéticos não estão disponíveis no momento.
-
-`;
-  } else {
-    if (tratamentosDisponiveis.facetas && tratamentosDisponiveis.clareamento) {
-      prompt += `- Se houver problemas estruturais (alinhamento, proporção, forma): recomendar FACETAS
-- Se estrutura perfeita mas cor inadequada: recomendar CLAREAMENTO
-- Você pode recomendar ambos se adequado ao caso
-
-`;
-    } else if (tratamentosDisponiveis.facetas && !tratamentosDisponiveis.clareamento) {
-      prompt += `- ⚠️ Clareamento NÃO está disponível nesta clínica
-- Mesmo se a estrutura for perfeita, você DEVE recomendar FACETAS (única opção disponível)
-- Explique que facetas também resolverão o problema de cor
-
-`;
-    } else if (!tratamentosDisponiveis.facetas && tratamentosDisponiveis.clareamento) {
-      prompt += `- ⚠️ Facetas NÃO estão disponíveis nesta clínica
-- Mesmo se houver problemas estruturais leves, avalie se CLAREAMENTO pode ser suficiente
-- Se problemas estruturais forem severos, mencione limitações do tratamento disponível
-
-`;
-    }
-  }
-
-  // Seção 4: Gengivoplastia
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `- Gengivoplastia disponível: mencione como OPCIONAL se sorriso gengival >3mm\n`;
-  } else {
-    prompt += `- ⚠️ NÃO mencione gengivoplastia mesmo se houver sorriso gengival\n`;
-  }
-
-  prompt += `\n`;
-
-  // Seção 5: Restante do prompt original (análise detalhada)
-  prompt += `
-═══════════════════════════════════════════════════════
-COR FIXA - PROTOCOLO DA CLÍNICA
-═══════════════════════════════════════════════════════
-
-⚠️ IMPORTANTE: A cor recomendada é SEMPRE BL3 (Bleach 3)
-- Não analise tom de pele ou cor dos olhos para harmonização
-- Sempre use "BL3" em todos os campos de cor (cor_recomendada, cor_final)
-- Justificativa: "Cor BL3 oferece branco ultra-branco ideal, seguindo o protocolo estético da clínica"
-
-═══════════════════════════════════════════════════════
-CASOS DE SORRISO JÁ PERFEITO
-═══════════════════════════════════════════════════════
-
-Se TODOS esses critérios forem atendidos:
-✅ Alinhamento perfeito (sem rotações, sem dentes para dentro/fora)
-✅ Proporções simétricas (12 = 22, 11 = 21)
-✅ Formas harmoniosas
-✅ Estrutura dentária íntegra
-✅ Ausência de sorriso gengival excessivo
-
-ENTÃO:
-`;
-
-  if (tratamentosDisponiveis.clareamento) {
-    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
-- Tratamento: APENAS clareamento (opcional)
-- Observação: "Facetas/lentes não são necessidade clínica, apenas upgrade estético para quem busca 'Hollywood Smile'"
-
-Faça relatório 100% POSITIVO, elogiando a estrutura atual.
-`;
-  } else if (tratamentosDisponiveis.facetas) {
-    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
-- Tratamento: Facetas como upgrade estético opcional (não necessidade clínica)
-- Observação: Mencione que estrutura é excelente, facetas seriam apenas refinamento
-
-Faça relatório 100% POSITIVO, elogiando a estrutura atual.
-`;
-  } else {
-    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
-- Não há tratamentos disponíveis no momento
-- Parabenize o paciente pela excelente estrutura dental
-
-`;
-  }
-
-  prompt += `
-═══════════════════════════════════════════════════════
-METODOLOGIA DE ANÁLISE - SEJA EXTREMAMENTE DETALHISTA:
-═══════════════════════════════════════════════════════
-
-ATENÇÃO: Esta análise determinará se a paciente confia ou não na clínica.
-Se você perder algum detalhe, a credibilidade será comprometida.
-
-PASSO 1: ANÁLISE DENTE POR DENTE (olhe CADA dente individualmente)
-
-Para CADA dente visível (13, 12, 11, 21, 22, 23), observe:
-
-Dente 13 (canino direito):
-- Está alinhado com os outros ou projetado/recuado?
-- Está rotacionado?
-- Cor igual aos outros ou diferente?
-- Forma e tamanho harmonizam?
-
-Dente 12 (lateral direito):
-- Tamanho igual ao 22 (lateral esquerdo)?
-- Forma simétrica ao 22?
-- Posição adequada?
-- Proporção correta em relação ao 11?
-
-Dente 11 (central direito):
-- Simétrico ao 21?
-- Tamanho e forma adequados?
-- Desgaste nas bordas?
-
-Dente 21 (central esquerdo):
-- Simétrico ao 11?
-- Posição adequada?
-
-Dente 22 (lateral esquerdo):
-- Compare COM ATENÇÃO com o 12
-- São do mesmo tamanho?
-
-Dente 23 (canino esquerdo):
-- Posição semelhante ao 13?
-
-PASSO 2: AVALIAÇÃO POR CATEGORIAS
-
-A. ALINHAMENTO (olhe com MUITO cuidado):
-   - Algum dente está rodado? (mesmo que levemente)
-   - Algum dente está mais à frente/atrás?
-   - Os caninos estão bem posicionados?
-   - Há sobreposições?
-   
-   ⚠️ CRÍTICO: Pacientes PERCEBEM quando um dente está "torto"
-   Se você não identificar, perde credibilidade!
-
-B. PROPORÇÃO E SIMETRIA:
-   - O 12 é do mesmo tamanho que o 22?
-   - Os centrais são simétricos?
-   - As proporções entre os dentes são harmônicas?
-
-C. FORMA:
-   - Formato dos dentes (quadrado, oval, triangular?)
-   - Bordas incisais regulares ou desgastadas?
-   - Forma individual de cada dente
-
-D. COR:
-   - Todos os dentes têm a mesma cor?
-   - Algum mais amarelo que outros?
-   - Escala Vita estimada
-
-E. RESTAURAÇÕES:
-   - Alguma restauração visível?
-   - Manchas ao redor de restaurações?
-
-F. SORRISO GENGIVAL:
-   - Há exposição excessiva da gengiva ao sorrir (>3mm)?
-   - Se sim, quantificar em milímetros
-
-PASSO 3: DECISÃO BASEADA EM EVIDÊNCIAS
-
-Regra de Indicação:
-`;
-
-  if (tratamentosDisponiveis.facetas) {
-    prompt += `
-FACETAS INDICADAS APENAS SE HOUVER EVIDÊNCIA FOTOGRÁFICA CLARA DE:
-- Rotação dentária visível (>15 graus de inclinação na foto)
-- Desgaste estrutural severo (>2mm nas bordas incisais claramente visível)
-- Assimetria marcante entre dentes correspondentes (>20% diferença de tamanho)
-- Diastemas significativos (>1mm entre dentes, visível a olho nu)
-- Dentes projetados/recuados visivelmente em relação ao arco
-- Forma dentária gravemente irregular (ex: triangular quando deveria ser retangular)
-
-⚠️ REGRA CRÍTICA - NÃO recomende facetas baseado em:
-- "Queixa estética genérica do paciente"
-- "Potencial de melhoria" sem problema estrutural EVIDENTE
-- Assimetrias naturais menores (<10%)
-- Pequenos desgastes naturais que não comprometem estética
-
-✅ PRIORIZE CLAREAMENTO: Se estrutura estiver BOA/ADEQUADA (mesmo não perfeita), recomende apenas clareamento.
-`;
-  }
-
-  if (tratamentosDisponiveis.clareamento) {
-    prompt += `
-CLAREAMENTO INDICADO SE:
-- Estrutura dental está BOA ou ADEQUADA (não precisa ser perfeita)
-- Alinhamento aceitável (pequenas assimetrias naturais <10% são OK)
-- Proporções razoáveis (não precisa ser simetria milimétrica)
-- Forma adequada (leves desgastes naturais são aceitáveis)
-- Cor é o principal fator de melhoria visível
-
-⚠️ PRIORIZE CLAREAMENTO: Se não há problemas estruturais SEVEROS claramente visíveis na foto, recomende clareamento.
-`;
-  }
-
-  prompt += `
-═══════════════════════════════════════════════════════
-QUANTIDADE DE FACETAS - CONTAGEM RIGOROSA:
-═══════════════════════════════════════════════════════
-`;
-
-  if (tratamentosDisponiveis.facetas) {
-    prompt += `
-✅ CONTAGEM RIGOROSA - Conte APENAS dentes com problemas VISÍVEIS e ESTRUTURAIS na foto:
-
-Escala de 0 a 6 facetas baseada em EVIDÊNCIA fotográfica:
-- 0 facetas: Estrutura BOA → Apenas clareamento
-- 2 facetas: Somente incisivos centrais (11, 21) têm problema CLARO
-- 4 facetas: Centrais + laterais (11, 21, 12, 22) têm problemas VISÍVEIS
-- 6 facetas: Centrais + laterais + caninos (11-23) têm problemas EVIDENTES
-
-⚠️ CRITÉRIO OBRIGATÓRIO: 
-- Para contar um dente, você DEVE identificar problema estrutural específico visível na foto
-- NÃO use 6 facetas como padrão sem justificar cada dente
-- NÃO conte dentes apenas por "potencial de melhoria"
-
-EXEMPLOS DE CONTAGEM CORRETA:
-✅ "Dente 11: rotação de 20° visível + desgaste 3mm → CONTA"
-✅ "Dente 12: 30% menor que dente 22 (assimetria clara) → CONTA"  
-✅ "Dente 13: bem alinhado, cor uniforme → NÃO CONTA"
-❌ "Paciente quer Hollywood Smile" → ERRADO (não é critério clínico)
-❌ "6 facetas para sorriso perfeito" → ERRADO (sem evidência por dente)
-`;
-  }
-
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `
-═══════════════════════════════════════════════════════
-GENGIVOPLASTIA - SEMPRE MENCIONAR SE APLICÁVEL
-═══════════════════════════════════════════════════════
-
-Se identificar sorriso gengival (>3mm exposição):
-- Mencionar no relatório técnico
-- Adicionar em análise JSON como recomendação OPCIONAL
-- Explicar benefício: "Reduzir exposição gengival de Xmm para 1-2mm"
-- NÃO incluir valores (será adicionado pelo sistema)
-`;
-  }
-
-  // Formato de resposta continua igual ao original
-  prompt += `
-═══════════════════════════════════════════════════════
-SERVIÇOS DISPONÍVEIS (usar nomes exatos):
-═══════════════════════════════════════════════════════
-${servicosExatos || 'Nenhum serviço configurado'}
-
-IMPORTANTE: Preencha os campos "servico_faceta_escolhido" e "servico_clareamento_escolhido" 
-APENAS com um nome EXATO da lista acima ou "N/A" se não aplicável.
-
-═══════════════════════════════════════════════════════
-FORMATO DE RESPOSTA OBRIGATÓRIO - APENAS JSON:
-═══════════════════════════════════════════════════════
-
-Retorne APENAS o seguinte objeto JSON (sem tags, sem texto adicional):
-
+FORMATO DE RESPOSTA (retorne **APENAS JSON válido**):
 {
-  "analise_clinica": {
-    "tom_pele": "clara|média|morena|escura",
-    "cor_olhos": "claros|médios|escuros",
-    "avaliacao_geral": {
-      "alinhamento": "descrição detalhada",
-      "proporcao": "descrição detalhada",
-      "forma": "descrição detalhada",
-      "cor": "descrição detalhada",
-      "linha_gengival": "descrição detalhada"
+  "analise": {
+    "tom_pele": "<texto curto>",
+    "cor_olhos": "<texto curto>",
+    "estado_geral": {
+      "alinhamento": "adequado|levemente comprometido|comprometido",
+      "proporcao": "adequado|levemente comprometido|comprometido",
+      "forma": "adequado|levemente comprometido|comprometido",
+      "cor": "adequado|levemente comprometido|comprometido",
+      "linha_gengival": "adequado|levemente comprometido|comprometido"
     },
-    "analise_por_dente": {
-      "11": { "cor": "...", "forma": "...", "posicao": "...", "desgaste": "..." },
-      "21": { "cor": "...", "forma": "...", "posicao": "..." },
-      "12": { "cor": "...", "forma": "...", "posicao": "..." },
-      "22": { "cor": "...", "forma": "...", "posicao": "..." },
-      "13": { "cor": "...", "forma": "...", "posicao": "..." },
-      "23": { "cor": "...", "forma": "...", "posicao": "..." }
-    }
-  },
-  "recomendacao_tratamento": {
-    "tipo": "facetas|clareamento|nenhum",
-    "justificativa": "justificativa técnica detalhada",
-    "dentes_fdi_tratados": ["11", "21", "12", "22"],
-    "quantidade_facetas": 4,
-    "cor_recomendada": "BL3",
-    "cor_final": "BL3",
-    "servico_faceta_escolhido": "Nome Exato do Serviço ou N/A",
-    "servico_clareamento_escolhido": "Nome Exato do Serviço ou N/A"
-  },
-  "procedimentos_complementares": {
-    "gengivoplastia_recomendada": true|false,
-    "gengivoplastia_justificativa": "justificativa se aplicável",
-    "servico_gengivoplastia_escolhido": "Nome Exato ou N/A"
-  },
-  "especificacoes_tecnicas": {
-    "material": "Cerâmica feldspática de alta translucidez",
-    "forma": "Anatômica natural",
-    "alinhamento": "Linha do sorriso harmônica",
-    "superficie": "Polimento de alta qualidade"
-  },
-  "planejamento": {
-    "sessoes": [
-      { "numero": 1, "descricao": "Moldagem e planejamento digital", "duracao": "1 hora" },
-      { "numero": 2, "descricao": "Preparo dental e moldagem final", "duracao": "2 horas" },
-      { "numero": 3, "descricao": "Prova e ajustes", "duracao": "1 hora" },
-      { "numero": 4, "descricao": "Cimentação definitiva", "duracao": "2 horas" }
-    ]
-  },
-  "cuidados_pos_procedimento": [
-    "Evitar alimentos muito duros nas primeiras 48h",
-    "Higienização cuidadosa com escova macia",
-    "Uso de fio dental diariamente",
-    "Evitar alimentos corantes nos primeiros dias"
-  ],
-  "prognostico": "Excelente prognóstico com durabilidade de 10-15 anos com manutenção adequada",
-  "contraindicacoes": [
-    "Bruxismo severo não controlado",
-    "Higiene oral inadequada",
-    "Doença periodontal ativa"
-  ],
-  "observacoes_profissionais": "Observações técnicas finais"
+    "quantidade_facetas": 0|2|4|6,
+    "dentes_tratados": [11,12,21,22],
+    "procedimentos_recomendados": [
+      // use apenas itens contidos em servicos_ativos;
+      // se quantidade_facetas = 2 ou 4, inclua "Clareamento Dental"
+    ],
+    "cor_recomendada": "BL2|BL3|BL4",
+    "justificativa": "síntese técnica objetiva (1-3 frases) com o porquê da indicação"
+  }
 }
 
-⚠️ CRÍTICO: 
-- Retorne APENAS o JSON acima
-- NÃO adicione texto antes ou depois
-- NÃO use tags como <RELATORIO_TECNICO> ou <ORCAMENTO>
-- Use SEMPRE "BL3" para cor_recomendada e cor_final
-- Use nomes EXATOS dos serviços disponíveis
-
-Gere o JSON estruturado agora:`;
-
-
-  return prompt;
+NOTAS DE ESTILO:
+- Técnica, objetiva e conservadora.
+- Não use termos como "Hollywood smile" ou "transformação drástica".
+- Não invente dados; baseie-se na foto e em analiseJSON.
+`;
 }
 
 // Prompt estático (será substituído pelo dinâmico)
@@ -1263,9 +808,10 @@ Deno.serve(async (req) => {
       
       console.log('✓ Tratamentos disponíveis:', tratamentosDisponiveis);
       
-      // Construir prompt dinâmico baseado nos serviços ativos
-      const analysisPrompt = buildAnalysisPrompt(tratamentosDisponiveis, servicos_ativos);
-      console.log(`📝 Prompt dinâmico construído: ${analysisPrompt.length} caracteres`);
+      // ✅ NOVO: Usar prompt conservador BL2-BL4
+      const servicos_ativos_names = servicos_ativos.map((s: any) => s.name || s);
+      const analysisPrompt = buildAnalysisPrompt({}, servicos_ativos_names);
+      console.log(`📝 Prompt conservador BL2-BL4 construído: ${analysisPrompt.length} caracteres`);
       console.log('✓ Prompt adaptado aos serviços disponíveis');
       
       // Timeout de 90 segundos para a requisição
@@ -1422,8 +968,15 @@ Deno.serve(async (req) => {
       // (Orçamento é IGNORADO - não é usado para geração de imagem)
       const extracted = parseReport(report);
       
+      // Obter serviços ativos
+      const servicos_ativos_generate = (body.servicos_ativos || []).map((s: any) => s.name || s);
+      
       // Construir prompt de simulação com dados enriquecidos
-      const simulationPrompt = buildSimulationPrompt(extracted, analiseData);
+      const simulationPrompt = buildSimulationPrompt(
+        analiseData || {}, 
+        servicos_ativos_generate,
+        imageBase64.substring(0, 50) + '...' // Referência à imagem
+      );
       
       console.log('🚀 Enviando para geração de imagem...');
       
