@@ -1134,10 +1134,19 @@ Deno.serve(async (req) => {
         console.log('✓ Resposta JSON recebida do Gemini');
         console.log(`📝 Tamanho: ${responseText.length} caracteres`);
         
-        // Parsear JSON diretamente (sem tags)
+        // Parsear JSON com limpeza de tags Markdown
         let analise_data;
         try {
-          analise_data = JSON.parse(responseText);
+          let cleanJsonText = responseText.trim();
+          
+          // 🐛 CORREÇÃO CRÍTICA: Remove tags Markdown (```json e ```)
+          if (cleanJsonText.startsWith('```')) {
+            cleanJsonText = cleanJsonText.replace(/```(json)?\s*/i, '').trim();
+            cleanJsonText = cleanJsonText.replace(/```$/, '').trim();
+            console.log('🧹 Tags Markdown removidas');
+          }
+          
+          analise_data = JSON.parse(cleanJsonText);
           console.log('✓ JSON parseado com sucesso');
         } catch (parseError) {
           console.error('❌ Erro ao parsear JSON:', parseError);
