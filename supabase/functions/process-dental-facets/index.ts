@@ -229,16 +229,16 @@ function buildSimulationPrompt(
   
   console.log('🎨 Construindo prompt de simulação...');
   
-  // Extrair dados da análise JSON (nova estrutura)
-  const tom_pele = analiseJSON?.analise_clinica?.tom_pele || 'média';
-  const cor_olhos = analiseJSON?.analise_clinica?.cor_olhos || 'médios';
-  const cor_recomendada = analiseJSON?.recomendacao_tratamento?.cor_recomendada || 'BL3';
+  // FASE 2: Cor BL3 SEMPRE FIXA (sem harmonização facial)
+  const cor_recomendada = 'BL3'; // FIXO - protocolo da clínica
   const quantidade_facetas = analiseJSON?.recomendacao_tratamento?.quantidade_facetas || dentes_tratados.length;
   
+  // tom_pele e cor_olhos não são mais usados na simulação
+  const tom_pele = 'N/A';
+  const cor_olhos = 'N/A';
+  
   console.log('→ Dados da análise:', {
-    tom_pele,
-    cor_olhos,
-    cor_recomendada,
+    cor_recomendada: 'BL3 (fixo)',
     quantidade_facetas
   });
   
@@ -246,31 +246,27 @@ function buildSimulationPrompt(
   if (!dentes_tratados || dentes_tratados.length === 0) {
     console.log('→ Tipo: Clareamento apenas (sem facetas)');
     
-    const colorDesc = getColorDescription(cor_recomendada, tom_pele);
-    const whitenessIntensity = tom_pele.toLowerCase().includes('morena') || tom_pele.toLowerCase().includes('escura')
-      ? 'warm white (natural tone, avoiding artificial blue-white)'
-      : 'cool bright white';
+    // FASE 2: Descrição fixa para BL3 (sem harmonização)
+    const colorDesc = 'Cor BL3 ultra-branca, ideal para um sorriso de alto impacto e estética moderna.';
+    // FASE 2: Sem lógica de tom de pele
+    const whitenessIntensity = 'cool bright white';
     
     return `PROFESSIONAL TEETH WHITENING SIMULATION
 
-PATIENT CONTEXT:
-- Skin tone: ${tom_pele}
-- Eye color: ${cor_olhos}
-
-TARGET SHADE: ${cor_recomendada} Vita scale
+TARGET SHADE: BL3 Vita scale
 → ${colorDesc}
 
 WHITENING INSTRUCTIONS:
 1. Apply DRAMATIC but natural whitening to ALL visible teeth
 2. Target shade: ${whitenessIntensity}
-3. Achieve ${cor_recomendada} shade level - this harmonizes perfectly with ${tom_pele} skin tone
+3. Achieve BL3 shade level - ultra-white for maximum aesthetic impact
 4. Maintain natural tooth translucency at incisal edges
 5. Result must be OBVIOUS, IMPRESSIVE, and celebrity-quality
 6. Create a transformative "Hollywood smile" effect while keeping it natural
 
 CRITICAL REQUIREMENTS:
 - Transformation MUST be DRAMATIC and clearly visible
-- White should harmonize beautifully with ${tom_pele} complexion
+- BL3 white for maximum brightness and modern aesthetics
 - Natural glossy finish with subtle highlights
 - Professional dental aesthetics - inspire confidence
 
@@ -299,7 +295,9 @@ Generate the photorealistic image now.`;
   };
   
   const teethList = dentes_tratados.map(t => `${teethMap[t] || t} (${t})`).join(', ');
-  const colorDesc = getColorDescription(cor_recomendada, tom_pele);
+  
+  // FASE 2: Descrição fixa para BL3
+  const colorDesc = 'Cor BL3 ultra-branca, que confere um resultado de branco puro, consistente com os padrões estéticos modernos.';
   
   const specLines: string[] = [];
   if (especificacoes.material) specLines.push(`- Material: ${especificacoes.material}`);
@@ -312,9 +310,7 @@ Generate the photorealistic image now.`;
   return `PROFESSIONAL DENTAL VENEERS SIMULATION
 
 PATIENT PROFILE:
-- Skin tone: ${tom_pele}
-- Eye color: ${cor_olhos}
-- Recommended shade: ${cor_recomendada} Vita scale
+- Recommended shade: BL3 Vita scale
   → ${colorDesc}
 
 TEETH REQUIRING VENEERS:
@@ -323,9 +319,9 @@ Total: ${quantidade_facetas} professional ceramic veneers
 
 VENEER SPECIFICATIONS:
 
-COLOR: ${cor_recomendada} Vita scale
+COLOR: BL3 Vita scale
 → ${colorDesc}
-This shade harmonizes perfectly with ${tom_pele} complexion, creating a naturally beautiful and confident smile.
+This shade is a pure, bright white chosen for maximum aesthetic impact.
 
 SHAPE & ALIGNMENT:
 - Perfectly symmetrical rectangular forms
@@ -341,7 +337,7 @@ SURFACE QUALITY:
 
 VISUAL RESULT TARGET:
 - Celebrity-quality professional dental veneers
-- Bright confident "Hollywood smile" suited perfectly for ${tom_pele} complexion
+- Bright confident "Hollywood smile" with BL3 ultra-white finish
 - Premium dental aesthetics with natural charm
 - DRAMATIC improvement that is IMMEDIATELY obvious and impressive
 - Transformative result that inspires confidence and admiration
@@ -351,7 +347,7 @@ TECHNICAL SPECIFICATIONS:${techSpecs}
 CRITICAL REQUIREMENTS:
 - Transformation MUST be OBVIOUS, DRAMATIC, and IMPRESSIVE
 - Veneers should look expensive, professional, and flawless
-- Color MUST harmonize perfectly with patient's ${tom_pele} skin tone
+- BL3 color for maximum brightness and modern aesthetics
 - Result should be stunning and aspirational - "before and after" difference must be clear
 - Create the "WOW factor" - this is a life-changing smile transformation
 
@@ -467,27 +463,13 @@ Apenas descreva o estado atual dos dentes e mencione que tratamentos estéticos 
   // Seção 5: Restante do prompt original (análise detalhada)
   prompt += `
 ═══════════════════════════════════════════════════════
-ANÁLISE DE HARMONIA FACIAL E COR
+COR FIXA - PROTOCOLO DA CLÍNICA
 ═══════════════════════════════════════════════════════
 
-Antes da análise dental, avalie:
-
-1. TOM DE PELE:
-   - Pele muito clara (fototipos I-II)
-   - Pele clara/média (fototipos III-IV)
-   - Pele morena (fototipos V)
-   - Pele escura (fototipos VI)
-
-2. COR DOS OLHOS:
-   - Olhos claros (azul, verde, cinza)
-   - Olhos médios (castanho claro, mel)
-   - Olhos escuros (castanho escuro, preto)
-
-3. COR FIXA BL3:
-   ⚠️ IMPORTANTE: A cor recomendada é SEMPRE BL3 (Bleach 3)
-   - Não analise harmonização facial para cor
-   - Sempre use "BL3" em todos os campos de cor (cor_recomendada, cor_final)
-   - Justificativa: "Cor BL3 oferece branco natural ultra branco ideal para todos os tons de pele"
+⚠️ IMPORTANTE: A cor recomendada é SEMPRE BL3 (Bleach 3)
+- Não analise tom de pele ou cor dos olhos para harmonização
+- Sempre use "BL3" em todos os campos de cor (cor_recomendada, cor_final)
+- Justificativa: "Cor BL3 oferece branco ultra-branco ideal, seguindo o protocolo estético da clínica"
 
 ═══════════════════════════════════════════════════════
 CASOS DE SORRISO JÁ PERFEITO
@@ -739,164 +721,9 @@ Retorne APENAS o seguinte objeto JSON (sem tags, sem texto adicional):
 - NÃO use tags como <RELATORIO_TECNICO> ou <ORCAMENTO>
 - Use SEMPRE "BL3" para cor_recomendada e cor_final
 - Use nomes EXATOS dos serviços disponíveis
-ANÁLISE CLÍNICA INICIAL
 
-HARMONIA FACIAL:
-- Tom de pele: [clara/média/morena/escura]
-- Cor dos olhos: [claros/médios/escuros]
-- Cor recomendada: [escala Vita baseada em harmonia]
+Gere o JSON estruturado agora:`;
 
-[Descreva a análise DETALHADA, dente por dente]
-
-Avaliação por Dente:
-- Incisivo Central Superior Direito (11): [cor, forma, posição, desgaste]
-- Incisivo Central Superior Esquerdo (21): [cor, forma, posição, desgaste]
-- Incisivo Lateral Superior Direito (12): [cor, forma, posição, COMPARAR com 22]
-- Incisivo Lateral Superior Esquerdo (22): [cor, forma, posição, COMPARAR com 12]
-- Canino Superior Direito (13): [ATENÇÃO à posição, rotação, projeção]
-- Canino Superior Esquerdo (23): [ATENÇÃO à posição, rotação, projeção]
-
-Avaliação Geral:
-- Alinhamento: [Seja específico! Algum dente desalinhado?]
-- Proporção: [Há assimetrias entre 12 e 22?]
-- Forma: [Adequada ou irregular?]
-- Cor: [Uniforme? Escala Vita estimada]
-- Linha gengival: [Simétrica? Exposição em mm]
-`;
-
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `- Sorriso gengival: [Se >3mm, mencionar]\n`;
-  }
-
-  prompt += `
-INDICAÇÃO DO TRATAMENTO
-
-[Baseado na análise detalhada acima, justifique]
-`;
-
-  if (tratamentosDisponiveis.facetas) {
-    prompt += `
-Se FACETAS:
-"Facetas são indicadas devido a: [liste os problemas específicos encontrados]"
-`;
-  }
-
-  if (tratamentosDisponiveis.clareamento) {
-    prompt += `
-Se CLAREAMENTO:
-"Clareamento é suficiente pois todos os fatores estruturais estão adequados"
-`;
-  }
-
-  prompt += `
-DENTES A SEREM TRATADOS
-`;
-
-  if (tratamentosDisponiveis.facetas) {
-    prompt += `
-[Se FACETAS - seja específico:]
-Os dentes que receberão facetas de cerâmica são:
-- Incisivo central superior direito (11)
-- Incisivo central superior esquerdo (21)
-- Incisivo lateral superior direito (12)
-- Incisivo lateral superior esquerdo (22)
-[Se caninos também: adicionar (13) e/ou (23)]
-`;
-  }
-
-  if (tratamentosDisponiveis.clareamento) {
-    prompt += `
-[Se CLAREAMENTO:]
-Não serão aplicadas facetas. Tratamento será apenas clareamento dental.
-`;
-  }
-
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `
-[Se GENGIVOPLASTIA recomendada:]
-PROCEDIMENTO COMPLEMENTAR RECOMENDADO:
-- Gengivoplastia: Reduzir exposição gengival de [X]mm para 1-2mm
-`;
-  }
-
-  prompt += `
-ESPECIFICAÇÕES TÉCNICAS
-[Especificações padrão]
-
-PLANEJAMENTO DO TRATAMENTO
-[Sessões do tratamento]
-
-CUIDADOS PÓS-PROCEDIMENTO
-[Cuidados necessários]
-
-PROGNÓSTICO E DURABILIDADE
-[Expectativas realistas]
-
-CONTRAINDICAÇÕES E CONSIDERAÇÕES
-[Contraindicações relevantes]
-
-OBSERVAÇÕES PROFISSIONAIS
-[Reforçar os achados]
-</RELATORIO_TECNICO>
-
-<ORCAMENTO>
-ORÇAMENTO PARA O PACIENTE
-
-TRATAMENTO PROPOSTO
-[Deve ser IDÊNTICO ao relatório]
-
-<ORCAMENTO_JSON>
-{
-  "analise": {
-    "tom_pele": "clara|média|morena|escura",
-    "cor_olhos": "claros|médios|escuros",
-    "dentes_tratados": ["11", "21", "12", "22"],
-    "procedimentos_recomendados": ["clareamento", "facetas"],
-    "cor_recomendada": "A1",
-    "quantidade_facetas": 4,
-`;
-
-  if (tratamentosDisponiveis.gengivoplastia) {
-    prompt += `    "gengivoplastia_recomendada": true,
-    "gengivoplastia_justificativa": "Sorriso gengival 4mm"
-`;
-  }
-
-  prompt += `  }
-}
-</ORCAMENTO_JSON>
-
-OBSERVAÇÃO IMPORTANTE:
-Os valores serão calculados automaticamente pelo sistema.
-
-FORMAS DE PAGAMENTO
-- À vista: com desconto
-- Parcelamento: até 12x sem juros
-
-IMPORTANTE
-- Orçamento válido por 30 dias
-- Avaliação presencial obrigatória
-</ORCAMENTO>
-
-═══════════════════════════════════════════════════════
-CHECKLIST CRÍTICO:
-═══════════════════════════════════════════════════════
-
-□ Analisei CADA dente individualmente (13, 12, 11, 21, 22, 23)
-□ Verifiquei especificamente se o canino 13 está alinhado
-□ Comparei tamanho do 12 com o 22
-□ Verifiquei rotações em todos os dentes
-□ Avaliei projeções/recuos de cada dente
-□ Identifiquei TODOS os problemas visíveis
-□ Justifiquei tecnicamente a escolha
-□ Relatório e orçamento são consistentes
-□ Se houver dente problemático, mencionei especificamente
-□ ⚠️ IMPORTANTE: Recomendei APENAS tratamentos disponíveis nesta clínica
-
-⚠️ LEMBRE-SE: Se você não identificar um problema que o paciente VÊ, a clínica perde credibilidade!
-⚠️ LEMBRE-SE: Se você recomendar tratamento indisponível, o paciente ficará frustrado!
-
-Gere os documentos com MÁXIMA ATENÇÃO AOS DETALHES agora:`;
 
   return prompt;
 }

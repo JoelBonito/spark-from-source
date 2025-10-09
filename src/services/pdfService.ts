@@ -93,22 +93,30 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
     y += 8;
     
     const imgWidth = 75;
-    const imgHeight = 56;
     const spacing = 10;
     const startX = 20;
+    
+    // FASE 3: Calcular altura proporcional para evitar distorção
+    const beforeImgProps = doc.getImageProperties(data.beforeImage);
+    const beforeImgHeight = (imgWidth * beforeImgProps.height) / beforeImgProps.width;
     
     doc.setFontSize(10);
     doc.text('ANTES', startX + (imgWidth / 2), y, { align: 'center' });
     y += 3;
-    doc.rect(startX, y, imgWidth, imgHeight);
-    doc.addImage(data.beforeImage, 'JPEG', startX, y, imgWidth, imgHeight);
+    doc.rect(startX, y, imgWidth, beforeImgHeight);
+    doc.addImage(data.beforeImage, 'JPEG', startX, y, imgWidth, beforeImgHeight);
     
     const afterX = startX + imgWidth + spacing;
-    doc.text('DEPOIS', afterX + (imgWidth / 2), y - 3, { align: 'center' });
-    doc.rect(afterX, y, imgWidth, imgHeight);
-    doc.addImage(data.afterImage, 'JPEG', afterX, y, imgWidth, imgHeight);
+    const afterImgProps = doc.getImageProperties(data.afterImage);
+    const afterImgHeight = (imgWidth * afterImgProps.height) / afterImgProps.width;
     
-    y += imgHeight + 10;
+    doc.text('DEPOIS', afterX + (imgWidth / 2), y - 3, { align: 'center' });
+    doc.rect(afterX, y, imgWidth, afterImgHeight);
+    doc.addImage(data.afterImage, 'JPEG', afterX, y, imgWidth, afterImgHeight);
+    
+    // Usar a maior altura para ajustar y
+    const maxHeight = Math.max(beforeImgHeight, afterImgHeight);
+    y += maxHeight + 10;
   }
   
   // Procedimentos Propostos
