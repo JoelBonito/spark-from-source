@@ -20,6 +20,37 @@ import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
 import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
 
+/**
+ * Extrai dados da análise dental de forma compatível com ambas estruturas
+ * (nova estrutura de pontuação + retrocompatibilidade)
+ */
+function extractAnalysisData(analiseJSON: any) {
+  const analise = analiseJSON?.analise || analiseJSON;
+  
+  return {
+    tom_pele: analise?.tom_pele || 'não especificado',
+    cor_olhos: analise?.cor_olhos || 'não especificado',
+    
+    // Nova estrutura (sistema de pontuação)
+    quantidade_facetas: 
+      analise?.decisao_clinica?.quantidade_facetas ||
+      analise?.quantidade_facetas || 0,
+    
+    conducta: analise?.decisao_clinica?.conducta || '',
+    
+    dentes_tratados: 
+      analise?.decisao_clinica?.dentes_tratados ||
+      analise?.dentes_tratados || [],
+    
+    procedimentos_recomendados: 
+      analise?.procedimentos_recomendados || [],
+    
+    cor_recomendada: analise?.cor_recomendada || 'BL2',
+    
+    pontuacao_total: analise?.estado_geral?.pontuacao_total || 0
+  };
+}
+
 // Tipos simplificados
 type SimulatorState = 'input' | 'processing' | 'completed';
 
@@ -200,13 +231,24 @@ export default function Index() {
     };
     
     const orcamentoItens: any[] = [];
-    const recomendacao = analiseJSON?.analise || {};
+    const analise = analiseJSON?.analise || analiseJSON;
     
-    const facetaCount = recomendacao.quantidade_facetas || 0;
+    // Quantidade de facetas - NOVA ESTRUTURA com fallback
+    const facetaCount = 
+      analise?.decisao_clinica?.quantidade_facetas ||  // ← Nova estrutura
+      analise?.quantidade_facetas ||                   // ← Retrocompatibilidade
+      0;
+    
+    // Procedimentos recomendados - campo mantido
     const isClareamentoRecomendado = 
-      recomendacao.procedimentos_recomendados?.some((p: string) => 
+      analise?.procedimentos_recomendados?.some((p: string) => 
         p.toLowerCase().includes('clareamento')
       );
+    
+    console.log(`📊 Dados da análise:`);
+    console.log(`   - Quantidade de facetas: ${facetaCount}`);
+    console.log(`   - Conduta: ${analise?.decisao_clinica?.conducta || 'não especificada'}`);
+    console.log(`   - Clareamento recomendado: ${isClareamentoRecomendado}`);
     
     console.log(`📊 Análise: ${facetaCount} facetas, clareamento: ${isClareamentoRecomendado}`);
     
@@ -260,8 +302,8 @@ export default function Index() {
     
     // 4. GENGIVOPLASTIA (opcional)
     const opcionais: any[] = [];
-    if (recomendacao.gengivoplastia_recomendada || 
-        recomendacao.procedimentos_recomendados?.some((p: string) => 
+    if (analise.gengivoplastia_recomendada || 
+        analise.procedimentos_recomendados?.some((p: string) => 
           p.toLowerCase().includes('gengivo')
         )) {
       const gengivo = getServiceByCategory('Gengivoplastia');
@@ -269,7 +311,7 @@ export default function Index() {
         opcionais.push({
           servico: gengivo.name,
           valor: gengivo.price,
-          justificativa: recomendacao.gengivoplastia_justificativa || 
+          justificativa: analise.gengivoplastia_justificativa || 
                         'Recomendado para correção da linha gengival',
           category: gengivo.category
         });
@@ -396,11 +438,13 @@ export default function Index() {
       setAnaliseJSON(analiseJSON);
       
       console.log('📊 Análise JSON recebida:', analiseJSON);
-      console.log('  - Tom de pele:', analiseJSON.analise_clinica?.tom_pele);
-      console.log('  - Cor dos olhos:', analiseJSON.analise_clinica?.cor_olhos);
-      console.log('  - Tipo tratamento:', analiseJSON.recomendacao_tratamento?.tipo);
-      console.log('  - Quantidade de facetas:', analiseJSON.recomendacao_tratamento?.quantidade_facetas);
-      console.log('  - Cor recomendada:', analiseJSON.recomendacao_tratamento?.cor_recomendada);
+      const analise = analiseJSON?.analise || analiseJSON;
+      console.log('  - Tom de pele:', analise?.tom_pele);
+      console.log('  - Cor dos olhos:', analise?.cor_olhos);
+      console.log('  - Pontuação total:', analise?.estado_geral?.pontuacao_total);
+      console.log('  - Conduta:', analise?.decisao_clinica?.conducta);
+      console.log('  - Quantidade de facetas:', analise?.decisao_clinica?.quantidade_facetas);
+      console.log('  - Cor recomendada:', analise?.cor_recomendada);
 
       // ✅ Gerar texto do relatório a partir do JSON
       const { generateTextReportFromJSON } = await import('@/services/textReportGenerator');
@@ -558,7 +602,8 @@ export default function Index() {
         patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
-        teethCount: analiseJSON?.recomendacao_tratamento?.quantidade_facetas || 0,
+        teethCount: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas ||
+                    analiseJSON?.recomendacao_tratamento?.quantidade_facetas || 0,
         reportContent: analysisResult.relatorio_tecnico || analysisDataCompat.relatorio_tecnico || 'Análise não disponível',
         simulationId: simulationId || currentSimulationId || '',
         beforeImage: beforeImageBase64,
@@ -689,7 +734,8 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: analiseJSON?.analise?.quantidade_facetas || 0,
+          teeth_count: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas || 
+                       analiseJSON?.analise?.quantidade_facetas || 0,
         subtotal: budgetData.subtotal,
         final_price: budgetData.total,
         price_per_tooth: budgetData.itens?.find((i: any) => i.dentes)?.valor_unitario || 0,
