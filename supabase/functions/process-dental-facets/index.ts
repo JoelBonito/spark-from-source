@@ -258,47 +258,131 @@ SAÍDA:
 }
 
 /**
- * ✅ FASE 4: GERADOR DE RELATÓRIO TÉCNICO EM TEXTO (ATUALIZADO PARA NOVO FORMATO)
- * Converte JSON estruturado no novo formato em relatório narrativo profissional
+ * ✅ FASE 2: GERADOR DE RELATÓRIO TÉCNICO EM TEXTO COM PONTUAÇÃO QUANTITATIVA
+ * Converte JSON estruturado com pontuação clínica em relatório narrativo profissional
  */
 function generateTextReportFromJSON(
   analiseJSON: any,
   servicosAtivos: Array<{ name: string; category: string; price: number }>
 ): string {
   const sections: string[] = [];
+  const analise = analiseJSON.analise || analiseJSON;
 
   // 1. ANÁLISE CLÍNICA INICIAL
   sections.push("═══════════════════════════════════════");
   sections.push("ANÁLISE CLÍNICA INICIAL");
   sections.push("═══════════════════════════════════════\n");
   
-  sections.push(`Tom de pele: ${analiseJSON.tom_pele || 'Não especificado'}`);
-  sections.push(`Cor dos olhos: ${analiseJSON.cor_olhos || 'Não especificado'}\n`);
+  sections.push(`Tom de pele: ${analise.tom_pele || 'Não especificado'}`);
+  sections.push(`Cor dos olhos: ${analise.cor_olhos || 'Não especificado'}\n`);
   
-  if (analiseJSON.estado_geral) {
-    sections.push("Avaliação Geral:");
-    sections.push(`- Alinhamento: ${analiseJSON.estado_geral.alinhamento || 'Adequado'}`);
-    sections.push(`- Proporção: ${analiseJSON.estado_geral.proporcao || 'Adequado'}`);
-    sections.push(`- Forma: ${analiseJSON.estado_geral.forma || 'Adequado'}`);
-    sections.push(`- Cor: ${analiseJSON.estado_geral.cor || 'Adequado'}`);
-    sections.push(`- Linha gengival: ${analiseJSON.estado_geral.linha_gengival || 'Adequado'}\n`);
+  // 2. AVALIAÇÃO QUANTITATIVA (NOVO)
+  if (analise.estado_geral) {
+    const eg = analise.estado_geral;
+    
+    sections.push("═══════════════════════════════════════");
+    sections.push("AVALIAÇÃO QUANTITATIVA");
+    sections.push("═══════════════════════════════════════\n");
+    
+    sections.push(`1. Alinhamento: ${(eg.alinhamento || 'N/A').toUpperCase()} (${eg.alinhamento_pontos || 0} pontos)`);
+    sections.push(`   └─ ${eg.alinhamento_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`2. Proporção: ${(eg.proporcao || 'N/A').toUpperCase()} (${eg.proporcao_pontos || 0} pontos)`);
+    sections.push(`   └─ ${eg.proporcao_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`3. Forma: ${(eg.forma || 'N/A').toUpperCase()} (${eg.forma_pontos || 0} pontos)`);
+    sections.push(`   └─ ${eg.forma_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`4. Integridade: ${(eg.integridade || 'N/A').toUpperCase()} (${eg.integridade_pontos || 0} pontos)`);
+    sections.push(`   └─ ${eg.integridade_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`5. Cor: ${(eg.cor || 'N/A').toUpperCase()} (${eg.cor_pontos || 0} pontos)`);
+    sections.push(`   └─ ${eg.cor_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`6. Linha Gengival: ${(eg.linha_gengival || 'N/A').toUpperCase()}`);
+    sections.push(`   └─ ${eg.linha_gengival_detalhes || 'Sem detalhes'}\n`);
+    
+    sections.push(`────────────────────────────────────────`);
+    sections.push(`📊 PONTUAÇÃO TOTAL: ${eg.pontuacao_total || 0} pontos`);
+    sections.push(`📋 INTERPRETAÇÃO: ${eg.interpretacao || '0-2: Clareamento | 3-4: Avaliar | 5+: Facetas'}\n`);
   }
 
-  // 2. INDICAÇÃO DO TRATAMENTO
+  // 3. DECISÃO CLÍNICA (NOVO)
+  if (analise.decisao_clinica) {
+    const dc = analise.decisao_clinica;
+    
+    sections.push("═══════════════════════════════════════");
+    sections.push("DECISÃO CLÍNICA");
+    sections.push("═══════════════════════════════════════\n");
+    
+    sections.push(`Conduta: ${(dc.conducta || 'NÃO ESPECIFICADA').toUpperCase()}\n`);
+    sections.push(`Justificativa Técnica:`);
+    sections.push(`${dc.justificativa_tecnica || 'Não fornecida'}\n`);
+    
+    if (dc.quantidade_facetas > 0) {
+      sections.push(`Quantidade de facetas: ${dc.quantidade_facetas}`);
+      sections.push(`Dentes a serem tratados: ${dc.dentes_tratados?.join(', ') || 'Não especificado'}\n`);
+      
+      if (dc.dentes_justificativa) {
+        sections.push(`Justificativa por dente:`);
+        sections.push(`${dc.dentes_justificativa}\n`);
+      }
+    }
+  }
+
+  // 4. DETALHAMENTO POR DENTE (NOVO - apenas se houver facetas)
+  if (analise.detalhamento_por_dente && Object.keys(analise.detalhamento_por_dente).length > 0) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("DETALHAMENTO POR DENTE");
+    sections.push("═══════════════════════════════════════\n");
+    
+    const dentes = ['11', '21', '12', '22', '13', '23'];
+    dentes.forEach(dente => {
+      const det = analise.detalhamento_por_dente[dente];
+      if (det && det.problemas && det.problemas.length > 0) {
+        sections.push(`Dente ${dente}:`);
+        sections.push(`  Problemas: ${det.problemas.join(', ')}`);
+        sections.push(`  Faceta necessária: ${det.necessita_faceta ? 'SIM' : 'NÃO'}`);
+        if (det.justificativa) {
+          sections.push(`  Justificativa: ${det.justificativa}`);
+        }
+        sections.push('');
+      }
+    });
+  }
+
+  // 5. PROCEDIMENTOS RECOMENDADOS
+  if (analise.procedimentos_recomendados && analise.procedimentos_recomendados.length > 0) {
+    sections.push("═══════════════════════════════════════");
+    sections.push("PROCEDIMENTOS RECOMENDADOS");
+    sections.push("═══════════════════════════════════════\n");
+    
+    analise.procedimentos_recomendados.forEach((proc: string, index: number) => {
+      sections.push(`${index + 1}. ${proc}`);
+    });
+    sections.push("");
+  }
+
+  // 6. ESPECIFICAÇÕES TÉCNICAS
   sections.push("═══════════════════════════════════════");
-  sections.push("INDICAÇÃO DO TRATAMENTO");
+  sections.push("ESPECIFICAÇÕES TÉCNICAS");
   sections.push("═══════════════════════════════════════\n");
   
-  sections.push(`Justificativa: ${analiseJSON.justificativa || 'Otimização estética do sorriso'}\n`);
+  sections.push(`Cor final recomendada: ${analise.cor_recomendada || 'BL2'} (escala Vita)`);
+  sections.push(`Protocolo: Padrão da clínica para resultados harmoniosos\n`);
   
-  if (analiseJSON.quantidade_facetas > 0) {
-    sections.push(`Quantidade de facetas recomendadas: ${analiseJSON.quantidade_facetas}`);
-    sections.push(`Dentes a serem tratados (FDI): ${analiseJSON.dentes_tratados?.join(', ') || 'Não especificado'}`);
-  } else {
-    sections.push("Tratamento conservador: Apenas clareamento dental recomendado");
+  // Detectar tipo de faceta nos serviços ativos (apenas se houver facetas)
+  const quantidadeFacetas = analise.decisao_clinica?.quantidade_facetas || analise.quantidade_facetas || 0;
+  if (quantidadeFacetas > 0) {
+    const tipoFaceta = servicosAtivos.find(s => 
+      s.name.toLowerCase().includes('porcelana') || 
+      s.name.toLowerCase().includes('cerâmica')
+    ) ? 'Cerâmica/Porcelana' : 'Resina composta';
+    
+    sections.push(`Material: ${tipoFaceta}`);
+    sections.push("Técnica: Minimamente invasiva com preservação dental");
+    sections.push("Preparo: Conservador com manutenção da estrutura dentária\n");
   }
-  
-  sections.push(`Cor final recomendada: BL2 (escala Vita) - Padrão da clínica\n`);
 
   // 3. PROCEDIMENTOS RECOMENDADOS
   if (analiseJSON.procedimentos_recomendados && analiseJSON.procedimentos_recomendados.length > 0) {
@@ -399,76 +483,338 @@ function generateTextReportFromJSON(
 }
 
 /**
- * ✅ NOVO: Prompt de análise conservador BL2-BL4
- * Construção dinâmica baseada em serviços ativos, retorna APENAS JSON válido
+ * ✅ FASE 1: Prompt de análise com sistema de pontuação clínica quantitativa
+ * Sistema baseado em critérios numéricos objetivos (mm, graus, %) para decisões consistentes
  */
 function buildAnalysisPrompt(
   analiseJSON: any,
   servicos_ativos: string[]
 ): string {
   return `
-Você é dentista especialista em odontologia estética. Analise a foto e o objeto "analiseJSON" e gere uma ANÁLISE CLÍNICA e RECOMENDAÇÃO DE TRATAMENTO conservadoras, realistas e alinhadas aos serviços disponíveis.
+Você é um dentista especialista em odontologia estética com formação em Ortodontia e Prótese.
+Sua análise DEVE ser baseada em CRITÉRIOS TÉCNICOS OBJETIVOS e EVIDÊNCIAS FOTOGRÁFICAS.
 
-DADOS RECEBIDOS (resumo):
-- quantidade_facetas: ${String(analiseJSON?.quantidade_facetas ?? '')}
-- cor_recomendada (se houver): ${String(analiseJSON?.cor_recomendada ?? '')}
-- procedimentos_recomendados: ${JSON.stringify(analiseJSON?.procedimentos_recomendados ?? [])}
-- tom_pele: ${String(analiseJSON?.tom_pele ?? '')}
-- cor_olhos: ${String(analiseJSON?.cor_olhos ?? '')}
-- dentes_tratados (se houver): ${JSON.stringify(analiseJSON?.dentes_tratados ?? [])}
-- servicos_ativos: ${JSON.stringify(servicos_ativos)}
+═══════════════════════════════════════════════════════════════════════
+🎯 SISTEMA DE DECISÃO CLÍNICA - CRITÉRIOS QUANTITATIVOS OBRIGATÓRIOS
+═══════════════════════════════════════════════════════════════════════
 
-RESTRIÇÕES:
-- Use **somente** procedimentos presentes em servicos_ativos.
-- Postura **conservadora**: resultados naturais, sem exageros.
-- Cor final **apenas** dentro de **BL2–BL4** (BL2, BL3 ou BL4).
-  - Nunca use mais claro que BL2 (BL1/BL0).
-  - Nunca use mais escuro que BL4 (A1/A2/A3).
-- Se indicar **2 ou 4 facetas**, inclua **obrigatoriamente** "Clareamento Dental" como **primeira etapa**.
+METODOLOGIA DE AVALIAÇÃO (3 ETAPAS):
 
-REGRAS DE AVALIAÇÃO (resuma, sem inventar):
-1) Classifique: alinhamento, proporção/simetria, forma, cor e linha gengival como
-   "adequado", "levemente comprometido" ou "comprometido".
-   - Variações naturais discretas (<10%) **não** indicam facetas.
-2) Indique facetas **somente** com evidência clara de:
-   - diastema > 1 mm, desgaste > 2 mm, fratura visível,
-   - rotação/desalinhamento > 15°, diferença de forma > 20% entre homólogos.
-   Caso contrário, **clareamento** é a conduta padrão (se ativo).
-3) Quantidade de facetas (quando aplicável):
-   - 0 → estrutura adequada → apenas clareamento (se ativo).
-   - 2 → 11 e 21 comprometidos.
-   - 4 → 11, 12, 21, 22 comprometidos.
-   - 6 → 13 a 23 comprometidos. **Nunca** proponha 6 por padrão.
-4) Gengivoplastia só se ativa **e** sorriso gengival > 3 mm.
+ETAPA 1: ANÁLISE QUANTITATIVA POR CATEGORIA
+ETAPA 2: PONTUAÇÃO DE SEVERIDADE
+ETAPA 3: DECISÃO BASEADA EM EVIDÊNCIAS
 
-FORMATO DE RESPOSTA (retorne **APENAS JSON válido**):
+───────────────────────────────────────────────────────────────────────
+ETAPA 1: CRITÉRIOS QUANTITATIVOS DE AVALIAÇÃO
+───────────────────────────────────────────────────────────────────────
+
+Para CADA categoria abaixo, classifique como NORMAL, LEVE ou SEVERO:
+
+🔸 CATEGORIA 1: ALINHAMENTO (Rotações e Posição)
+
+NORMAL (0 pontos):
+• Rotações ≤ 10° em qualquer dente
+• Projeção/recuo ≤ 1mm em relação ao arco
+• Sem sobreposições visíveis
+• Linha incisal harmoniosa
+
+LEVE (1 ponto):
+• Rotações entre 10-20° em 1-2 dentes
+• Projeção/recuo entre 1-2mm
+• Leve assimetria no arco (não impacta função)
+
+SEVERO (3 pontos): ← INDICA FACETAS
+• Rotações > 20° em qualquer dente
+• Projeção/recuo > 2mm (dente visivelmente "para dentro" ou "para fora")
+• Sobreposições dentárias
+• Caninos projetados > 2mm para fora do arco
+
+🔸 CATEGORIA 2: PROPORÇÃO E SIMETRIA
+
+NORMAL (0 pontos):
+• Laterais (12/22): diferença de tamanho ≤ 10%
+• Centrais (11/21): diferença de tamanho ≤ 5%
+• Proporção largura/altura: 75-85%
+• Simetria bilateral preservada
+
+LEVE (1 ponto):
+• Laterais: diferença 10-20%
+• Centrais: diferença 5-15%
+• Assimetria perceptível mas não grotesca
+
+SEVERO (3 pontos): ← INDICA FACETAS
+• Laterais: diferença > 20% (um visivelmente menor)
+• Centrais: diferença > 15%
+• Um lateral claramente menor/maior que o contralateral
+• Desproporção que compromete harmonia do sorriso
+
+🔸 CATEGORIA 3: FORMA DENTÁRIA
+
+NORMAL (0 pontos):
+• Forma retangular-ovalada adequada
+• Bordas incisais íntegras
+• Ângulos preservados
+• Anatomia dental harmoniosa
+
+LEVE (1 ponto):
+• Desgaste incisal leve (< 1mm)
+• Pequenas irregularidades nas bordas
+• Forma levemente triangular nos laterais
+
+SEVERO (3 pontos): ← INDICA FACETAS
+• Desgaste incisal > 2mm (borda plana/irregular)
+• Dentes excessivamente triangulares (formato "ponta")
+• Fraturas visíveis em esmalte
+• Forma inadequada para a face do paciente
+
+🔸 CATEGORIA 4: INTEGRIDADE ESTRUTURAL
+
+NORMAL (0 pontos):
+• Sem restaurações visíveis
+• Esmalte íntegro
+• Sem diastemas
+• Estrutura preservada
+
+LEVE (1 ponto):
+• Pequenas restaurações em resina (< 30% da face vestibular)
+• Diastema < 1mm
+• Manchas leves de fluorose
+
+SEVERO (3 pontos): ← INDICA FACETAS
+• Restaurações extensas (> 30% da face vestibular)
+• Manchas ao redor de restaurações
+• Diastemas > 1.5mm entre incisivos centrais
+• Fraturas de esmalte
+• Múltiplas restaurações com cores diferentes
+
+🔸 CATEGORIA 5: COR DENTÁRIA
+
+NORMAL (0 pontos):
+• Cor UNIFORME entre todos os dentes
+• Tom entre A2-A3.5 (natural)
+• Sem manchas ou descolorações
+• Translucidez incisal preservada
+
+LEVE (1 ponto):
+• Cor UNIFORME mas amarelada (A3.5-B3)
+• Leve variação de tom (< 1 shade entre dentes)
+• Clareamento resolve completamente
+
+SEVERO (3 pontos): ← INDICA FACETAS
+• Cor DESUNIFORME entre dentes (≥ 2 shades de diferença)
+• Centrais claros (A1) + laterais amarelos (A3.5) = "efeito chiclete"
+• Manchas brancas/marrons em esmalte
+• Restaurações com cor diferente dos dentes
+• Cor UNIFORME só resolve com facetas + clareamento conjunto
+
+🔸 CATEGORIA 6: LINHA GENGIVAL E SORRISO GENGIVAL
+
+NORMAL (0 pontos):
+• Exposição gengival ≤ 2mm ao sorrir
+• Linha gengival simétrica
+• Contorno harmônico
+
+LEVE (1 ponto):
+• Exposição gengival 2-3mm
+• Leve assimetria (< 1mm de diferença)
+
+SEVERO (2 pontos): ← INDICA GENGIVOPLASTIA (não facetas)
+• Exposição gengival > 3mm (sorriso gengival)
+• Assimetria > 1mm
+• Obs: Gengivoplastia é procedimento COMPLEMENTAR
+
+───────────────────────────────────────────────────────────────────────
+ETAPA 2: SISTEMA DE PONTUAÇÃO
+───────────────────────────────────────────────────────────────────────
+
+Some os pontos de TODAS as categorias (exceto categoria 6):
+
+PONTUAÇÃO TOTAL = Σ (categorias 1-5)
+
+Máximo possível: 15 pontos (3 × 5 categorias)
+
+───────────────────────────────────────────────────────────────────────
+ETAPA 3: DECISÃO CLÍNICA BASEADA NA PONTUAÇÃO
+───────────────────────────────────────────────────────────────────────
+
+📊 INTERPRETAÇÃO DA PONTUAÇÃO:
+
+0-2 PONTOS → APENAS CLAREAMENTO ✅
+├─ Estrutura dental EXCELENTE
+├─ Alinhamento, proporção e forma adequados
+├─ Problema principal (se houver): cor uniforme amarelada
+└─ Conduta: Clareamento dental resolve
+
+3-4 PONTOS → AVALIAR CASO A CASO ⚠️
+├─ Se problema ÚNICO for COR DESUNIFORME → Facetas seletivas
+├─ Se problema PRINCIPAL for ESTRUTURAL → Facetas
+├─ Se problemas LEVES múltiplos → Considerar clareamento primeiro
+└─ Use bom senso clínico
+
+5+ PONTOS → FACETAS INDICADAS ✅
+├─ Múltiplos fatores comprometidos
+├─ OU único fator SEVERAMENTE comprometido
+├─ Facetas são necessidade clínica (não estética)
+└─ Clareamento isolado NÃO resolve
+
+═══════════════════════════════════════════════════════════════════════
+📋 EXEMPLOS PRÁTICOS DE APLICAÇÃO
+═══════════════════════════════════════════════════════════════════════
+
+CASO 1: Apenas dentes amarelados uniformes
+├─ Alinhamento: NORMAL (0 pontos)
+├─ Proporção: NORMAL (0 pontos)
+├─ Forma: NORMAL (0 pontos)
+├─ Integridade: NORMAL (0 pontos)
+├─ Cor: LEVE - amarelado uniforme (1 ponto)
+└─ TOTAL: 1 ponto → CLAREAMENTO
+
+CASO 2: Dente 12 recuado + laterais pequenos
+├─ Alinhamento: SEVERO - dente 12 recuado 2.5mm (3 pontos)
+├─ Proporção: SEVERO - 12 é 25% menor que 22 (3 pontos)
+├─ Forma: NORMAL (0 pontos)
+├─ Integridade: NORMAL (0 pontos)
+├─ Cor: LEVE - uniforme amarelado (1 ponto)
+└─ TOTAL: 7 pontos → 4 FACETAS (11,21,12,22) + clareamento demais
+
+CASO 3: Centrais com restaurações + laterais amarelos
+├─ Alinhamento: NORMAL (0 pontos)
+├─ Proporção: LEVE - pequena assimetria (1 ponto)
+├─ Forma: NORMAL (0 pontos)
+├─ Integridade: SEVERO - restaurações extensas em 11,21 (3 pontos)
+├─ Cor: SEVERO - centrais A1, laterais A3.5 (3 pontos)
+└─ TOTAL: 7 pontos → 4 FACETAS + clareamento dos caninos
+
+═══════════════════════════════════════════════════════════════════════
+🦷 QUANTIDADE DE FACETAS - CRITÉRIOS TÉCNICOS
+═══════════════════════════════════════════════════════════════════════
+
+0 FACETAS (Apenas Clareamento):
+✅ Pontuação total: 0-2 pontos
+✅ Estrutura dental excelente
+✅ Único problema: cor uniforme (se houver)
+
+2 FACETAS (Incisivos Centrais: 11, 21):
+✅ Pontuação ≥ 5 E problemas CONCENTRADOS em 11 e 21
+✅ Exemplos:
+   - Restaurações extensas apenas em 11 e 21
+   - Fraturas apenas em centrais
+   - Centrais com forma inadequada + laterais OK
+
+4 FACETAS (Incisivos: 11, 21, 12, 22):
+✅ Pontuação ≥ 5 E problemas nos INCISIVOS
+✅ Exemplos:
+   - Cor desuniforme: centrais claros + laterais escuros
+   - Dente 12 recuado + assimetria 12 vs 22
+   - Forma inadequada em múltiplos incisivos
+   - Restaurações em incisivos
+
+6 FACETAS (Arco anterior: 13, 12, 11, 21, 22, 23):
+✅ Pontuação ≥ 8 E problemas INCLUEM caninos
+✅ Exemplos:
+   - Caninos projetados/rotacionados (>2mm ou >20°)
+   - Caninos com forma inadequada
+   - Cor desuniforme envolvendo caninos
+   - Problemas estruturais em toda arcada anterior
+
+⚠️ REGRA CRÍTICA: NUNCA recomende 6 facetas por "padrão estético"
+Só recomende 6 se caninos tiverem problemas QUANTIFICÁVEIS
+
+═══════════════════════════════════════════════════════════════════════
+🎨 COR RECOMENDADA - SEMPRE BL2 (PADRÃO DA CLÍNICA)
+═══════════════════════════════════════════════════════════════════════
+
+Independente do resultado da análise:
+• cor_recomendada: "BL2" (FIXO)
+• Justificativa: Protocolo padrão da clínica para resultados harmoniosos
+
+═══════════════════════════════════════════════════════════════════════
+📤 FORMATO DE RESPOSTA - APENAS JSON VÁLIDO
+═══════════════════════════════════════════════════════════════════════
+
+Retorne APENAS este JSON (sem tags, sem markdown, sem texto adicional):
+
 {
   "analise": {
-    "tom_pele": "<texto curto>",
-    "cor_olhos": "<texto curto>",
+    "tom_pele": "clara|média|morena|escura",
+    "cor_olhos": "claros|médios|escuros",
+    
     "estado_geral": {
-      "alinhamento": "adequado|levemente comprometido|comprometido",
-      "proporcao": "adequado|levemente comprometido|comprometido",
-      "forma": "adequado|levemente comprometido|comprometido",
-      "cor": "adequado|levemente comprometido|comprometido",
-      "linha_gengival": "adequado|levemente comprometido|comprometido"
+      "alinhamento": "normal|leve|severo",
+      "alinhamento_pontos": 0|1|3,
+      "alinhamento_detalhes": "Rotações <10° em todos os dentes",
+      
+      "proporcao": "normal|leve|severo",
+      "proporcao_pontos": 0|1|3,
+      "proporcao_detalhes": "Laterais 12=22, diferença <5%",
+      
+      "forma": "normal|leve|severo",
+      "forma_pontos": 0|1|3,
+      "forma_detalhes": "Forma retangular adequada, sem desgastes",
+      
+      "integridade": "normal|leve|severo",
+      "integridade_pontos": 0|1|3,
+      "integridade_detalhes": "Esmalte íntegro, sem restaurações",
+      
+      "cor": "normal|leve|severo",
+      "cor_pontos": 0|1|3,
+      "cor_detalhes": "Cor uniforme A3 em todos os dentes",
+      
+      "linha_gengival": "normal|leve|severo",
+      "linha_gengival_detalhes": "Exposição <2mm, simétrica",
+      
+      "pontuacao_total": 0,
+      "interpretacao": "0-2: Clareamento | 3-4: Avaliar | 5+: Facetas"
     },
-    "quantidade_facetas": 0|2|4|6,
-    "dentes_tratados": [11,12,21,22],
+    
+    "decisao_clinica": {
+      "conducta": "clareamento|facetas|facetas+clareamento",
+      "justificativa_tecnica": "Pontuação total: 1 ponto. Estrutura dental excelente (alinhamento, proporção, forma adequados). Único problema: cor uniforme amarelada A3. Clareamento resolve completamente.",
+      "quantidade_facetas": 0|2|4|6,
+      "dentes_tratados": [],
+      "dentes_justificativa": "Para cada dente, explique o problema quantificado"
+    },
+    
     "procedimentos_recomendados": [
-      // use apenas itens contidos em servicos_ativos;
-      // se quantidade_facetas = 2 ou 4, inclua "Clareamento Dental"
+      "Clareamento Dental",
+      "Facetas de Porcelana",
+      "Gengivoplastia"
     ],
-    "cor_recomendada": "BL2|BL3|BL4",
-    "justificativa": "síntese técnica objetiva (1-3 frases) com o porquê da indicação"
+    
+    "cor_recomendada": "BL2",
+    
+    "detalhamento_por_dente": {
+      "11": {
+        "problemas": ["restauração extensa 40%", "cor A1 (desuniforme)"],
+        "necessita_faceta": true|false,
+        "justificativa": "Restauração >30% + cor 2 shades mais clara"
+      },
+      "12": {
+        "problemas": ["recuado 2.5mm", "25% menor que dente 22"],
+        "necessita_faceta": true|false,
+        "justificativa": "Recuo >2mm + assimetria >20%"
+      }
+    }
   }
 }
 
-NOTAS DE ESTILO:
-- Técnica, objetiva e conservadora.
-- Não use termos como "Hollywood smile" ou "transformação drástica".
-- Não invente dados; baseie-se na foto e em analiseJSON.
-`;
+═══════════════════════════════════════════════════════════════════════
+✅ CHECKLIST FINAL - ANTES DE GERAR A RESPOSTA
+═══════════════════════════════════════════════════════════════════════
+
+□ Avaliei CADA categoria com critérios quantitativos?
+□ Calculei a pontuação TOTAL honestamente?
+□ A decisão está ALINHADA com a pontuação?
+□ Justifiquei com DADOS numéricos (mm, graus, %)?
+□ Se indiquei facetas, pontuação ≥5?
+□ Se indiquei clareamento, pontuação ≤2?
+□ Quantidade de facetas está JUSTIFICADA dente a dente?
+□ Cor recomendada é BL2?
+□ JSON está válido (sem markdown, sem tags)?
+
+Serviços disponíveis: ${JSON.stringify(servicos_ativos)}
+
+Gere o JSON de análise agora:`;
 }
 
 // Prompt estático (será substituído pelo dinâmico)
@@ -899,7 +1245,7 @@ Deno.serve(async (req) => {
           throw new Error('Resposta da IA não está em formato JSON válido');
         }
         
-        // ✅ FASE 3: Validar estrutura do novo prompt conservador
+        // ✅ FASE 3: Validação completa com sistema de pontuação
         if (!analise_data.analise) {
           console.error('═══════════════════════════════════════');
           console.error('❌ JSON incompleto:', JSON.stringify(analise_data, null, 2));
@@ -910,15 +1256,75 @@ Deno.serve(async (req) => {
 
         const analise = analise_data.analise;
         
-        // ✅ FASE 4: Forçar cor BL2 independente do que a IA retornar
+        // Validar estado_geral
+        if (!analise.estado_geral || typeof analise.estado_geral !== 'object') {
+          console.error('❌ JSON inválido: falta campo "estado_geral"');
+          throw new Error('JSON inválido: falta campo "estado_geral"');
+        }
+        
+        const eg = analise.estado_geral;
+        
+        // Validar pontuação de cada categoria
+        if (typeof eg.alinhamento_pontos !== 'number' || 
+            typeof eg.proporcao_pontos !== 'number' ||
+            typeof eg.forma_pontos !== 'number' ||
+            typeof eg.integridade_pontos !== 'number' ||
+            typeof eg.cor_pontos !== 'number') {
+          console.error('❌ JSON inválido: faltam campos de pontuação');
+          throw new Error('JSON inválido: faltam campos de pontuação');
+        }
+        
+        // Validar pontuacao_total
+        if (typeof eg.pontuacao_total !== 'number') {
+          console.error('❌ JSON inválido: falta "pontuacao_total"');
+          throw new Error('JSON inválido: falta "pontuacao_total"');
+        }
+        
+        // Validar decisao_clinica
+        if (!analise.decisao_clinica) {
+          console.error('❌ JSON inválido: falta "decisao_clinica"');
+          throw new Error('JSON inválido: falta "decisao_clinica"');
+        }
+        
+        // ✅ FASE 5: Logs de depuração detalhados
+        console.log('═══════════════════════════════════════');
+        console.log('📊 SISTEMA DE PONTUAÇÃO CLÍNICA');
+        console.log('═══════════════════════════════════════');
+        console.log('Categoria 1 - Alinhamento:', eg.alinhamento, `(${eg.alinhamento_pontos} pts)`);
+        console.log('Categoria 2 - Proporção:', eg.proporcao, `(${eg.proporcao_pontos} pts)`);
+        console.log('Categoria 3 - Forma:', eg.forma, `(${eg.forma_pontos} pts)`);
+        console.log('Categoria 4 - Integridade:', eg.integridade, `(${eg.integridade_pontos} pts)`);
+        console.log('Categoria 5 - Cor:', eg.cor, `(${eg.cor_pontos} pts)`);
+        console.log('Categoria 6 - Linha Gengival:', eg.linha_gengival, '(não conta para score)');
+        console.log('───────────────────────────────────────');
+        console.log(`📊 PONTUAÇÃO TOTAL: ${eg.pontuacao_total} pontos`);
+        console.log(`🎯 DECISÃO: ${analise.decisao_clinica.conducta}`);
+        console.log(`💰 FACETAS: ${analise.decisao_clinica.quantidade_facetas || 0}`);
+        console.log('═══════════════════════════════════════');
+        
+        // Validar consistência: pontuação vs decisão
+        const score = eg.pontuacao_total;
+        const conducta = analise.decisao_clinica.conducta;
+        
+        if (score <= 2 && conducta !== 'clareamento') {
+          console.warn(`⚠️ Inconsistência: score ${score} pts mas conducta "${conducta}"`);
+          console.warn('   Esperado: clareamento (score 0-2)');
+        }
+        if (score >= 5 && !conducta.includes('facetas')) {
+          console.warn(`⚠️ Inconsistência: score ${score} pts mas conducta "${conducta}"`);
+          console.warn('   Esperado: facetas ou facetas+clareamento (score 5+)');
+        }
+        
+        // ✅ Forçar cor BL2 independente do que a IA retornar
         if (analise_data.analise) {
           analise_data.analise.cor_recomendada = 'BL2';
           console.log('→ Cor normalizada para BL2 (padrão fixo da clínica)');
         }
 
         // Validação condicional: se há facetas, deve haver dentes tratados
-        if (analise.quantidade_facetas > 0) {
-          if (!analise.dentes_tratados || analise.dentes_tratados.length === 0) {
+        const quantidadeFacetas = analise.decisao_clinica.quantidade_facetas || 0;
+        if (quantidadeFacetas > 0) {
+          if (!analise.decisao_clinica.dentes_tratados || analise.decisao_clinica.dentes_tratados.length === 0) {
             console.error('❌ quantidade_facetas > 0 mas dentes_tratados está vazio');
             throw new Error('Quando há facetas recomendadas, dentes_tratados não pode estar vazio');
           }
@@ -930,7 +1336,8 @@ Deno.serve(async (req) => {
           throw new Error('Campos obrigatórios ausentes na análise');
         }
 
-        console.log('✓ Validação de campos concluída com sucesso');
+        console.log('✅ JSON validado com sucesso');
+        console.log(`📋 Procedimentos: ${analise.procedimentos_recomendados.join(', ')}`);
         
         // Verificar se a resposta foi truncada
         const finishReason = analysisResult.choices?.[0]?.finish_reason;
