@@ -337,12 +337,13 @@ export default function Index() {
       setAnalysisData(analysisResult);
 
       // Extrair JSON da análise
+      let extractedAnalise: any = null;
       try {
         const jsonMatch = analysisResult.orcamento.match(
           /<ORCAMENTO_JSON>([\s\S]*?)<\/ORCAMENTO_JSON>/i
         );
         if (jsonMatch) {
-          const extractedAnalise = JSON.parse(jsonMatch[1]);
+          extractedAnalise = JSON.parse(jsonMatch[1]);
           setAnaliseJSON(extractedAnalise);
           console.log('📊 Análise extraída:', extractedAnalise);
           console.log('  - Tom de pele:', extractedAnalise.analise?.tom_pele);
@@ -422,6 +423,7 @@ export default function Index() {
           action: 'generate',
           imageBase64: originalImage,
           reportText: analysisResult.relatorio_tecnico,
+          analiseJSON: extractedAnalise, // Dados estruturados da análise para prompt enriquecido
           config: {
             temperature: config.temperature,
             topK: config.topK,

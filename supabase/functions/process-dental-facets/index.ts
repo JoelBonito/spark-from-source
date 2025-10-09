@@ -152,68 +152,220 @@ function parseReport(report: string) {
 }
 
 /**
- * Constrói o prompt para simulação de imagem baseado nos dados extraídos
+ * Retorna descrição personalizada da cor baseada no código Vita e tom de pele
+ */
+function getColorDescription(colorCode: string, skinTone: string): string {
+  const code = colorCode.toUpperCase().trim();
+  const tone = skinTone.toLowerCase();
+  
+  const descriptions: Record<string, Record<string, string>> = {
+    'BL1': {
+      'clara': 'Very bright cool white, ideal for fair complexion - creates striking contrast',
+      'média': 'Very bright cool white - bold choice for confident smile',
+      'morena': 'Very bright cool white - creates dramatic Hollywood effect',
+      'escura': 'Very bright cool white - stunning contrast with darker complexion'
+    },
+    'BL2': {
+      'clara': 'Bright cool white, natural-looking for fair skin',
+      'média': 'Bright cool white, universally flattering',
+      'morena': 'Bright cool white - elegant and modern',
+      'escura': 'Bright cool white - beautiful contrast'
+    },
+    'A1': {
+      'clara': 'Natural white with neutral undertone - timeless elegance for fair skin',
+      'média': 'Natural white, neutral undertone - universally flattering choice',
+      'morena': 'Natural white - fresh and confident look',
+      'escura': 'Natural white - harmonious and professional'
+    },
+    'A2': {
+      'clara': 'Warm natural white - soft and elegant',
+      'média': 'Warm natural white - naturally beautiful',
+      'morena': 'Warm natural white - perfect harmony with medium-dark skin',
+      'escura': 'Warm natural white - ideal balance for darker complexion'
+    },
+    'A3': {
+      'clara': 'Warm ivory white - natural warmth',
+      'média': 'Warm ivory white - naturally warm and inviting',
+      'morena': 'Warm ivory white - beautifully harmonious',
+      'escura': 'Warm ivory white - perfect harmony with darker skin tone'
+    },
+    'A3.5': {
+      'clara': 'Warm beige-white - subtle warmth',
+      'média': 'Warm beige-white - natural and understated',
+      'morena': 'Warm beige-white - natural harmony',
+      'escura': 'Warm beige-white - harmonious with darker complexion'
+    },
+    'B1': {
+      'clara': 'Cool neutral white - fresh and clean for fair skin',
+      'média': 'Cool neutral white - universally attractive',
+      'morena': 'Cool neutral white - modern elegance',
+      'escura': 'Cool neutral white - refined contrast'
+    },
+    'B2': {
+      'clara': 'Soft neutral white - gentle elegance',
+      'média': 'Soft neutral white - naturally balanced',
+      'morena': 'Soft neutral white - subtle sophistication',
+      'escura': 'Soft neutral white - elegant harmony'
+    }
+  };
+  
+  const toneKey = tone.includes('clara') ? 'clara' : 
+                  tone.includes('média') || tone.includes('media') ? 'média' :
+                  tone.includes('morena') ? 'morena' : 'escura';
+  
+  return descriptions[code]?.[toneKey] || 
+         descriptions['A1']?.[toneKey] || 
+         'Natural white shade that complements your complexion beautifully';
+}
+
+/**
+ * Constrói o prompt para simulação de imagem baseado nos dados extraídos e análise
  */
 function buildSimulationPrompt(
-  extracted: { dentes_tratados: string[]; especificacoes: Record<string, string> }
+  extracted: { dentes_tratados: string[]; especificacoes: Record<string, string> },
+  analiseJSON?: any
 ): string {
   const { dentes_tratados, especificacoes } = extracted;
   
   console.log('🎨 Construindo prompt de simulação...');
   
+  // Extrair dados da análise com valores padrão
+  const tom_pele = analiseJSON?.analise?.tom_pele || 'média';
+  const cor_olhos = analiseJSON?.analise?.cor_olhos || 'médios';
+  const cor_recomendada = analiseJSON?.analise?.cor_recomendada || especificacoes.cor || 'A1';
+  const quantidade_facetas = analiseJSON?.analise?.quantidade_facetas || dentes_tratados.length;
+  
+  console.log('→ Dados da análise:', {
+    tom_pele,
+    cor_olhos,
+    cor_recomendada,
+    quantidade_facetas
+  });
+  
   // Caso sem facetas: apenas clareamento
   if (!dentes_tratados || dentes_tratados.length === 0) {
     console.log('→ Tipo: Clareamento apenas (sem facetas)');
-    return `Crie uma simulação fotorrealista de clareamento dental.\n\n` +
-      `CONTEXTO:\n` +
-      `- Nenhuma faceta indicada; realizar apenas clareamento dos dentes visíveis.\n\n` +
-      `INSTRUÇÕES:\n` +
-      `1. Clareie uniformemente todos os dentes visíveis, mantendo forma e proporções originais.\n` +
-      `2. O resultado deve ser natural e realista.\n\n` +
-      `PRESERVAR COMPLETAMENTE:\n` +
-      `- Textura e tom da pele facial\n` +
-      `- Estrutura do cabelo\n` +
-      `- Cor e formato dos olhos\n` +
-      `- Expressão facial\n` +
-      `- Iluminação e sombras\n` +
-      `- Fundo e ambiente\n` +
-      `- Características únicas do paciente\n\n` +
-      `Gere a imagem agora.`;
+    
+    const colorDesc = getColorDescription(cor_recomendada, tom_pele);
+    const whitenessIntensity = tom_pele.toLowerCase().includes('morena') || tom_pele.toLowerCase().includes('escura')
+      ? 'warm white (natural tone, avoiding artificial blue-white)'
+      : 'cool bright white';
+    
+    return `PROFESSIONAL TEETH WHITENING SIMULATION
+
+PATIENT CONTEXT:
+- Skin tone: ${tom_pele}
+- Eye color: ${cor_olhos}
+
+TARGET SHADE: ${cor_recomendada} Vita scale
+→ ${colorDesc}
+
+WHITENING INSTRUCTIONS:
+1. Apply DRAMATIC but natural whitening to ALL visible teeth
+2. Target shade: ${whitenessIntensity}
+3. Achieve ${cor_recomendada} shade level - this harmonizes perfectly with ${tom_pele} skin tone
+4. Maintain natural tooth translucency at incisal edges
+5. Result must be OBVIOUS, IMPRESSIVE, and celebrity-quality
+6. Create a transformative "Hollywood smile" effect while keeping it natural
+
+CRITICAL REQUIREMENTS:
+- Transformation MUST be DRAMATIC and clearly visible
+- White should harmonize beautifully with ${tom_pele} complexion
+- Natural glossy finish with subtle highlights
+- Professional dental aesthetics - inspire confidence
+
+PRESERVE COMPLETELY:
+- Facial skin texture and tone
+- Hair structure and color
+- Eye color and shape
+- Facial expression
+- Lighting and shadows
+- Background environment
+- All unique patient characteristics
+
+Generate the photorealistic image now.`;
   }
   
   console.log(`→ Tipo: Facetas nos dentes [${dentes_tratados.join(', ')}]`);
   
-  const dentesStr = dentes_tratados.join(', ');
+  // Formatação dos dentes tratados
+  const teethMap: Record<string, string> = {
+    '11': 'Upper right central incisor',
+    '21': 'Upper left central incisor',
+    '12': 'Upper right lateral incisor',
+    '22': 'Upper left lateral incisor',
+    '13': 'Upper right canine',
+    '23': 'Upper left canine'
+  };
+  
+  const teethList = dentes_tratados.map(t => `${teethMap[t] || t} (${t})`).join(', ');
+  const colorDesc = getColorDescription(cor_recomendada, tom_pele);
+  
   const specLines: string[] = [];
+  if (especificacoes.material) specLines.push(`- Material: ${especificacoes.material}`);
+  if (especificacoes.tecnica) specLines.push(`- Technique: ${especificacoes.tecnica}`);
+  if (especificacoes.espessura) specLines.push(`- Thickness: ${especificacoes.espessura}`);
+  if (especificacoes.preparo) specLines.push(`- Preparation: ${especificacoes.preparo}`);
   
-  if (especificacoes.material) specLines.push(`* Material: ${especificacoes.material}`);
-  if (especificacoes.tecnica) specLines.push(`* Técnica: ${especificacoes.tecnica}`);
-  if (especificacoes.espessura) specLines.push(`* Espessura: ${especificacoes.espessura}`);
-  if (especificacoes.preparo) specLines.push(`* Preparo: ${especificacoes.preparo}`);
-  if (especificacoes.cor) specLines.push(`* Cor sugerida: ${especificacoes.cor}`);
-  if (especificacoes.cimentacao) specLines.push(`* Cimentação: ${especificacoes.cimentacao}`);
+  const techSpecs = specLines.length > 0 ? '\n' + specLines.join('\n') : '';
   
-  const specsText = specLines.length > 0 ? specLines.join('\n') : '(Especificações padrão)';
-  
-  return `Crie uma simulação fotorrealista de facetas dentárias.\n\n` +
-    `CONTEXTO DA ANÁLISE:\n` +
-    `- Dentes: ${dentesStr}\n\n` +
-    `INSTRUÇÕES:\n` +
-    `1. Aplique facetas APENAS nos dentes: ${dentesStr}\n` +
-    `2. Utilize as especificações técnicas fornecidas abaixo.\n` +
-    `3. Mantenha as bordas incisais translúcidas e preserve formato e proporção naturais.\n` +
-    `4. O resultado deve ser fotorrealista.\n\n` +
-    `ESPECIFICAÇÕES TÉCNICAS:\n` +
-    `${specsText}\n\n` +
-    `PRESERVAR COMPLETAMENTE:\n` +
-    `- Textura e tom da pele facial\n` +
-    `- Estrutura do cabelo\n` +
-    `- Cor e formato dos olhos\n` +
-    `- Expressão facial\n` +
-    `- Iluminação e sombras\n` +
-    `- Fundo e ambiente\n` +
-    `- Características únicas do paciente\n\n` +
-    `Gere a imagem agora.`;
+  return `PROFESSIONAL DENTAL VENEERS SIMULATION
+
+PATIENT PROFILE:
+- Skin tone: ${tom_pele}
+- Eye color: ${cor_olhos}
+- Recommended shade: ${cor_recomendada} Vita scale
+  → ${colorDesc}
+
+TEETH REQUIRING VENEERS:
+${teethList}
+Total: ${quantidade_facetas} professional ceramic veneers
+
+VENEER SPECIFICATIONS:
+
+COLOR: ${cor_recomendada} Vita scale
+→ ${colorDesc}
+This shade harmonizes perfectly with ${tom_pele} complexion, creating a naturally beautiful and confident smile.
+
+SHAPE & ALIGNMENT:
+- Perfectly symmetrical rectangular forms
+- Straight alignment with harmonious proportions following the golden ratio
+- Natural incisal translucency preserved for realistic appearance
+- Width-to-height proportions optimized for facial aesthetics
+
+SURFACE QUALITY:
+- Smooth high-quality porcelain ceramic texture
+- Natural gloss with subtle professional light reflection
+- Micro-texture for photorealistic appearance
+- Professional-grade aesthetic finish
+
+VISUAL RESULT TARGET:
+- Celebrity-quality professional dental veneers
+- Bright confident "Hollywood smile" suited perfectly for ${tom_pele} complexion
+- Premium dental aesthetics with natural charm
+- DRAMATIC improvement that is IMMEDIATELY obvious and impressive
+- Transformative result that inspires confidence and admiration
+
+TECHNICAL SPECIFICATIONS:${techSpecs}
+
+CRITICAL REQUIREMENTS:
+- Transformation MUST be OBVIOUS, DRAMATIC, and IMPRESSIVE
+- Veneers should look expensive, professional, and flawless
+- Color MUST harmonize perfectly with patient's ${tom_pele} skin tone
+- Result should be stunning and aspirational - "before and after" difference must be clear
+- Create the "WOW factor" - this is a life-changing smile transformation
+
+PRESERVE COMPLETELY:
+- Facial skin tone and texture
+- Hair structure and color
+- Eye color and shape
+- Facial expression and personality
+- Lighting conditions and shadows
+- Background environment
+- All unique patient characteristics
+- Natural facial features
+
+Generate the photorealistic simulation now.`;
 }
 
 // Prompt para gerar AMBOS os documentos (Relatório Técnico + Orçamento)
@@ -677,12 +829,23 @@ Deno.serve(async (req) => {
       
       console.log(`📄 Relatório recebido: ${report.length} caracteres`);
       
+      // Receber dados estruturados da análise
+      const analiseData = body.analiseJSON;
+      if (analiseData) {
+        console.log('📊 Dados da análise recebidos:', {
+          tom_pele: analiseData?.analise?.tom_pele,
+          cor_olhos: analiseData?.analise?.cor_olhos,
+          cor_recomendada: analiseData?.analise?.cor_recomendada,
+          quantidade_facetas: analiseData?.analise?.quantidade_facetas
+        });
+      }
+      
       // EXTRAIR dados das seções relevantes
       // (Orçamento é IGNORADO - não é usado para geração de imagem)
       const extracted = parseReport(report);
       
-      // Construir prompt de simulação
-      const simulationPrompt = buildSimulationPrompt(extracted);
+      // Construir prompt de simulação com dados enriquecidos
+      const simulationPrompt = buildSimulationPrompt(extracted, analiseData);
       
       console.log('🚀 Enviando para geração de imagem...');
       
