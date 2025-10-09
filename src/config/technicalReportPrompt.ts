@@ -1,3 +1,12 @@
+/**
+ * @deprecated Este prompt estático não é mais usado.
+ * O sistema agora usa prompts dinâmicos gerados em
+ * supabase/functions/process-dental-facets/index.ts
+ * baseados nos serviços ativos da clínica.
+ * 
+ * Mantido apenas para referência histórica.
+ */
+
 export const TECHNICAL_REPORT_PROMPT = `
 Você é um dentista especialista em prótese dentária e estética. Analise esta imagem dental e gere um RELATÓRIO TÉCNICO PROFISSIONAL completo.
 

@@ -307,6 +307,10 @@ export default function Index() {
       // ========================================
       setProcessingStep('Analisando foto e gerando documentos...');
       
+      // Buscar serviços ativos para enviar ao edge function
+      const servicosAtivos = await fetchActiveServices();
+      console.log('🛠️ Enviando serviços ativos:', servicosAtivos.map(s => s.name));
+      
       const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
@@ -316,6 +320,11 @@ export default function Index() {
         body: JSON.stringify({
           action: 'analyze',
           imageBase64: originalImage,
+          servicos_ativos: servicosAtivos.map(s => ({
+            name: s.name,
+            category: s.category,
+            price: s.price
+          }))
         }),
       });
 

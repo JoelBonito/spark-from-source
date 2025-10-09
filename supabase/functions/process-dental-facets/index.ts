@@ -368,7 +368,461 @@ PRESERVE COMPLETELY:
 Generate the photorealistic simulation now.`;
 }
 
-// Prompt para gerar AMBOS os documentos (Relatório Técnico + Orçamento)
+/**
+ * Constrói prompt de análise dinâmico baseado em serviços ativos
+ */
+function buildAnalysisPrompt(
+  tratamentosDisponiveis: {
+    facetas: boolean;
+    clareamento: boolean;
+    gengivoplastia: boolean;
+    planejamento: boolean;
+  },
+  servicosAtivos: Array<{ name: string; category: string; price: number }>
+): string {
+  
+  // Seção 1: Introdução base (sempre presente)
+  let prompt = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por sua ATENÇÃO AOS DETALHES, análise MINUCIOSA e senso clínico apurado.
+
+Analise esta foto COM MUITA ATENÇÃO e gere DOIS DOCUMENTOS CONSISTENTES:
+1. RELATÓRIO TÉCNICO (para o dentista)
+2. ORÇAMENTO (para o paciente)
+
+═══════════════════════════════════════════════════════
+SERVIÇOS DISPONÍVEIS NESTA CLÍNICA
+═══════════════════════════════════════════════════════
+
+IMPORTANTE: Você deve recomendar APENAS os tratamentos abaixo listados.
+NÃO proponha tratamentos que não estejam disponíveis.
+
+`;
+
+  // Seção 2: Lista de serviços disponíveis
+  prompt += `Tratamentos oferecidos:\n`;
+  
+  if (tratamentosDisponiveis.facetas) {
+    prompt += `✅ FACETAS DE CERÂMICA / LENTES DE CONTATO DENTAL\n`;
+  } else {
+    prompt += `❌ Facetas NÃO disponíveis (não recomendar)\n`;
+  }
+  
+  if (tratamentosDisponiveis.clareamento) {
+    prompt += `✅ CLAREAMENTO DENTAL\n`;
+  } else {
+    prompt += `❌ Clareamento NÃO disponível (não recomendar)\n`;
+  }
+  
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `✅ GENGIVOPLASTIA (procedimento complementar)\n`;
+  } else {
+    prompt += `❌ Gengivoplastia NÃO disponível (não mencionar)\n`;
+  }
+
+  prompt += `\n`;
+
+  // Seção 3: Regras de recomendação
+  prompt += `REGRAS DE RECOMENDAÇÃO:
+`;
+
+  if (!tratamentosDisponiveis.facetas && !tratamentosDisponiveis.clareamento) {
+    prompt += `⚠️ ATENÇÃO CRÍTICA: Esta clínica não oferece facetas nem clareamento.
+Você deve fazer uma análise educativa, mas NÃO pode fazer proposta de tratamento.
+Apenas descreva o estado atual dos dentes e mencione que tratamentos estéticos não estão disponíveis no momento.
+
+`;
+  } else {
+    if (tratamentosDisponiveis.facetas && tratamentosDisponiveis.clareamento) {
+      prompt += `- Se houver problemas estruturais (alinhamento, proporção, forma): recomendar FACETAS
+- Se estrutura perfeita mas cor inadequada: recomendar CLAREAMENTO
+- Você pode recomendar ambos se adequado ao caso
+
+`;
+    } else if (tratamentosDisponiveis.facetas && !tratamentosDisponiveis.clareamento) {
+      prompt += `- ⚠️ Clareamento NÃO está disponível nesta clínica
+- Mesmo se a estrutura for perfeita, você DEVE recomendar FACETAS (única opção disponível)
+- Explique que facetas também resolverão o problema de cor
+
+`;
+    } else if (!tratamentosDisponiveis.facetas && tratamentosDisponiveis.clareamento) {
+      prompt += `- ⚠️ Facetas NÃO estão disponíveis nesta clínica
+- Mesmo se houver problemas estruturais leves, avalie se CLAREAMENTO pode ser suficiente
+- Se problemas estruturais forem severos, mencione limitações do tratamento disponível
+
+`;
+    }
+  }
+
+  // Seção 4: Gengivoplastia
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `- Gengivoplastia disponível: mencione como OPCIONAL se sorriso gengival >3mm\n`;
+  } else {
+    prompt += `- ⚠️ NÃO mencione gengivoplastia mesmo se houver sorriso gengival\n`;
+  }
+
+  prompt += `\n`;
+
+  // Seção 5: Restante do prompt original (análise detalhada)
+  prompt += `
+═══════════════════════════════════════════════════════
+ANÁLISE DE HARMONIA FACIAL E COR
+═══════════════════════════════════════════════════════
+
+Antes da análise dental, avalie:
+
+1. TOM DE PELE:
+   - Pele muito clara (fototipos I-II)
+   - Pele clara/média (fototipos III-IV)
+   - Pele morena (fototipos V)
+   - Pele escura (fototipos VI)
+
+2. COR DOS OLHOS:
+   - Olhos claros (azul, verde, cinza)
+   - Olhos médios (castanho claro, mel)
+   - Olhos escuros (castanho escuro, preto)
+
+3. RECOMENDAÇÃO DE COR (escala Vita):
+   Com base na harmonia facial:
+   - Pele clara + olhos claros → BL1, BL2 (branco frio)
+   - Pele média + olhos médios → A1, B1 (branco neutro)
+   - Pele morena/escura → A2, B2, A3 (branco quente)
+
+IMPORTANTE: Sempre recomendar "branco natural" e não "branco artificial".
+O sorriso deve estar em HARMONIA com o rosto, não contrastar excessivamente.
+
+═══════════════════════════════════════════════════════
+CASOS DE SORRISO JÁ PERFEITO
+═══════════════════════════════════════════════════════
+
+Se TODOS esses critérios forem atendidos:
+✅ Alinhamento perfeito (sem rotações, sem dentes para dentro/fora)
+✅ Proporções simétricas (12 = 22, 11 = 21)
+✅ Formas harmoniosas
+✅ Estrutura dentária íntegra
+✅ Ausência de sorriso gengival excessivo
+
+ENTÃO:
+`;
+
+  if (tratamentosDisponiveis.clareamento) {
+    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
+- Tratamento: APENAS clareamento (opcional)
+- Observação: "Facetas/lentes não são necessidade clínica, apenas upgrade estético para quem busca 'Hollywood Smile'"
+
+Faça relatório 100% POSITIVO, elogiando a estrutura atual.
+`;
+  } else if (tratamentosDisponiveis.facetas) {
+    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
+- Tratamento: Facetas como upgrade estético opcional (não necessidade clínica)
+- Observação: Mencione que estrutura é excelente, facetas seriam apenas refinamento
+
+Faça relatório 100% POSITIVO, elogiando a estrutura atual.
+`;
+  } else {
+    prompt += `- Diagnóstico: "Sorriso naturalmente harmonioso e saudável"
+- Não há tratamentos disponíveis no momento
+- Parabenize o paciente pela excelente estrutura dental
+
+`;
+  }
+
+  prompt += `
+═══════════════════════════════════════════════════════
+METODOLOGIA DE ANÁLISE - SEJA EXTREMAMENTE DETALHISTA:
+═══════════════════════════════════════════════════════
+
+ATENÇÃO: Esta análise determinará se a paciente confia ou não na clínica.
+Se você perder algum detalhe, a credibilidade será comprometida.
+
+PASSO 1: ANÁLISE DENTE POR DENTE (olhe CADA dente individualmente)
+
+Para CADA dente visível (13, 12, 11, 21, 22, 23), observe:
+
+Dente 13 (canino direito):
+- Está alinhado com os outros ou projetado/recuado?
+- Está rotacionado?
+- Cor igual aos outros ou diferente?
+- Forma e tamanho harmonizam?
+
+Dente 12 (lateral direito):
+- Tamanho igual ao 22 (lateral esquerdo)?
+- Forma simétrica ao 22?
+- Posição adequada?
+- Proporção correta em relação ao 11?
+
+Dente 11 (central direito):
+- Simétrico ao 21?
+- Tamanho e forma adequados?
+- Desgaste nas bordas?
+
+Dente 21 (central esquerdo):
+- Simétrico ao 11?
+- Posição adequada?
+
+Dente 22 (lateral esquerdo):
+- Compare COM ATENÇÃO com o 12
+- São do mesmo tamanho?
+
+Dente 23 (canino esquerdo):
+- Posição semelhante ao 13?
+
+PASSO 2: AVALIAÇÃO POR CATEGORIAS
+
+A. ALINHAMENTO (olhe com MUITO cuidado):
+   - Algum dente está rodado? (mesmo que levemente)
+   - Algum dente está mais à frente/atrás?
+   - Os caninos estão bem posicionados?
+   - Há sobreposições?
+   
+   ⚠️ CRÍTICO: Pacientes PERCEBEM quando um dente está "torto"
+   Se você não identificar, perde credibilidade!
+
+B. PROPORÇÃO E SIMETRIA:
+   - O 12 é do mesmo tamanho que o 22?
+   - Os centrais são simétricos?
+   - As proporções entre os dentes são harmônicas?
+
+C. FORMA:
+   - Formato dos dentes (quadrado, oval, triangular?)
+   - Bordas incisais regulares ou desgastadas?
+   - Forma individual de cada dente
+
+D. COR:
+   - Todos os dentes têm a mesma cor?
+   - Algum mais amarelo que outros?
+   - Escala Vita estimada
+
+E. RESTAURAÇÕES:
+   - Alguma restauração visível?
+   - Manchas ao redor de restaurações?
+
+F. SORRISO GENGIVAL:
+   - Há exposição excessiva da gengiva ao sorrir (>3mm)?
+   - Se sim, quantificar em milímetros
+
+PASSO 3: DECISÃO BASEADA EM EVIDÊNCIAS
+
+Regra de Indicação:
+`;
+
+  if (tratamentosDisponiveis.facetas) {
+    prompt += `
+FACETAS se:
+- 2+ fatores comprometidos (alinhamento + proporção)
+- OU 1 fator SEVERAMENTE comprometido
+- OU paciente tem queixa estética clara (dente "torto")
+`;
+  }
+
+  if (tratamentosDisponiveis.clareamento) {
+    prompt += `
+CLAREAMENTO se:
+- TODOS os fatores estruturais estão perfeitos
+- Alinhamento impecável
+- Proporções simétricas
+- Formas harmoniosas
+- ÚNICO problema é cor uniforme
+`;
+  }
+
+  prompt += `
+═══════════════════════════════════════════════════════
+QUANTIDADE DE FACETAS:
+═══════════════════════════════════════════════════════
+`;
+
+  if (tratamentosDisponiveis.facetas) {
+    prompt += `
+- 0 facetas: Sorriso perfeito (apenas clareamento se disponível)
+- 4 facetas: Problemas nos incisivos (11, 21, 12, 22)
+- 6 facetas: Problemas também nos caninos (13, 23)
+- Se apenas 1 canino problemático: mencionar no relatório para avaliação presencial
+`;
+  }
+
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `
+═══════════════════════════════════════════════════════
+GENGIVOPLASTIA - SEMPRE MENCIONAR SE APLICÁVEL
+═══════════════════════════════════════════════════════
+
+Se identificar sorriso gengival (>3mm exposição):
+- Mencionar no relatório técnico
+- Adicionar em análise JSON como recomendação OPCIONAL
+- Explicar benefício: "Reduzir exposição gengival de Xmm para 1-2mm"
+- NÃO incluir valores (será adicionado pelo sistema)
+`;
+  }
+
+  // Formato de resposta continua igual ao original
+  prompt += `
+═══════════════════════════════════════════════════════
+FORMATO DE RESPOSTA OBRIGATÓRIO:
+═══════════════════════════════════════════════════════
+
+<RELATORIO_TECNICO>
+ANÁLISE CLÍNICA INICIAL
+
+HARMONIA FACIAL:
+- Tom de pele: [clara/média/morena/escura]
+- Cor dos olhos: [claros/médios/escuros]
+- Cor recomendada: [escala Vita baseada em harmonia]
+
+[Descreva a análise DETALHADA, dente por dente]
+
+Avaliação por Dente:
+- Incisivo Central Superior Direito (11): [cor, forma, posição, desgaste]
+- Incisivo Central Superior Esquerdo (21): [cor, forma, posição, desgaste]
+- Incisivo Lateral Superior Direito (12): [cor, forma, posição, COMPARAR com 22]
+- Incisivo Lateral Superior Esquerdo (22): [cor, forma, posição, COMPARAR com 12]
+- Canino Superior Direito (13): [ATENÇÃO à posição, rotação, projeção]
+- Canino Superior Esquerdo (23): [ATENÇÃO à posição, rotação, projeção]
+
+Avaliação Geral:
+- Alinhamento: [Seja específico! Algum dente desalinhado?]
+- Proporção: [Há assimetrias entre 12 e 22?]
+- Forma: [Adequada ou irregular?]
+- Cor: [Uniforme? Escala Vita estimada]
+- Linha gengival: [Simétrica? Exposição em mm]
+`;
+
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `- Sorriso gengival: [Se >3mm, mencionar]\n`;
+  }
+
+  prompt += `
+INDICAÇÃO DO TRATAMENTO
+
+[Baseado na análise detalhada acima, justifique]
+`;
+
+  if (tratamentosDisponiveis.facetas) {
+    prompt += `
+Se FACETAS:
+"Facetas são indicadas devido a: [liste os problemas específicos encontrados]"
+`;
+  }
+
+  if (tratamentosDisponiveis.clareamento) {
+    prompt += `
+Se CLAREAMENTO:
+"Clareamento é suficiente pois todos os fatores estruturais estão adequados"
+`;
+  }
+
+  prompt += `
+DENTES A SEREM TRATADOS
+`;
+
+  if (tratamentosDisponiveis.facetas) {
+    prompt += `
+[Se FACETAS - seja específico:]
+Os dentes que receberão facetas de cerâmica são:
+- Incisivo central superior direito (11)
+- Incisivo central superior esquerdo (21)
+- Incisivo lateral superior direito (12)
+- Incisivo lateral superior esquerdo (22)
+[Se caninos também: adicionar (13) e/ou (23)]
+`;
+  }
+
+  if (tratamentosDisponiveis.clareamento) {
+    prompt += `
+[Se CLAREAMENTO:]
+Não serão aplicadas facetas. Tratamento será apenas clareamento dental.
+`;
+  }
+
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `
+[Se GENGIVOPLASTIA recomendada:]
+PROCEDIMENTO COMPLEMENTAR RECOMENDADO:
+- Gengivoplastia: Reduzir exposição gengival de [X]mm para 1-2mm
+`;
+  }
+
+  prompt += `
+ESPECIFICAÇÕES TÉCNICAS
+[Especificações padrão]
+
+PLANEJAMENTO DO TRATAMENTO
+[Sessões do tratamento]
+
+CUIDADOS PÓS-PROCEDIMENTO
+[Cuidados necessários]
+
+PROGNÓSTICO E DURABILIDADE
+[Expectativas realistas]
+
+CONTRAINDICAÇÕES E CONSIDERAÇÕES
+[Contraindicações relevantes]
+
+OBSERVAÇÕES PROFISSIONAIS
+[Reforçar os achados]
+</RELATORIO_TECNICO>
+
+<ORCAMENTO>
+ORÇAMENTO PARA O PACIENTE
+
+TRATAMENTO PROPOSTO
+[Deve ser IDÊNTICO ao relatório]
+
+<ORCAMENTO_JSON>
+{
+  "analise": {
+    "tom_pele": "clara|média|morena|escura",
+    "cor_olhos": "claros|médios|escuros",
+    "dentes_tratados": ["11", "21", "12", "22"],
+    "procedimentos_recomendados": ["clareamento", "facetas"],
+    "cor_recomendada": "A1",
+    "quantidade_facetas": 4,
+`;
+
+  if (tratamentosDisponiveis.gengivoplastia) {
+    prompt += `    "gengivoplastia_recomendada": true,
+    "gengivoplastia_justificativa": "Sorriso gengival 4mm"
+`;
+  }
+
+  prompt += `  }
+}
+</ORCAMENTO_JSON>
+
+OBSERVAÇÃO IMPORTANTE:
+Os valores serão calculados automaticamente pelo sistema.
+
+FORMAS DE PAGAMENTO
+- À vista: com desconto
+- Parcelamento: até 12x sem juros
+
+IMPORTANTE
+- Orçamento válido por 30 dias
+- Avaliação presencial obrigatória
+</ORCAMENTO>
+
+═══════════════════════════════════════════════════════
+CHECKLIST CRÍTICO:
+═══════════════════════════════════════════════════════
+
+□ Analisei CADA dente individualmente (13, 12, 11, 21, 22, 23)
+□ Verifiquei especificamente se o canino 13 está alinhado
+□ Comparei tamanho do 12 com o 22
+□ Verifiquei rotações em todos os dentes
+□ Avaliei projeções/recuos de cada dente
+□ Identifiquei TODOS os problemas visíveis
+□ Justifiquei tecnicamente a escolha
+□ Relatório e orçamento são consistentes
+□ Se houver dente problemático, mencionei especificamente
+□ ⚠️ IMPORTANTE: Recomendei APENAS tratamentos disponíveis nesta clínica
+
+⚠️ LEMBRE-SE: Se você não identificar um problema que o paciente VÊ, a clínica perde credibilidade!
+⚠️ LEMBRE-SE: Se você recomendar tratamento indisponível, o paciente ficará frustrado!
+
+Gere os documentos com MÁXIMA ATENÇÃO AOS DETALHES agora:`;
+
+  return prompt;
+}
+
+// Prompt estático (será substituído pelo dinâmico)
 const ANALYSIS_PROMPT = `Você é um dentista especialista em odontologia estética com 15 anos de experiência, conhecido por sua ATENÇÃO AOS DETALHES, análise MINUCIOSA e senso clínico apurado.
 
 Analise esta foto COM MUITA ATENÇÃO e gere DOIS DOCUMENTOS CONSISTENTES:
@@ -691,6 +1145,35 @@ Deno.serve(async (req) => {
       console.log('Modelo: Gemini (google/gemini-2.5-flash)');
       console.log('═══════════════════════════════════════');
       
+      // Receber e processar serviços ativos
+      const servicos_ativos = body.servicos_ativos || [];
+      console.log('🛠️ Serviços ativos recebidos:', servicos_ativos.length);
+      
+      // Categorizar serviços disponíveis
+      const tratamentosDisponiveis = {
+        facetas: servicos_ativos.some((s: any) => 
+          s.name.toLowerCase().includes('faceta') || 
+          s.name.toLowerCase().includes('lente')
+        ),
+        clareamento: servicos_ativos.some((s: any) => 
+          s.name.toLowerCase().includes('clarear')
+        ),
+        gengivoplastia: servicos_ativos.some((s: any) => 
+          s.name.toLowerCase().includes('gengivo')
+        ),
+        planejamento: servicos_ativos.some((s: any) => 
+          s.name.toLowerCase().includes('planejamento') ||
+          s.name.toLowerCase().includes('dsd')
+        )
+      };
+      
+      console.log('✓ Tratamentos disponíveis:', tratamentosDisponiveis);
+      
+      // Construir prompt dinâmico baseado nos serviços ativos
+      const analysisPrompt = buildAnalysisPrompt(tratamentosDisponiveis, servicos_ativos);
+      console.log(`📝 Prompt dinâmico construído: ${analysisPrompt.length} caracteres`);
+      console.log('✓ Prompt adaptado aos serviços disponíveis');
+      
       // Timeout de 90 segundos para a requisição
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
@@ -715,7 +1198,7 @@ Deno.serve(async (req) => {
               {
                 role: 'user',
                 content: [
-                  { type: 'text', text: ANALYSIS_PROMPT },
+                  { type: 'text', text: analysisPrompt },
                   { type: 'image_url', image_url: { url: imageBase64 } },
                 ],
               },
