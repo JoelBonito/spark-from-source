@@ -183,41 +183,27 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   y += 12;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('RELATÓRIO CLÍNICO', margin, y);
+  doc.text('RELATÓRIO CLÍNICO DETALHADO', margin, y);
   
   y += 8;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   
-  // Processar conteúdo do relatório
-  const sections = parseReportContent(data.reportContent);
+  // FASE 1: Usar o conteúdo do relatório diretamente (já formatado)
+  const fullContentLines = doc.splitTextToSize(data.reportContent, contentWidth);
   
-  sections.forEach((section) => {
+  fullContentLines.forEach((line: string) => {
     // Verificar espaço na página
     if (y > pageHeight - 30) {
       doc.addPage();
       y = 20;
     }
     
-    // Título da seção
-    doc.setFont('helvetica', 'bold');
-    doc.text(section.title, margin, y);
-    y += 5;
-    
-    // Conteúdo da seção
-    doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(section.content, contentWidth);
-    lines.forEach((line: string) => {
-      if (y > pageHeight - 30) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, margin, y);
-      y += 4;
-    });
-    
-    y += 4; // Espaço entre seções
+    doc.text(line, margin, y);
+    y += 4;
   });
+  
+  y += 4; // Espaço após o conteúdo
   
   // Nova página para disclaimers
   doc.addPage();
@@ -291,39 +277,6 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   return publicUrl;
 }
 
-function parseReportContent(content: string): Array<{ title: string; content: string }> {
-  const sections: Array<{ title: string; content: string }> = [];
-  
-  // Dividir por números seguidos de ponto (1., 2., etc)
-  const parts = content.split(/(?=\d+\.\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ])/);
-  
-  parts.forEach((part) => {
-    const trimmed = part.trim();
-    if (!trimmed) return;
-    
-    // Extrair título (primeira linha)
-    const lines = trimmed.split('\n');
-    const titleLine = lines[0].replace(/^\d+\.\s*/, '');
-    const contentLines = lines.slice(1).join('\n').trim();
-    
-    if (titleLine && contentLines) {
-      sections.push({
-        title: titleLine,
-        content: contentLines
-      });
-    }
-  });
-  
-  // Fallback: se não conseguiu dividir, retorna tudo como uma seção
-  if (sections.length === 0) {
-    sections.push({
-      title: 'RELATÓRIO TÉCNICO',
-      content: content
-    });
-  }
-  
-  return sections;
-}
 
 export async function saveTechnicalReportToSimulation(
   simulationId: string,

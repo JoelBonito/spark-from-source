@@ -156,7 +156,11 @@ export default function Index() {
 
   const buildDynamicBudget = async (analiseJSON: any) => {
     console.log('🔍 Iniciando montagem de orçamento dinâmico...');
-    console.log('📊 Dados da análise:', analiseJSON.analise);
+    
+    // FASE 2: Usar caminhos corretos do novo JSON
+    const recomendacao = analiseJSON?.recomendacao_tratamento || {};
+    const complementares = analiseJSON?.procedimentos_complementares || {};
+    console.log('📊 Dados da recomendação:', recomendacao);
     
     const servicosAtivos = await fetchActiveServices();
     
@@ -175,9 +179,9 @@ export default function Index() {
     const orcamentoItens: any[] = [];
     
     // 1. Clareamento (se recomendado)
-    if (analiseJSON.analise?.procedimentos_recomendados?.includes('clareamento')) {
+    if (recomendacao.servico_clareamento_escolhido && recomendacao.servico_clareamento_escolhido !== 'N/A') {
       const clareamento = servicosAtivos.find(s => 
-        s.name.toLowerCase().includes('clareamento')
+        s.name === recomendacao.servico_clareamento_escolhido
       );
       if (clareamento) {
         orcamentoItens.push({
@@ -187,27 +191,25 @@ export default function Index() {
           valor_total: clareamento.price
         });
       } else {
-        console.warn('⚠️ Clareamento recomendado mas serviço não encontrado');
+        console.warn(`⚠️ Clareamento '${recomendacao.servico_clareamento_escolhido}' recomendado mas não ativo.`);
       }
     }
     
     // 2. Facetas/Lentes (se recomendado)
-    if (analiseJSON.analise?.quantidade_facetas > 0) {
+    if (recomendacao.quantidade_facetas > 0 && recomendacao.servico_faceta_escolhido && recomendacao.servico_faceta_escolhido !== 'N/A') {
       const faceta = servicosAtivos.find(s => 
-        s.base === true || 
-        s.name.toLowerCase().includes('faceta') ||
-        s.name.toLowerCase().includes('lente')
+        s.name === recomendacao.servico_faceta_escolhido
       );
       if (faceta) {
         orcamentoItens.push({
           servico: faceta.name,
-          quantidade: analiseJSON.analise.quantidade_facetas,
-          dentes: analiseJSON.analise.dentes_tratados,
+          quantidade: recomendacao.quantidade_facetas,
+          dentes: recomendacao.dentes_fdi_tratados,
           valor_unitario: faceta.price,
-          valor_total: faceta.price * analiseJSON.analise.quantidade_facetas
+          valor_total: faceta.price * recomendacao.quantidade_facetas
         });
       } else {
-        console.warn('⚠️ Facetas recomendadas mas serviço não encontrado');
+        console.warn(`⚠️ Facetas '${recomendacao.servico_faceta_escolhido}' recomendadas mas serviço não encontrado`);
       }
     }
     
@@ -228,7 +230,7 @@ export default function Index() {
     
     // 4. Gengivoplastia (OPCIONAL)
     const opcionais: any[] = [];
-    if (analiseJSON.analise?.gengivoplastia_recomendada) {
+    if (complementares.gengivoplastia_recomendada) {
       const gengivoplastia = servicosAtivos.find(s => 
         s.name.toLowerCase().includes('gengivo')
       );
@@ -236,7 +238,7 @@ export default function Index() {
         opcionais.push({
           servico: gengivoplastia.name,
           valor: gengivoplastia.price,
-          justificativa: analiseJSON.analise.gengivoplastia_justificativa || 'Recomendado'
+          justificativa: complementares.gengivoplastia_justificativa || 'Recomendado para correção da linha gengival'
         });
       }
     }
