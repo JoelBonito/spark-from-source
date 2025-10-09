@@ -172,12 +172,7 @@ export default function Index() {
   };
 
   const buildDynamicBudget = async (analiseJSON: any) => {
-    console.log('🔍 Iniciando montagem de orçamento dinâmico...');
-    
-    // FASE 2: Usar caminhos corretos do novo JSON
-    const recomendacao = analiseJSON?.recomendacao_tratamento || {};
-    const complementares = analiseJSON?.procedimentos_complementares || {};
-    console.log('📊 Dados da recomendação:', recomendacao);
+    console.log('🔍 Iniciando montagem de orçamento dinâmico (FASE 3: busca por categoria)...');
     
     const servicosAtivos = await fetchActiveServices();
     
@@ -193,86 +188,92 @@ export default function Index() {
       };
     }
     
-    const orcamentoItens: any[] = [];
-    
-    // 1. Clareamento (se recomendado)
-    if (recomendacao.servico_clareamento_escolhido && recomendacao.servico_clareamento_escolhido !== 'N/A') {
-      const clareamento = servicosAtivos.find(s => 
-        s.name === recomendacao.servico_clareamento_escolhido
+    // Helper: busca por categoria fixa
+    const getServiceByCategory = (categoryName: string) => {
+      const service = servicosAtivos.find(
+        s => s.category === categoryName && s.active && s.price > 0
       );
+      if (!service) {
+        console.warn(`⚠️ Serviço obrigatório '${categoryName}' não encontrado ou inativo/preço zero`);
+      }
+      return service;
+    };
+    
+    const orcamentoItens: any[] = [];
+    const recomendacao = analiseJSON?.analise || {};
+    
+    const facetaCount = recomendacao.quantidade_facetas || 0;
+    const isClareamentoRecomendado = 
+      recomendacao.procedimentos_recomendados?.some((p: string) => 
+        p.toLowerCase().includes('clareamento')
+      );
+    
+    console.log(`📊 Análise: ${facetaCount} facetas, clareamento: ${isClareamentoRecomendado}`);
+    
+    // 1. FACETAS (se recomendado)
+    if (facetaCount > 0) {
+      const faceta = getServiceByCategory('Facetas dentárias');
+      if (faceta) {
+        orcamentoItens.push({
+          servico: faceta.name,
+          quantidade: facetaCount,
+          valor_unitario: faceta.price,
+          valor_total: faceta.price * facetaCount,
+          category: faceta.category
+        });
+        console.log(`✓ Facetas: ${facetaCount}x R$ ${faceta.price.toFixed(2)} = R$ ${(faceta.price * facetaCount).toFixed(2)}`);
+      }
+    }
+    
+    // 2. CLAREAMENTO (se recomendado OU obrigatório por regra 2/4 facetas)
+    if (isClareamentoRecomendado || [2, 4].includes(facetaCount)) {
+      const clareamento = getServiceByCategory('Clareamento');
       if (clareamento) {
         orcamentoItens.push({
           servico: clareamento.name,
           quantidade: 1,
           valor_unitario: clareamento.price,
-          valor_total: clareamento.price
+          valor_total: clareamento.price,
+          category: clareamento.category
         });
-      } else {
-        console.warn(`⚠️ Clareamento '${recomendacao.servico_clareamento_escolhido}' recomendado mas não ativo.`);
+        console.log(`✓ Clareamento: 1x R$ ${clareamento.price.toFixed(2)}`);
       }
     }
     
-    // 2. Facetas/Lentes (se recomendado)
-    if (recomendacao.quantidade_facetas > 0) {
-      let servicoFacetaRecomendado = recomendacao.servico_faceta_escolhido;
-      let faceta = servicosAtivos.find(s => s.name === servicoFacetaRecomendado);
-      
-      // 🐛 CORREÇÃO: Se o serviço recomendado pela IA estiver inativo
-      if (!faceta && servicoFacetaRecomendado && servicoFacetaRecomendado !== 'N/A') {
-        // Buscar substituto ativo por categoria
-        faceta = servicosAtivos.find(s => 
-          s.category?.toLowerCase().includes('faceta') || 
-          s.category?.toLowerCase().includes('lente') ||
-          s.name.toLowerCase().includes('faceta') ||
-          s.name.toLowerCase().includes('lente')
-        );
-        
-        if (faceta) {
-          console.warn(`⚠️ Substituição automática: '${servicoFacetaRecomendado}' (inativo) → '${faceta.name}' (ativo)`);
-          servicoFacetaRecomendado = faceta.name;
-        } else {
-          console.error('❌ Nenhuma faceta ativa encontrada para substituição');
-        }
-      }
-      
-      if (faceta) {
+    // 3. CONSULTA (sempre que houver qualquer recomendação)
+    if (facetaCount > 0 || isClareamentoRecomendado) {
+      const consulta = getServiceByCategory('Consulta');
+      if (consulta) {
         orcamentoItens.push({
-          servico: faceta.name,
-          quantidade: recomendacao.quantidade_facetas,
-          dentes: recomendacao.dentes_fdi_tratados,
-          valor_unitario: faceta.price,
-          valor_total: faceta.price * recomendacao.quantidade_facetas
-        });
-      }
-    }
-    
-    // 3. Serviços complementares ativos
-    const servicosComplementares = ['planejamento', 'dsd', 'moldagem'];
-    servicosAtivos
-      .filter(s => servicosComplementares.some(c => 
-        s.name.toLowerCase().includes(c)
-      ))
-      .forEach(s => {
-        orcamentoItens.push({
-          servico: s.name,
+          servico: consulta.name,
           quantidade: 1,
-          valor_unitario: s.price,
-          valor_total: s.price
+          valor_unitario: consulta.price,
+          valor_total: consulta.price,
+          category: consulta.category
         });
-      });
+        console.log(`✓ Consulta: 1x R$ ${consulta.price.toFixed(2)}`);
+      } else {
+        console.error('❌ CRÍTICO: Consulta obrigatória não encontrada! Orçamento será R$ 0.00');
+        toast.error('Erro: Configure o serviço "Consulta de Planejamento" nas Configurações');
+      }
+    }
     
-    // 4. Gengivoplastia (OPCIONAL)
+    // 4. GENGIVOPLASTIA (opcional)
     const opcionais: any[] = [];
-    if (complementares.gengivoplastia_recomendada) {
-      const gengivoplastia = servicosAtivos.find(s => 
-        s.name.toLowerCase().includes('gengivo')
-      );
-      if (gengivoplastia) {
+    if (recomendacao.gengivoplastia_recomendada || 
+        recomendacao.procedimentos_recomendados?.some((p: string) => 
+          p.toLowerCase().includes('gengivo')
+        )) {
+      const gengivo = getServiceByCategory('Gengivoplastia');
+      if (gengivo) {
         opcionais.push({
-          servico: gengivoplastia.name,
-          valor: gengivoplastia.price,
-          justificativa: complementares.gengivoplastia_justificativa || 'Recomendado para correção da linha gengival'
+          servico: gengivo.name,
+          valor: gengivo.price,
+          justificativa: recomendacao.gengivoplastia_justificativa || 
+                        'Recomendado para correção da linha gengival',
+          category: gengivo.category
         });
+        console.log(`ℹ️ Gengivoplastia (opcional): R$ ${gengivo.price.toFixed(2)}`);
       }
     }
     
@@ -282,7 +283,12 @@ export default function Index() {
     const desconto_valor = subtotal * (desconto_percentual / 100);
     const total = subtotal - desconto_valor;
     
-    console.log(`💰 Orçamento montado: ${orcamentoItens.length} itens, R$ ${total.toFixed(2)}`);
+    if (total === 0) {
+      console.error('❌ ORÇAMENTO COM VALOR ZERO! Verifique configuração de serviços');
+      toast.error('Erro ao calcular orçamento: verifique os preços nas Configurações');
+    }
+    
+    console.log(`💰 Orçamento montado: ${orcamentoItens.length} itens, Subtotal: R$ ${subtotal.toFixed(2)}, Total: R$ ${total.toFixed(2)}`);
     
     return {
       itens: orcamentoItens,

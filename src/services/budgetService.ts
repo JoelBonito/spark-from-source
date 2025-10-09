@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { addDays } from 'date-fns';
+import { generateBudgetNumber, generateManualBudgetPDF } from './pdfService';
 
 export interface Budget {
   id: string;
@@ -19,6 +20,8 @@ export interface Budget {
   status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
   pdf_url: string | null;
   user_id: string;
+  budget_type?: 'automatic' | 'manual';
+  items?: any[];
   patient?: {
     name: string;
     phone: string;
@@ -40,6 +43,8 @@ export interface CreateBudgetData {
   valid_until?: Date;
   pdf_url?: string;
   status?: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  budget_type?: 'automatic' | 'manual';
+  items?: any[];
 }
 
 export interface BudgetFilters {
@@ -86,9 +91,10 @@ export async function getAllBudgets(filters?: BudgetFilters): Promise<Budget[]> 
 
   return (data || []).map(budget => ({
     ...budget,
-    // Usar o nome do paciente da tabela patients se disponível
     patient: (budget.patient as any) || null,
-    status: budget.status as Budget['status']
+    status: budget.status as Budget['status'],
+    budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+    items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
   }));
 }
 
@@ -110,7 +116,9 @@ export async function getBudgetById(id: string): Promise<Budget | null> {
     ...data,
     patient: data.patient?.[0] || null,
     simulation: data.simulation?.[0] || null,
-    status: data.status as Budget['status']
+    status: data.status as Budget['status'],
+    budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
 
@@ -136,7 +144,9 @@ export async function createBudget(budgetData: CreateBudgetData): Promise<Budget
   if (error) throw error;
   return {
     ...data,
-    status: data.status as Budget['status']
+    status: data.status as Budget['status'],
+    budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
 
@@ -154,7 +164,9 @@ export async function updateBudgetStatus(
   if (error) throw error;
   return {
     ...data,
-    status: data.status as Budget['status']
+    status: data.status as Budget['status'],
+    budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
 
@@ -177,7 +189,9 @@ export async function searchBudgets(query: string): Promise<Budget[]> {
   return (data || []).map(budget => ({
     ...budget,
     patient: budget.patient?.[0] || null,
-    status: budget.status as Budget['status']
+    status: budget.status as Budget['status'],
+    budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+    items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
   }));
 }
 
@@ -221,4 +235,88 @@ export async function markExpiredBudgets(): Promise<number> {
 
   if (error) throw error;
   return data?.length || 0;
+}
+
+// FASE 4: Criar orçamento manual
+export async function createManualBudget(
+  patientId: string,
+  items: Array<{
+    servico: string;
+    quantidade: number;
+    valor_unitario: number;
+    observacoes?: string;
+  }>,
+  discount: number = 10
+): Promise<Budget> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Buscar dados do paciente
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('name, phone')
+    .eq('id', patientId)
+    .single();
+
+  if (patientError) throw patientError;
+  if (!patient) throw new Error('Paciente não encontrado');
+
+  // Calcular valores
+  const itemsWithTotals = items.map(item => ({
+    ...item,
+    valor_total: item.quantidade * item.valor_unitario
+  }));
+
+  const subtotal = itemsWithTotals.reduce((sum, item) => sum + item.valor_total, 0);
+  const discountAmount = subtotal * (discount / 100);
+  const finalPrice = subtotal - discountAmount;
+
+  // Gerar número de orçamento
+  const budgetNumber = generateBudgetNumber();
+
+  // Gerar PDF
+  const pdfUrl = await generateManualBudgetPDF({
+    budgetNumber,
+    patientName: patient.name,
+    patientPhone: patient.phone,
+    date: new Date(),
+    items: itemsWithTotals,
+    subtotal,
+    desconto_percentual: discount,
+    desconto_valor: discountAmount,
+    total: finalPrice
+  });
+
+  // Salvar no banco de dados
+  const { data, error } = await supabase
+    .from('budgets')
+    .insert([
+      {
+        user_id: user.id,
+        patient_id: patientId,
+        budget_number: budgetNumber,
+        budget_type: 'manual',
+        items: itemsWithTotals,
+        teeth_count: 0, // Não aplicável para orçamento manual
+        price_per_tooth: 0,
+        subtotal,
+        discount_percentage: discount,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+        pdf_url: pdfUrl,
+        valid_until: addDays(new Date(), 30).toISOString().split('T')[0],
+        status: 'pending'
+      }
+    ])
+    .select()
+    .single();
+
+  if (error) throw error;
+  
+  return {
+    ...data,
+    status: data.status as Budget['status'],
+    budget_type: data.budget_type as 'automatic' | 'manual',
+    items: Array.isArray(data.items) ? data.items : []
+  };
 }

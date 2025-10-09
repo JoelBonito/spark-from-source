@@ -60,11 +60,13 @@ export type Database = {
           after_image: string | null
           before_image: string | null
           budget_number: string
+          budget_type: string | null
           created_at: string | null
           discount_amount: number | null
           discount_percentage: number | null
           final_price: number
           id: string
+          items: Json | null
           patient_id: string | null
           patient_name: string | null
           payment_conditions: Json | null
@@ -82,11 +84,13 @@ export type Database = {
           after_image?: string | null
           before_image?: string | null
           budget_number: string
+          budget_type?: string | null
           created_at?: string | null
           discount_amount?: number | null
           discount_percentage?: number | null
           final_price: number
           id?: string
+          items?: Json | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null
@@ -104,11 +108,13 @@ export type Database = {
           after_image?: string | null
           before_image?: string | null
           budget_number?: string
+          budget_type?: string | null
           created_at?: string | null
           discount_amount?: number | null
           discount_percentage?: number | null
           final_price?: number
           id?: string
+          items?: Json | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null

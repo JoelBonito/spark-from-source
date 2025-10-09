@@ -1,142 +1,72 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// FASE 1: Serviços com categorias fixas obrigatórias
 export const DEFAULT_SERVICES = [
-  // Categoria 1 – Facetas e Lentes de Contato
+  // ===== SERVIÇOS OBRIGATÓRIOS (não removíveis) =====
   { 
     name: "Faceta de Porcelana (por dente)", 
     description: "Faceta em porcelana feldspática ou dissilicato de lítio",
     price: 2500.00, 
+    category: "Facetas dentárias",
+    active: true,
     base: true,
-    category: "Facetas e Lentes de Contato",
-    active: true
+    required: true
   },
+  { 
+    name: "Clareamento Dental Profissional", 
+    description: "Clareamento em consultório",
+    price: 800.00, 
+    category: "Clareamento",
+    active: true,
+    base: false,
+    required: true
+  },
+  { 
+    name: "Consulta de Planejamento", 
+    description: "Consulta inicial com análise e proposta",
+    price: 200.00, 
+    category: "Consulta",
+    active: true,
+    base: false,
+    required: true
+  },
+  { 
+    name: "Gengivoplastia", 
+    description: "Correção do contorno gengival",
+    price: 800.00, 
+    category: "Gengivoplastia",
+    active: true,
+    base: false,
+    required: false
+  },
+  
+  // ===== SERVIÇOS OPCIONAIS (podem ser adicionados/removidos) =====
   { 
     name: "Lente de Contato Dental (por dente)", 
     description: "Lâmina ultra-fina de porcelana",
     price: 2800.00, 
+    category: "Opcional",
+    active: true,
     base: false,
-    category: "Facetas e Lentes de Contato",
-    active: true
+    required: false
   },
   { 
-    name: "Faceta em Resina (por dente)", 
-    description: "Faceta confeccionada em resina composta",
-    price: 800.00, 
-    base: false,
-    category: "Facetas e Lentes de Contato",
-    active: true
-  },
-  
-  // Categoria 2 – Clareamento
-  { 
-    name: "Clareamento Dental a Laser (sessão)", 
-    description: "Clareamento profissional em consultório",
-    price: 800.00, 
-    base: false,
-    category: "Clareamento",
-    active: true
-  },
-  { 
-    name: "Clareamento Caseiro Supervisionado (kit completo)", 
-    description: "Moldeira + gel clareador para uso domiciliar",
-    price: 600.00, 
-    base: false,
-    category: "Clareamento",
-    active: true
-  },
-  { 
-    name: "Clareamento Interno (por dente)", 
-    description: "Clareamento para dentes escurecidos após tratamento de canal",
-    price: 300.00, 
-    base: false,
-    category: "Clareamento",
-    active: true
-  },
-  
-  // Categoria 3 – Preparação e Procedimentos Complementares
-  { 
-    name: "Moldagem Digital (arcada completa)", 
+    name: "Moldagem Digital", 
     description: "Escaneamento intraoral 3D",
     price: 300.00, 
+    category: "Opcional",
+    active: true,
     base: false,
-    category: "Preparação e Procedimentos Complementares",
-    active: true
+    required: false
   },
   { 
     name: "Planejamento Digital do Sorriso (DSD)", 
     description: "Design digital do novo sorriso",
     price: 500.00, 
+    category: "Opcional",
+    active: true,
     base: false,
-    category: "Preparação e Procedimentos Complementares",
-    active: true
-  },
-  { 
-    name: "Gengivoplastia (por sextante)", 
-    description: "Correção do contorno gengival",
-    price: 800.00, 
-    base: false,
-    category: "Preparação e Procedimentos Complementares",
-    active: true
-  },
-  { 
-    name: "Restauração em Resina (por dente)", 
-    description: "Restauração estética direta",
-    price: 250.00, 
-    base: false,
-    category: "Preparação e Procedimentos Complementares",
-    active: true
-  },
-  
-  // Categoria 4 – Tratamentos de Canal e Estruturais
-  { 
-    name: "Tratamento de Canal (por dente)", 
-    description: "Endodontia necessária antes da faceta",
-    price: 600.00, 
-    base: false,
-    category: "Tratamentos de Canal e Estruturais",
-    active: true
-  },
-  { 
-    name: "Pino de Fibra de Vidro (por dente)", 
-    description: "Reforço estrutural intra-radicular",
-    price: 300.00, 
-    base: false,
-    category: "Tratamentos de Canal e Estruturais",
-    active: true
-  },
-  { 
-    name: "Coroa Provisória (por dente)", 
-    description: "Coroa temporária durante o tratamento",
-    price: 150.00, 
-    base: false,
-    category: "Tratamentos de Canal e Estruturais",
-    active: true
-  },
-  
-  // Categoria 5 – Manutenção e Follow-up
-  { 
-    name: "Consulta de Planejamento", 
-    description: "Consulta inicial com análise e proposta",
-    price: 200.00, 
-    base: false,
-    category: "Manutenção e Follow-up",
-    active: true
-  },
-  { 
-    name: "Retorno e Ajustes (por sessão)", 
-    description: "Ajuste oclusal e polimento pós-cimentação",
-    price: 150.00, 
-    base: false,
-    category: "Manutenção e Follow-up",
-    active: true
-  },
-  { 
-    name: "Manutenção Anual", 
-    description: "Consulta de manutenção preventiva",
-    price: 200.00, 
-    base: false,
-    category: "Manutenção e Follow-up",
-    active: true
+    required: false
   },
 ];
 
@@ -144,9 +74,10 @@ export interface ServicePrice {
   name: string;
   description: string;
   price: number;
-  base: boolean;
-  category: string;
+  category: 'Facetas dentárias' | 'Clareamento' | 'Consulta' | 'Gengivoplastia' | 'Opcional' | string;
   active: boolean;
+  base: boolean;
+  required?: boolean; // NOVO: indica se é obrigatório (não removível na UI)
 }
 
 export interface Config {

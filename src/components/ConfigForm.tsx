@@ -69,17 +69,26 @@ export default function ConfigForm() {
         description: "",
         price: 0,
         base: false,
-        category: "Outros",
-        active: true
+        category: "Opcional", // FASE 1: Novos serviços vão para categoria "Opcional"
+        active: true,
+        required: false
       }]
     });
   };
   const handleRemoveService = (index: number) => {
     const serviceToRemove = formData.servicePrices[index];
+    
+    // FASE 2: Não permitir remover serviços obrigatórios
+    if (serviceToRemove.required) {
+      toast.error("Não é possível remover serviços obrigatórios (Facetas, Clareamento, Consulta, Gengivoplastia).");
+      return;
+    }
+    
     if (serviceToRemove.base) {
       toast.error("Não é possível remover o serviço base.");
       return;
     }
+    
     const newServices = formData.servicePrices.filter((_, i) => i !== index);
     setFormData({
       ...formData,
@@ -278,7 +287,10 @@ export default function ConfigForm() {
         </h2>
         
         <p className="text-sm text-muted-foreground">
-          Defina os preços que a IA usará para calcular o orçamento. O serviço **Base** será o preço unitário da faceta.
+          <strong>Serviços Obrigatórios:</strong> Facetas, Clareamento, Consulta e Gengivoplastia são usados pela IA para calcular orçamentos automaticamente. Configure os nomes e preços de acordo com sua clínica.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong>Serviços Opcionais:</strong> Adicione outros serviços que você oferece para uso em orçamentos manuais.
         </p>
 
         <div className="border rounded-md overflow-x-auto">
@@ -288,89 +300,158 @@ export default function ConfigForm() {
                 <TableHead className="min-w-[200px]">Serviço</TableHead>
                 <TableHead className="min-w-[250px]">Descrição</TableHead>
                 <TableHead className="w-[120px] text-right">Preço</TableHead>
-                <TableHead className="w-[80px] text-center">Base</TableHead>
                 <TableHead className="w-[80px] text-center">Ativo</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(() => {
-                let currentCategory = '';
-                return formData.servicePrices.map((service, index) => {
-                  const showCategoryHeader = service.category !== currentCategory;
-                  if (showCategoryHeader) currentCategory = service.category;
-                  
-                  return (
-                    <>
-                      {showCategoryHeader && (
-                        <TableRow key={`cat-${index}`} className="bg-muted/50">
-                          <TableCell colSpan={6} className="font-semibold text-sm py-2">
-                            {service.category}
+                // FASE 2: Separar serviços obrigatórios dos opcionais
+                const requiredServices = formData.servicePrices.filter(s => s.required);
+                const optionalServices = formData.servicePrices.filter(s => !s.required);
+                
+                return (
+                  <>
+                    {/* Seção de serviços obrigatórios */}
+                    <TableRow className="bg-primary/10">
+                      <TableCell colSpan={5} className="font-bold text-sm py-3">
+                        ⭐ SERVIÇOS OBRIGATÓRIOS (não removíveis)
+                      </TableCell>
+                    </TableRow>
+                    {requiredServices.map((service, idx) => {
+                      const index = formData.servicePrices.indexOf(service);
+                      const isInactive = !service.active || service.price <= 0;
+                      
+                      return (
+                        <TableRow key={`required-${index}`} className={isInactive ? "bg-yellow-50 dark:bg-yellow-900/20" : ""}>
+                          <TableCell className="align-top">
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="text" 
+                                value={service.name} 
+                                onChange={e => handleServiceChange(index, 'name', e.target.value)} 
+                                placeholder="Nome do Serviço"
+                                className="text-sm w-full"
+                              />
+                              {isInactive && (
+                                <span className="text-xs text-yellow-600 dark:text-yellow-400 flex-shrink-0">⚠️</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Categoria: {service.category}</p>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Textarea 
+                              value={service.description} 
+                              onChange={e => handleServiceChange(index, 'description', e.target.value)} 
+                              placeholder="Descrição do serviço"
+                              className="text-sm resize-none min-h-[60px] w-full"
+                              rows={2}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right align-top">
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                              <Input 
+                                type="number" 
+                                min="0" 
+                                step="0.01" 
+                                value={service.price} 
+                                onChange={e => handleServiceChange(index, 'price', e.target.value)} 
+                                className={`text-right pl-8 text-sm ${service.price <= 0 ? 'border-yellow-500' : ''}`}
+                              />
+                            </div>
+                            {service.category !== 'Gengivoplastia' && service.price <= 0 && (
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Obrigatório &gt; 0</p>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={service.active}
+                              onCheckedChange={(checked) => handleServiceChange(index, 'active', checked)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              disabled
+                              title="Serviço obrigatório não pode ser removido"
+                            >
+                              <Trash2 className="h-4 w-4 text-muted" />
+                            </Button>
                           </TableCell>
                         </TableRow>
-                      )}
-                      <TableRow key={index} className={!service.active ? "opacity-50 bg-muted/30" : ""}>
-                        <TableCell className="align-top">
-                          <Input 
-                            type="text" 
-                            value={service.name} 
-                            onChange={e => handleServiceChange(index, 'name', e.target.value)} 
-                            placeholder="Nome do Serviço"
-                            className="text-sm w-full"
-                          />
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Textarea 
-                            value={service.description} 
-                            onChange={e => handleServiceChange(index, 'description', e.target.value)} 
-                            placeholder="Descrição do serviço"
-                            className="text-sm resize-none min-h-[60px] w-full"
-                            rows={2}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right align-top">
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
-                            <Input 
-                              type="number" 
-                              min="0" 
-                              step="0.01" 
-                              value={service.price} 
-                              onChange={e => handleServiceChange(index, 'price', e.target.value)} 
-                              className="text-right pl-8 text-sm" 
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <input 
-                            type="checkbox" 
-                            checked={service.base} 
-                            onChange={e => handleServiceChange(index, 'base', e.target.checked)} 
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" 
-                            disabled={service.base} 
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Switch
-                            checked={service.active}
-                            onCheckedChange={(checked) => handleServiceChange(index, 'active', checked)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleRemoveService(index)} 
-                            disabled={service.base || formData.servicePrices.length <= 1}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  );
-                });
+                      );
+                    })}
+                    
+                    {/* Seção de serviços opcionais */}
+                    {optionalServices.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={5} className="font-semibold text-sm py-3">
+                            💼 SERVIÇOS OPCIONAIS (customizáveis)
+                          </TableCell>
+                        </TableRow>
+                        {optionalServices.map((service, idx) => {
+                          const index = formData.servicePrices.indexOf(service);
+                          
+                          return (
+                            <TableRow key={`optional-${index}`} className={!service.active ? "opacity-50 bg-muted/30" : ""}>
+                              <TableCell className="align-top">
+                                <Input 
+                                  type="text" 
+                                  value={service.name} 
+                                  onChange={e => handleServiceChange(index, 'name', e.target.value)} 
+                                  placeholder="Nome do Serviço"
+                                  className="text-sm w-full"
+                                />
+                              </TableCell>
+                              <TableCell className="align-top">
+                                <Textarea 
+                                  value={service.description} 
+                                  onChange={e => handleServiceChange(index, 'description', e.target.value)} 
+                                  placeholder="Descrição do serviço"
+                                  className="text-sm resize-none min-h-[60px] w-full"
+                                  rows={2}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right align-top">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">R$</span>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01" 
+                                    value={service.price} 
+                                    onChange={e => handleServiceChange(index, 'price', e.target.value)} 
+                                    className="text-right pl-8 text-sm" 
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Switch
+                                  checked={service.active}
+                                  onCheckedChange={(checked) => handleServiceChange(index, 'active', checked)}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleRemoveService(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
+                );
               })()}
             </TableBody>
           </Table>
