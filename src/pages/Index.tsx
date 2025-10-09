@@ -124,6 +124,23 @@ export default function Index() {
     }
   }, [selectedPatientId]);
 
+  // Função utilitária para converter URL para Base64
+  const urlToBase64 = async (url: string): Promise<string> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Erro ao converter URL para Base64:', error);
+      throw error;
+    }
+  };
+
   const loadPatientData = async (patientId: string) => {
     try {
       const patient = await getPatientById(patientId);
@@ -506,10 +523,16 @@ export default function Index() {
       // ========================================
       // PASSO 3: GERAR PDFs AUTOMATICAMENTE
       // ========================================
-      setProcessingStep('Gerando documentos...');
+      setProcessingStep('Gerando documentos com imagens...');
 
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
+
+      // 🐛 CORREÇÃO FASE 2: Converter URLs para Base64 para garantir que imagens apareçam nos PDFs
+      console.log('🔄 Convertendo imagens para Base64...');
+      const beforeImageBase64 = originalImage ? await urlToBase64(originalImage) : '';
+      const afterImageBase64 = processedImage ? await urlToBase64(processedImage) : '';
+      console.log('✅ Imagens convertidas para Base64');
 
       // Gerar Relatório Técnico
       const reportPdf = await generateTechnicalReportPDF({
@@ -520,8 +543,8 @@ export default function Index() {
         teethCount: 0,
         reportContent: analysisResult.relatorio_tecnico,
         simulationId: simulationId || currentSimulationId || '',
-        beforeImage: originalImage,
-        afterImage: processedImage || ''
+        beforeImage: beforeImageBase64,
+        afterImage: afterImageBase64
       });
 
       // Gerar Orçamento com dados dinâmicos usando variável local
@@ -539,8 +562,8 @@ export default function Index() {
           desconto_percentual: dynamicBudgetData.desconto_percentual,
           desconto_valor: dynamicBudgetData.desconto_valor,
           total: dynamicBudgetData.total,
-          beforeImage: originalImage,
-          afterImage: processedImage || ''
+          beforeImage: beforeImageBase64,
+          afterImage: afterImageBase64
         });
         console.log('✅ PDF de orçamento gerado com sucesso');
       } else {

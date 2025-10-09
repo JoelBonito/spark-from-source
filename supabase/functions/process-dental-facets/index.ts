@@ -588,36 +588,59 @@ Regra de Indicação:
 
   if (tratamentosDisponiveis.facetas) {
     prompt += `
-FACETAS se:
-- 2+ fatores comprometidos (alinhamento + proporção)
-- OU 1 fator SEVERAMENTE comprometido
-- OU paciente tem queixa estética clara (dente "torto")
+FACETAS INDICADAS APENAS SE HOUVER EVIDÊNCIA FOTOGRÁFICA CLARA DE:
+- Rotação dentária visível (>15 graus de inclinação)
+- Desgaste estrutural severo (>2mm nas bordas incisais)
+- Assimetria marcante entre dentes correspondentes (>20% diferença de tamanho)
+- Diastemas significativos (>1mm entre dentes)
+- Dentes projetados/recuados visivelmente em relação ao arco
+- Forma dentária gravemente irregular (triangular quando deveria ser retangular)
+
+⚠️ REGRA CRÍTICA: NÃO recomende facetas baseado em:
+- "Queixa estética genérica do paciente"
+- "Potencial de melhoria" sem problema estrutural evidente
+- Problemas menores que não são visíveis na foto
+
+Se a estrutura estiver BOA (mesmo que não perfeita), priorize clareamento.
 `;
   }
 
   if (tratamentosDisponiveis.clareamento) {
     prompt += `
-CLAREAMENTO se:
-- TODOS os fatores estruturais estão perfeitos
-- Alinhamento impecável
-- Proporções simétricas
-- Formas harmoniosas
-- ÚNICO problema é cor uniforme
+CLAREAMENTO INDICADO SE:
+- Estrutura dental está BOA ou ADEQUADA (não precisa ser perfeita)
+- Alinhamento aceitável (pequenas assimetrias naturais <10% são OK)
+- Proporções razoáveis (não precisa ser simetria milimétrica)
+- Forma adequada (leves desgastes naturais são aceitáveis)
+- Cor é o principal fator de melhoria visível
+
+⚠️ PRIORIZE CLAREAMENTO: Se não há problemas estruturais SEVEROS claramente visíveis na foto, recomende clareamento.
 `;
   }
 
   prompt += `
 ═══════════════════════════════════════════════════════
-QUANTIDADE DE FACETAS:
+QUANTIDADE DE FACETAS - CONTAGEM RIGOROSA:
 ═══════════════════════════════════════════════════════
 `;
 
   if (tratamentosDisponiveis.facetas) {
     prompt += `
-- 0 facetas: Sorriso perfeito (apenas clareamento se disponível)
-- 4 facetas: Problemas nos incisivos (11, 21, 12, 22)
-- 6 facetas: Problemas também nos caninos (13, 23)
-- Se apenas 1 canino problemático: mencionar no relatório para avaliação presencial
+REGRA DE CONTAGEM (conte APENAS dentes com problemas VISÍVEIS na foto):
+
+- 0 facetas: Estrutura BOA = recomendar apenas clareamento
+- 2 facetas: Apenas os incisivos centrais têm problema estrutural CLARO (11, 21)
+- 4 facetas: Incisivos centrais E laterais têm problemas VISÍVEIS (11, 21, 12, 22)
+- 6 facetas: Todos anteriores incluindo caninos têm problemas EVIDENTES (11, 21, 12, 22, 13, 23)
+
+⚠️ CRITÉRIO OBRIGATÓRIO: Para contar um dente, você DEVE descrever no relatório QUAL é o problema estrutural específico daquele dente.
+NÃO use contagem padrão de 6 facetas sem justificativa fotográfica clara.
+
+EXEMPLOS DE CONTAGEM CORRETA:
+✅ "Dente 11 apresenta rotação de ~20° e desgaste de 3mm na borda → CONTA"
+✅ "Dente 12 está bem alinhado mas é 30% menor que o 22 → CONTA"
+✅ "Dente 13 está bem posicionado, cor uniforme → NÃO CONTA"
+❌ "Paciente quer um sorriso perfeito" → ERRADO, não é critério de contagem
 `;
   }
 
