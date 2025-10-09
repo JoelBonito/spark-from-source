@@ -158,8 +158,6 @@ export interface Config {
   maxTokens: number;
   promptTemplate: string;
   servicePrices: ServicePrice[];
-  claudeApiKey: string;
-  useClaude: boolean;
   crmEnabled: boolean;
 }
 
@@ -230,8 +228,6 @@ export async function saveConfig(config: Config): Promise<void> {
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
       service_prices: config.servicePrices as any,
-      claude_api_key: config.claudeApiKey,
-      use_claude: config.useClaude,
       crm_enabled: config.crmEnabled,
     }, { onConflict: 'user_id' });
 
@@ -271,8 +267,6 @@ export async function getConfig(): Promise<Config | null> {
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
     servicePrices,
-    claudeApiKey: data.claude_api_key || '',
-    useClaude: data.use_claude || false,
     crmEnabled: data.crm_enabled !== false,
   };
 }

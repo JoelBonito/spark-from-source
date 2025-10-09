@@ -688,7 +688,7 @@ Deno.serve(async (req) => {
     if (action === 'analyze') {
       console.log('═══════════════════════════════════════');
       console.log('AÇÃO: ANÁLISE (gerar documentos)');
-      console.log(`Modelo: ${config?.useClaude ? 'Claude' : 'Gemini'}`);
+      console.log('Modelo: Gemini (google/gemini-2.5-flash)');
       console.log('═══════════════════════════════════════');
       
       // Timeout de 90 segundos para a requisição
@@ -699,14 +699,9 @@ Deno.serve(async (req) => {
       }, 90000);
       
       try {
-        // Escolher modelo e API key baseado na configuração
-        const model = config?.useClaude 
-          ? 'anthropic/claude-sonnet-4-20250514'
-          : 'google/gemini-2.5-flash';
-        
-        const apiKeyToUse = config?.useClaude && config?.claudeApiKey
-          ? config.claudeApiKey
-          : apiKey;
+        // Usar exclusivamente Gemini
+        const model = 'google/gemini-2.5-flash';
+        const apiKeyToUse = apiKey; // LOVABLE_API_KEY
         
         const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
