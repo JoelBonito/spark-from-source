@@ -258,8 +258,8 @@ SAÍDA:
 }
 
 /**
- * ✅ FASE 4: GERADOR DE RELATÓRIO TÉCNICO EM TEXTO
- * Converte JSON estruturado em relatório narrativo profissional
+ * ✅ FASE 4: GERADOR DE RELATÓRIO TÉCNICO EM TEXTO (ATUALIZADO PARA NOVO FORMATO)
+ * Converte JSON estruturado no novo formato em relatório narrativo profissional
  */
 function generateTextReportFromJSON(
   analiseJSON: any,
@@ -272,118 +272,128 @@ function generateTextReportFromJSON(
   sections.push("ANÁLISE CLÍNICA INICIAL");
   sections.push("═══════════════════════════════════════\n");
   
-  if (analiseJSON.analise_clinica) {
-    const ac = analiseJSON.analise_clinica;
-    sections.push(`Tom de pele: ${ac.tom_pele || 'Não especificado'}`);
-    sections.push(`Cor dos olhos: ${ac.cor_olhos || 'Não especificado'}\n`);
-    
-    if (ac.avaliacao_geral) {
-      sections.push("Avaliação Geral:");
-      sections.push(`- Alinhamento: ${ac.avaliacao_geral.alinhamento || 'Adequado'}`);
-      sections.push(`- Proporção: ${ac.avaliacao_geral.proporcao || 'Harmônica'}`);
-      sections.push(`- Forma: ${ac.avaliacao_geral.forma || 'Adequada'}`);
-      sections.push(`- Cor: ${ac.avaliacao_geral.cor || 'Natural'}`);
-      sections.push(`- Linha gengival: ${ac.avaliacao_geral.linha_gengival || 'Normal'}\n`);
-    }
+  sections.push(`Tom de pele: ${analiseJSON.tom_pele || 'Não especificado'}`);
+  sections.push(`Cor dos olhos: ${analiseJSON.cor_olhos || 'Não especificado'}\n`);
+  
+  if (analiseJSON.estado_geral) {
+    sections.push("Avaliação Geral:");
+    sections.push(`- Alinhamento: ${analiseJSON.estado_geral.alinhamento || 'Adequado'}`);
+    sections.push(`- Proporção: ${analiseJSON.estado_geral.proporcao || 'Adequado'}`);
+    sections.push(`- Forma: ${analiseJSON.estado_geral.forma || 'Adequado'}`);
+    sections.push(`- Cor: ${analiseJSON.estado_geral.cor || 'Adequado'}`);
+    sections.push(`- Linha gengival: ${analiseJSON.estado_geral.linha_gengival || 'Adequado'}\n`);
   }
 
-  // 2. RECOMENDAÇÃO DE TRATAMENTO
-  const recom = analiseJSON.recomendacao_tratamento;
-  if (recom) {
+  // 2. INDICAÇÃO DO TRATAMENTO
+  sections.push("═══════════════════════════════════════");
+  sections.push("INDICAÇÃO DO TRATAMENTO");
+  sections.push("═══════════════════════════════════════\n");
+  
+  sections.push(`Justificativa: ${analiseJSON.justificativa || 'Otimização estética do sorriso'}\n`);
+  
+  if (analiseJSON.quantidade_facetas > 0) {
+    sections.push(`Quantidade de facetas recomendadas: ${analiseJSON.quantidade_facetas}`);
+    sections.push(`Dentes a serem tratados (FDI): ${analiseJSON.dentes_tratados?.join(', ') || 'Não especificado'}`);
+  } else {
+    sections.push("Tratamento conservador: Apenas clareamento dental recomendado");
+  }
+  
+  sections.push(`Cor final recomendada: ${analiseJSON.cor_recomendada || 'BL3'} (escala Vita)\n`);
+
+  // 3. PROCEDIMENTOS RECOMENDADOS
+  if (analiseJSON.procedimentos_recomendados && analiseJSON.procedimentos_recomendados.length > 0) {
     sections.push("═══════════════════════════════════════");
-    sections.push("RECOMENDAÇÃO DE TRATAMENTO");
+    sections.push("PROCEDIMENTOS RECOMENDADOS");
     sections.push("═══════════════════════════════════════\n");
     
-    sections.push(`Tipo: ${recom.tipo || 'Não especificado'}`);
-    sections.push(`Justificativa: ${recom.justificativa || ''}\n`);
-    
-    if (recom.quantidade_facetas > 0) {
-      sections.push(`Quantidade de facetas: ${recom.quantidade_facetas}`);
-      sections.push(`Dentes tratados (FDI): ${recom.dentes_fdi_tratados?.join(', ') || ''}`);
-      sections.push(`Cor recomendada: ${recom.cor_recomendada || 'BL3'}\n`);
-    }
+    analiseJSON.procedimentos_recomendados.forEach((proc: string, index: number) => {
+      sections.push(`${index + 1}. ${proc}`);
+    });
+    sections.push("");
   }
 
-  // 3. ESPECIFICAÇÕES TÉCNICAS
-  const espec = analiseJSON.especificacoes_tecnicas;
-  if (espec) {
+  // 4. ESPECIFICAÇÕES TÉCNICAS (quando há facetas)
+  if (analiseJSON.quantidade_facetas > 0) {
     sections.push("═══════════════════════════════════════");
     sections.push("ESPECIFICAÇÕES TÉCNICAS");
     sections.push("═══════════════════════════════════════\n");
     
-    sections.push(`Material: ${espec.material || 'Cerâmica feldspática de alta translucidez'}`);
-    sections.push(`Forma: ${espec.forma || 'Anatômica natural'}`);
-    sections.push(`Alinhamento: ${espec.alinhamento || 'Linha do sorriso harmônica'}`);
-    sections.push(`Superfície: ${espec.superficie || 'Polimento de alta qualidade'}\n`);
+    // Detectar tipo de faceta nos serviços ativos
+    const tipoFaceta = servicosAtivos.find(s => 
+      s.name.toLowerCase().includes('porcelana') || 
+      s.name.toLowerCase().includes('cerâmica')
+    ) ? 'Cerâmica/Porcelana' : 'Resina composta';
+    
+    sections.push(`Material: ${tipoFaceta}`);
+    sections.push(`Cor: ${analiseJSON.cor_recomendada} (Vita)`);
+    sections.push("Técnica: Minimamente invasiva com preservação dental");
+    sections.push("Preparo: Conservador com manutenção da estrutura dentária\n");
   }
 
-  // 4. PLANEJAMENTO
-  const plan = analiseJSON.planejamento;
-  if (plan?.sessoes?.length > 0) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("PLANEJAMENTO DO TRATAMENTO");
-    sections.push("═══════════════════════════════════════\n");
-    
-    plan.sessoes.forEach((sessao: any) => {
-      sections.push(`Sessão ${sessao.numero}: ${sessao.descricao} (${sessao.duracao})`);
-    });
-    sections.push("");
+  // 5. PLANEJAMENTO DO TRATAMENTO
+  sections.push("═══════════════════════════════════════");
+  sections.push("PLANEJAMENTO DO TRATAMENTO");
+  sections.push("═══════════════════════════════════════\n");
+  
+  let etapa = 1;
+  
+  // Etapa 1: Consulta inicial (sempre)
+  sections.push(`Etapa ${etapa}: Consulta de avaliação e planejamento digital`);
+  etapa++;
+  
+  // Etapa 2: Clareamento (se recomendado)
+  if (analiseJSON.procedimentos_recomendados?.some((p: string) => p.toLowerCase().includes('clarear'))) {
+    sections.push(`Etapa ${etapa}: Clareamento dental ${analiseJSON.quantidade_facetas > 0 ? '(pré-facetas)' : ''}`);
+    etapa++;
   }
-
-  // 5. PROCEDIMENTOS COMPLEMENTARES
-  const comp = analiseJSON.procedimentos_complementares;
-  if (comp?.gengivoplastia_recomendada) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("PROCEDIMENTOS COMPLEMENTARES");
-    sections.push("═══════════════════════════════════════\n");
-    
-    sections.push(`Gengivoplastia: ${comp.gengivoplastia_justificativa || 'Recomendada'}\n`);
+  
+  // Etapa 3: Gengivoplastia (se recomendado)
+  if (analiseJSON.procedimentos_recomendados?.some((p: string) => p.toLowerCase().includes('gengivo'))) {
+    sections.push(`Etapa ${etapa}: Gengivoplastia (contorno gengival)`);
+    etapa++;
   }
+  
+  // Etapa 4: Facetas (se recomendado)
+  if (analiseJSON.quantidade_facetas > 0) {
+    sections.push(`Etapa ${etapa}: Confecção e instalação das facetas`);
+    etapa++;
+  }
+  
+  // Etapa 5: Ajustes e polimento final
+  sections.push(`Etapa ${etapa}: Ajustes finais e polimento\n`);
 
   // 6. CUIDADOS PÓS-PROCEDIMENTO
-  if (analiseJSON.cuidados_pos_procedimento?.length > 0) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("CUIDADOS PÓS-PROCEDIMENTO");
-    sections.push("═══════════════════════════════════════\n");
-    
-    analiseJSON.cuidados_pos_procedimento.forEach((cuidado: string) => {
-      sections.push(`- ${cuidado}`);
-    });
-    sections.push("");
+  sections.push("═══════════════════════════════════════");
+  sections.push("CUIDADOS PÓS-PROCEDIMENTO");
+  sections.push("═══════════════════════════════════════\n");
+  sections.push("- Higiene oral rigorosa com escovação 3x ao dia");
+  sections.push("- Uso de fio dental diariamente");
+  sections.push("- Evitar alimentos muito duros nas primeiras semanas");
+  if (analiseJSON.procedimentos_recomendados?.some((p: string) => p.toLowerCase().includes('clarear'))) {
+    sections.push("- Evitar alimentos/bebidas pigmentados por 48h após clareamento");
   }
+  sections.push("- Consultas de acompanhamento semestrais\n");
 
   // 7. PROGNÓSTICO
-  if (analiseJSON.prognostico) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("PROGNÓSTICO");
-    sections.push("═══════════════════════════════════════\n");
-    sections.push(analiseJSON.prognostico);
-    sections.push("");
+  sections.push("═══════════════════════════════════════");
+  sections.push("PROGNÓSTICO E DURABILIDADE");
+  sections.push("═══════════════════════════════════════\n");
+  
+  if (analiseJSON.quantidade_facetas > 0) {
+    sections.push("Com cuidados adequados, facetas de cerâmica/resina possuem durabilidade média de 10-15 anos.");
+  } else {
+    sections.push("Clareamento dental possui duração média de 1-3 anos, dependendo dos hábitos alimentares.");
   }
+  sections.push("Prognóstico: Excelente, com resultados estéticos naturais e harmoniosos.\n");
 
-  // 8. CONTRAINDICAÇÕES
-  if (analiseJSON.contraindicacoes?.length > 0) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("CONTRAINDICAÇÕES");
-    sections.push("═══════════════════════════════════════\n");
-    
-    analiseJSON.contraindicacoes.forEach((contra: string) => {
-      sections.push(`- ${contra}`);
-    });
-    sections.push("");
-  }
-
-  // 9. OBSERVAÇÕES PROFISSIONAIS
-  if (analiseJSON.observacoes_profissionais) {
-    sections.push("═══════════════════════════════════════");
-    sections.push("OBSERVAÇÕES PROFISSIONAIS");
-    sections.push("═══════════════════════════════════════\n");
-    sections.push(analiseJSON.observacoes_profissionais);
-    sections.push("\n");
-  }
-
-  sections.push("IMPORTANTE: Este relatório é baseado em análise de imagem e tem caráter orientativo.");
-  sections.push("Avaliação clínica presencial é obrigatória antes de qualquer procedimento.");
+  // 8. OBSERVAÇÕES IMPORTANTES
+  sections.push("═══════════════════════════════════════");
+  sections.push("OBSERVAÇÕES IMPORTANTES");
+  sections.push("═══════════════════════════════════════\n");
+  sections.push("- Este relatório é baseado em análise fotográfica preliminar");
+  sections.push("- Avaliação clínica presencial é obrigatória antes do início do tratamento");
+  sections.push("- Radiografias e exames complementares podem ser necessários");
+  sections.push("- O plano de tratamento pode ser ajustado após avaliação presencial");
 
   return sections.join("\n");
 }
@@ -888,11 +898,32 @@ Deno.serve(async (req) => {
           throw new Error('Resposta da IA não está em formato JSON válido');
         }
         
-        // Validar campos críticos
-        if (!analise_data.analise_clinica || !analise_data.recomendacao_tratamento) {
-          console.error('❌ JSON incompleto:', analise_data);
+        // ✅ FASE 3: Validar estrutura do novo prompt conservador
+        if (!analise_data.analise) {
+          console.error('═══════════════════════════════════════');
+          console.error('❌ JSON incompleto:', JSON.stringify(analise_data, null, 2));
+          console.error('Mensagem: Faltam campos obrigatórios (analise)');
+          console.error('═══════════════════════════════════════');
           throw new Error('JSON incompleto - faltam campos obrigatórios');
         }
+
+        const analise = analise_data.analise;
+
+        // Validação condicional: se há facetas, deve haver dentes tratados
+        if (analise.quantidade_facetas > 0) {
+          if (!analise.dentes_tratados || analise.dentes_tratados.length === 0) {
+            console.error('❌ quantidade_facetas > 0 mas dentes_tratados está vazio');
+            throw new Error('Quando há facetas recomendadas, dentes_tratados não pode estar vazio');
+          }
+        }
+
+        // Campos sempre obrigatórios
+        if (!analise.cor_recomendada || !analise.procedimentos_recomendados || analise.procedimentos_recomendados.length === 0) {
+          console.error('❌ Faltam campos obrigatórios: cor_recomendada ou procedimentos_recomendados');
+          throw new Error('Campos obrigatórios ausentes na análise');
+        }
+
+        console.log('✓ Validação de campos concluída com sucesso');
         
         // Verificar se a resposta foi truncada
         const finishReason = analysisResult.choices?.[0]?.finish_reason;
@@ -900,10 +931,13 @@ Deno.serve(async (req) => {
           console.warn('⚠️ AVISO: Resposta truncada devido a max_tokens');
         }
         
-        // ✅ FASE 4: Gerar relatório técnico em texto narrativo
-        console.log('→ Gerando relatório técnico em texto...');
-        const relatorio_tecnico = generateTextReportFromJSON(analise_data, servicos_ativos);
-        console.log('✓ Relatório técnico gerado:', relatorio_tecnico.substring(0, 200) + '...');
+      // ✅ FASE 4: Gerar relatório técnico em texto narrativo
+      console.log('→ Gerando relatório técnico em texto...');
+      const relatorio_tecnico = generateTextReportFromJSON(
+        analise_data.analise,  // ← Passar apenas o objeto "analise"
+        servicos_ativos
+      );
+      console.log('✓ Relatório técnico gerado:', relatorio_tecnico.substring(0, 200) + '...');
         
         // Retornar JSON estruturado + relatório em texto
         return new Response(
