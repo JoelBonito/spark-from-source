@@ -332,6 +332,7 @@ export type Database = {
           prompt_version: string | null
           report_number: string
           simulation_id: string | null
+          treatment_type: string | null
           user_id: string
         }
         Insert: {
@@ -347,6 +348,7 @@ export type Database = {
           prompt_version?: string | null
           report_number: string
           simulation_id?: string | null
+          treatment_type?: string | null
           user_id: string
         }
         Update: {
@@ -362,6 +364,7 @@ export type Database = {
           prompt_version?: string | null
           report_number?: string
           simulation_id?: string | null
+          treatment_type?: string | null
           user_id?: string
         }
         Relationships: [

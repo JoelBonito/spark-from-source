@@ -755,7 +755,8 @@ export default function Index() {
         report_number: reportNumber,
         pdf_url: reportPdfUrl,
         before_image: originalImage,
-        after_image: processedImage
+        after_image: processedImage,
+        treatment_type: simulationType
       });
 
       // Salvar na tabela budgets com dados estruturados
@@ -774,11 +775,12 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-          teeth_count: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas || 
-                       analiseJSON?.analise?.quantidade_facetas || 0,
+        teeth_count: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas || 
+                     analiseJSON?.analise?.quantidade_facetas || 0,
         subtotal: budgetData.subtotal,
         final_price: budgetData.total,
         price_per_tooth: budgetData.itens?.find((i: any) => i.dentes)?.valor_unitario || 0,
+        treatment_type: simulationType,
         payment_conditions: {
           desconto: budgetData.desconto_percentual,
           opcao_vista: budgetData.total,

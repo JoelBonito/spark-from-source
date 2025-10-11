@@ -26,6 +26,7 @@ export interface BudgetPDFData {
   total: number;
   beforeImage?: string;
   afterImage?: string;
+  treatment_type?: 'facetas' | 'clareamento';
 }
 
 export function generateBudgetNumber(): string {
@@ -50,7 +51,10 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
   doc.setFontSize(28);
   doc.text('Facet.AI', 105, 20, { align: 'center' });
   doc.setFontSize(14);
-  doc.text('ORÇAMENTO DE FACETAS DENTÁRIAS', 105, 30, { align: 'center' });
+  const titulo = data.treatment_type === 'clareamento'
+    ? 'ORÇAMENTO - CLAREAMENTO DENTAL'
+    : 'ORÇAMENTO DE FACETAS DENTÁRIAS';
+  doc.text(titulo, 105, 30, { align: 'center' });
   
   // Reset cor
   doc.setTextColor(0, 0, 0);

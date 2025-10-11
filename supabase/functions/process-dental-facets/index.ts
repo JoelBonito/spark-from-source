@@ -210,43 +210,102 @@ function getColorDescription(colorCode: string, skinTone: string): string {
          'Natural white shade that complements your complexion beautifully';
 }
 
+const PROMPT_FACETAS = `
+Você é um simulador de tratamento dental fotorrealista.
+
+TAREFA: Gere uma imagem simulada do "DEPOIS" aplicando o padrão técnico da clínica.
+
+PADRÃO TÉCNICO FIXO:
+✓ Facetas em resina composta BL3 em TODOS os dentes visíveis no sorriso
+✓ Bordas incisais translúcidas nos incisivos (12, 11, 21, 22)
+✓ Cor uniforme BL3 (branco natural harmonioso - escala Vita)
+✓ Alinhamento corrigido (se necessário)
+✓ Proporções harmoniosas com o rosto
+
+PRESERVAR ABSOLUTAMENTE:
+✗ NÃO altere: pele, textura da pele, olhos, cabelo, barba, expressão facial
+✗ NÃO altere: ângulo da câmera, iluminação, fundo
+✗ NÃO altere: lábios (apenas a parte interna - dentes)
+
+MODIFICAR APENAS:
+✓ Dentes: cor, forma, alinhamento
+✓ Linha gengival: correção leve se houver assimetria > 2mm
+
+RESULTADO ESPERADO:
+- Imagem fotorrealista indistinguível de uma foto real
+- Transformação natural e harmoniosa
+- Adequado para uso clínico/comercial (prévia de tratamento)
+
+SAÍDA:
+- Retorne apenas a imagem simulada final (JPEG base64) sem texto ou legendas.
+`;
+
+const PROMPT_CLAREAMENTO = `
+Você é um simulador de tratamento dental fotorrealista especializado em clareamento dentário.
+
+TAREFA: Gere uma imagem simulada do "DEPOIS" aplicando o protocolo de clareamento da clínica.
+
+PROTOCOLO DE CLAREAMENTO FIXO:
+✓ Clareamento dental profissional BL2 em TODOS os dentes visíveis no sorriso
+✓ Cor uniforme BL2 (branco brilhante natural - escala Vita)
+✓ Manutenção da translucidez natural nas bordas incisais dos dentes anteriores (12, 11, 21, 22)
+✓ Preservação das características naturais dos dentes (textura, formato, microdetalhes)
+✓ Brilho saudável e natural do esmalte clareado
+✓ Harmonia com o tom de pele do paciente
+
+PRESERVAR ABSOLUTAMENTE:
+✗ NÃO altere: pele, textura da pele, olhos, cabelo, barba, expressão facial
+✗ NÃO altere: ângulo da câmera, iluminação, fundo
+✗ NÃO altere: lábios, formato da boca, contorno dos lábios
+✗ NÃO altere: formato dos dentes, alinhamento dentário, proporções dentárias
+✗ NÃO altere: posição gengival, anatomia gengival
+✗ NÃO altere: textura superficial dos dentes (manter naturalidade)
+
+MODIFICAR APENAS:
+✓ Cor dos dentes: transição suave da cor atual para BL2
+✓ Uniformização da tonalidade: remover manchas, descolorações e variações de cor
+✓ Luminosidade: aumentar o brilho natural do esmalte
+✓ Saturação: reduzir tons amarelados mantendo aspecto natural
+
+DIRETRIZES TÉCNICAS:
+- Respeitar a anatomia dental existente (não remodelar)
+- Manter diferenças sutis de luminosidade entre dentes para naturalidade
+- Preservar sombras e reflexos naturais dos dentes
+- Garantir transição gradual entre dente e gengiva
+- Manter transparência nas bordas incisais (quando presente naturalmente)
+
+RESULTADO ESPERADO:
+- Imagem fotorrealista indistinguível de uma foto real
+- Clareamento natural e harmonioso com o rosto do paciente
+- Dentes visivelmente mais brancos, mas com aparência natural (não artificial)
+- Adequado para uso clínico/comercial (prévia de tratamento)
+- O paciente deve reconhecer seu próprio sorriso, apenas mais branco
+
+IMPORTANTE: O resultado deve parecer um clareamento dental real, não uma edição digital óbvia. A naturalidade é essencial.
+
+SAÍDA:
+- Retorne apenas a imagem simulada final (JPEG base64) sem texto ou legendas.
+`;
+
 /**
- * ✅ NOVO: Prompt de simulação conservador BL2-BL4
- * Constrói o prompt para geração de imagem respeitando serviços ativos e faixa cromática
+ * ✅ NOVO: Prompt de simulação específico por tipo de tratamento
+ * Constrói o prompt para geração de imagem respeitando o tipo de tratamento
  */
 function buildSimulationPrompt(
   analiseJSON: any,
   servicos_ativos: string[],
   beforeImageRef: string
 ): string {
-  return `
-Você é um assistente de design de sorriso. Gere uma imagem simulada realista do "depois" com base na foto "antes" (${beforeImageRef}) e nos dados de "analiseJSON".
-
-REGRAS DE RENDERIZAÇÃO:
-- **Preserve** identidade, ângulo de câmera, expressão, pele, olhos e iluminação.
-- **Modifique apenas os dentes**: forma, microalinhamento e cor segundo o plano.
-- **Cor final na escala Vita**: **SEMPRE BL2 (obrigatório)**.
-  - NÃO use BL1, BL3, BL4 ou qualquer outra cor.
-- **Serviços ativos**: aplique **apenas** procedimentos presentes em ${JSON.stringify(servicos_ativos)}.
-- Se "quantidade_facetas" for 2 ou 4, **inclua clareamento** dos demais dentes para uniformizar com a cor das facetas (etapa prévia).
-- **Proporção da imagem** deve ser preservada (sem distorções ou crop agressivo).
-- Resultado deve ser **natural e plausível** (sem brilho artificial excessivo, sem "Hollywood smile").
-
-PLANOS TÍPICOS:
-- 0 facetas → somente clareamento (uniformizar cor para **BL2**).
-- 2 facetas (11 e 21) → harmonizar forma/cor desses dentes; clarear os demais para igualar (**BL2**).
-- 4 facetas (11, 12, 21, 22) → harmonizar forma/cor nesses; clarear demais dentes (**BL2**).
-- 6 facetas (13–23) → harmonizar frente superior; ajustar tom geral para (**BL2**).
-
-DADOS RECEBIDOS:
-- quantidade_facetas: ${String(analiseJSON?.quantidade_facetas ?? analiseJSON?.recomendacao_tratamento?.quantidade_facetas ?? 0)}
-- dentes_tratados: ${JSON.stringify(analiseJSON?.dentes_tratados ?? analiseJSON?.recomendacao_tratamento?.dentes_fdi_tratados ?? [])}
-- cor_recomendada: BL2 (PADRÃO FIXO)
-- procedimentos_recomendados: ${JSON.stringify(analiseJSON?.procedimentos_recomendados ?? [])}
-
-SAÍDA:
-- Retorne **apenas** a imagem simulada final (ex.: JPEG base64) sem legendas ou texto.
-`;
+  const analise = analiseJSON?.analise || analiseJSON;
+  const tipoTratamento = analise?.tipo_tratamento || 'facetas';
+  const quantidadeFacetas = analise?.decisao_clinica?.quantidade_facetas || 
+                            analise?.quantidade_facetas || 0;
+  
+  // Detectar se é clareamento
+  const isClareamento = tipoTratamento === 'clareamento' || quantidadeFacetas === 0;
+  
+  // Retornar prompt específico
+  return isClareamento ? PROMPT_CLAREAMENTO : PROMPT_FACETAS;
 }
 
 /**

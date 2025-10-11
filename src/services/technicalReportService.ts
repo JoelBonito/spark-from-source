@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { TECHNICAL_REPORT_PROMPT } from '@/config/technicalReportPrompt';
+import { FACETAS_REPORT_PROMPT, CLAREAMENTO_REPORT_PROMPT } from '@/config/technicalReportPrompt';
 
 export interface TechnicalReportData {
   reportNumber: string;
@@ -26,7 +26,8 @@ export function generateReportNumber(): string {
 
 export async function generateTechnicalReportWithGemini(
   imageBase64: string,
-  geminiApiKey: string
+  geminiApiKey: string,
+  treatmentType: 'facetas' | 'clareamento' = 'facetas'
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(geminiApiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
@@ -38,17 +39,26 @@ export async function generateTechnicalReportWithGemini(
     },
   };
 
-  const result = await model.generateContent([TECHNICAL_REPORT_PROMPT, imagePart]);
+  const prompt = treatmentType === 'clareamento' 
+    ? CLAREAMENTO_REPORT_PROMPT 
+    : FACETAS_REPORT_PROMPT;
+
+  const result = await model.generateContent([prompt, imagePart]);
   const response = await result.response;
   return response.text();
 }
 
 export async function generateTechnicalReportWithClaude(
   imageBase64: string,
-  claudeApiKey: string
+  claudeApiKey: string,
+  treatmentType: 'facetas' | 'clareamento' = 'facetas'
 ): Promise<string> {
   try {
     console.log('Gerando relatório técnico com Claude...');
+    
+    const prompt = treatmentType === 'clareamento' 
+      ? CLAREAMENTO_REPORT_PROMPT 
+      : FACETAS_REPORT_PROMPT;
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -64,7 +74,7 @@ export async function generateTechnicalReportWithClaude(
             content: [
               { 
                 type: 'text', 
-                text: TECHNICAL_REPORT_PROMPT 
+                text: prompt
               },
               {
                 type: 'image_url',
