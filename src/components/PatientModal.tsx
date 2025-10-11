@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
 import { Patient } from '@/services/patientService';
-import { patientSchema, PatientFormData } from '@/utils/patientValidation';
+import { patientSchema, PatientFormData, formatPhoneNumber } from '@/utils/patientValidation';
 import {
   Dialog,
   DialogContent,
@@ -84,7 +84,12 @@ export const PatientModal: React.FC<PatientModalProps> = ({
             <Label htmlFor="phone">Telefone *</Label>
             <Input
               id="phone"
-              {...register('phone')}
+              {...register('phone', {
+                onChange: (e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  e.target.value = formatted;
+                }
+              })}
               placeholder="(11) 99999-9999"
               className="mt-1"
             />

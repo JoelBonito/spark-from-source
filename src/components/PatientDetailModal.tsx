@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Phone, Mail, MapPin, FileText, DollarSign } from 'lucide-react';
+import { X, Calendar, Phone, Mail, MapPin, FileText, DollarSign, Pencil, Plus, Sparkles, Sun } from 'lucide-react';
 import { usePatientDetail } from '@/hooks/usePatientDetail';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -11,18 +11,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface PatientDetailModalProps {
   patientId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (patientId: string) => void;
+  onNewSimulation?: (patientId: string) => void;
 }
 
 export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
   patientId,
   isOpen,
-  onClose
+  onClose,
+  onEdit,
+  onNewSimulation
 }) => {
   const { patient, simulations, loading } = usePatientDetail(patientId);
 
@@ -32,15 +40,45 @@ export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Detalhes do Paciente</DialogTitle>
-          <DialogDescription>
-            Informações cadastrais e histórico de simulações do paciente
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Detalhes do Paciente</DialogTitle>
+              <DialogDescription>
+                Informações cadastrais e histórico de simulações do paciente
+              </DialogDescription>
+            </div>
+            {patient && onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onEdit(patient.id);
+                  onClose();
+                }}
+                className="flex items-center gap-2"
+              >
+                <Pencil className="w-4 h-4" />
+                Editar
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="space-y-6">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <Skeleton className="h-6 w-48" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
           </div>
         ) : patient ? (
           <div className="space-y-6">
@@ -93,9 +131,13 @@ export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
               </h4>
 
               {simulations.length === 0 ? (
-                <div className="bg-muted/30 rounded-lg p-6 text-center">
+                <div className="bg-muted/30 rounded-lg p-6 text-center space-y-2">
+                  <FileText className="w-8 h-8 text-muted-foreground mx-auto" />
                   <p className="text-sm text-muted-foreground">
                     Nenhuma simulação realizada ainda
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Crie uma nova simulação para este paciente
                   </p>
                 </div>
               ) : (
@@ -106,10 +148,28 @@ export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
                       className="bg-card border rounded-lg p-4 hover:shadow-sm transition-shadow"
                     >
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">
-                            {format(new Date(simulation.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                          </p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">
+                              {format(new Date(simulation.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            </p>
+                            <Badge 
+                              variant={simulation.treatment_type === 'clareamento' ? 'default' : 'secondary'}
+                              className="flex items-center gap-1"
+                            >
+                              {simulation.treatment_type === 'clareamento' ? (
+                                <>
+                                  <Sun className="w-3 h-3" />
+                                  Clareamento
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3 h-3" />
+                                  Facetas
+                                </>
+                              )}
+                            </Badge>
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             {simulation.teeth_count} dentes • Status: {simulation.status}
                           </p>
@@ -162,6 +222,22 @@ export const PatientDetailModal: React.FC<PatientDetailModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Footer com ação de Nova Simulação */}
+            {patient && onNewSimulation && (
+              <DialogFooter>
+                <Button 
+                  onClick={() => {
+                    onNewSimulation(patient.id);
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nova Simulação
+                </Button>
+              </DialogFooter>
+            )}
           </div>
         ) : null}
       </DialogContent>

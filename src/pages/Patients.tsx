@@ -89,6 +89,22 @@ export const Patients = () => {
     navigate('/', { state: { selectedPatient: patient } });
   };
 
+  const handleEditFromDetail = (patientId: string) => {
+    setIsDetailModalOpen(false);
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+      setSelectedPatient(patient);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleNewSimulationFromDetail = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+      navigate('/', { state: { selectedPatient: patient } });
+    }
+  };
+
   const handleSave = async (data: PatientFormData) => {
     try {
       if (selectedPatient) {
@@ -248,6 +264,8 @@ export const Patients = () => {
           patientId={detailPatientId}
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
+          onEdit={handleEditFromDetail}
+          onNewSimulation={handleNewSimulationFromDetail}
         />
 
         {/* Confirmação de Delete */}
