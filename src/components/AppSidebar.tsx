@@ -25,6 +25,7 @@ const menuItems = [
   { title: "Simulador", url: "/", icon: Image, highlight: true },
   { title: "CRM", url: "/crm", icon: Kanban, highlight: true },
   { title: "Pacientes", url: "/pacientes", icon: Users },
+  { title: "Orçamentos", url: "/budgets", icon: FileText },
   { title: "Serviços", url: "/services", icon: DollarSign },
 ];
 

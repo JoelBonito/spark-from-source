@@ -12,6 +12,7 @@ import { Patients } from "./pages/Patients";
 import CRM from "./pages/CRM";
 import Dashboard from "./pages/Dashboard";
 import { Services } from "./pages/Services";
+import { Budgets } from "./pages/Budgets";
 import { ConfigProvider, useConfig } from "./contexts/ConfigContext";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/" element={<Index />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/services" element={<Services />} />
+      <Route path="/budgets" element={<Budgets />} />
       <Route path="/config" element={<Config />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/pacientes" element={<Patients />} />
