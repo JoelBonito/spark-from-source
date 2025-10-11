@@ -218,6 +218,7 @@ export type Database = {
           source: string | null
           stage: string | null
           tags: string[] | null
+          treatment_type: string | null
           updated_at: string | null
           user_id: string
         }
@@ -236,6 +237,7 @@ export type Database = {
           source?: string | null
           stage?: string | null
           tags?: string[] | null
+          treatment_type?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -254,6 +256,7 @@ export type Database = {
           source?: string | null
           stage?: string | null
           tags?: string[] | null
+          treatment_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -366,6 +369,48 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          active: boolean
+          base: boolean
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          price: number
+          required: boolean
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          base?: boolean
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+          required?: boolean
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          base?: boolean
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          required?: boolean
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       simulations: {
         Row: {
           budget_data: Json | null
@@ -385,6 +430,7 @@ export type Database = {
           teeth_analyzed: Json | null
           teeth_count: number | null
           total_price: number | null
+          treatment_type: string | null
           updated_at: string | null
           user_id: string
         }
@@ -406,6 +452,7 @@ export type Database = {
           teeth_analyzed?: Json | null
           teeth_count?: number | null
           total_price?: number | null
+          treatment_type?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -427,6 +474,7 @@ export type Database = {
           teeth_analyzed?: Json | null
           teeth_count?: number | null
           total_price?: number | null
+          treatment_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -457,6 +505,7 @@ export type Database = {
           updated_at: string
           use_claude: boolean | null
           user_id: string
+          whitening_simulator_enabled: boolean | null
         }
         Insert: {
           api_key: string
@@ -474,6 +523,7 @@ export type Database = {
           updated_at?: string
           use_claude?: boolean | null
           user_id: string
+          whitening_simulator_enabled?: boolean | null
         }
         Update: {
           api_key?: string
@@ -491,6 +541,7 @@ export type Database = {
           updated_at?: string
           use_claude?: boolean | null
           user_id?: string
+          whitening_simulator_enabled?: boolean | null
         }
         Relationships: []
       }

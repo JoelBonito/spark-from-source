@@ -70,3 +70,69 @@ export interface AnalysisResult {
   analysis: AnalysisData;
   needsClareamento: boolean;
 }
+
+// NOVA ESTRUTURA JSON - Sistema de Pontuação Clínica
+
+export interface AnaliseJSON {
+  analise: {
+    tipo_tratamento: 'clareamento' | 'facetas' | 'facetas_clareamento';
+    tom_pele: 'clara' | 'média' | 'morena' | 'escura';
+    cor_olhos: 'claros' | 'médios' | 'escuros';
+    
+    estado_geral: {
+      alinhamento: 'normal' | 'leve' | 'severo';
+      alinhamento_pontos: 0 | 1 | 3;
+      alinhamento_detalhes: string;
+      
+      proporcao: 'normal' | 'leve' | 'severo';
+      proporcao_pontos: 0 | 1 | 3;
+      proporcao_detalhes: string;
+      
+      forma: 'normal' | 'leve' | 'severo';
+      forma_pontos: 0 | 1 | 3;
+      forma_detalhes: string;
+      
+      integridade: 'normal' | 'leve' | 'severo';
+      integridade_pontos: 0 | 1 | 3;
+      integridade_detalhes: string;
+      
+      cor: 'normal' | 'leve' | 'severo';
+      cor_pontos: 0 | 1 | 3;
+      cor_detalhes: string;
+      
+      linha_gengival: 'normal' | 'leve' | 'severo';
+      linha_gengival_detalhes: string;
+      
+      pontuacao_total: number;
+      interpretacao: string;
+    };
+    
+    decisao_clinica: {
+      conducta: 'clareamento' | 'facetas' | 'facetas_clareamento';
+      justificativa_tecnica: string;
+      quantidade_facetas: 0 | 2 | 4 | 6;
+      dentes_tratados: string[];
+      dentes_justificativa: string | null;
+    };
+    
+    procedimentos_recomendados: string[];
+    procedimentos_opcionais: string[];
+    cor_recomendada: 'BL2' | 'BL3';
+    
+    detalhamento_por_dente: {
+      [dente: string]: {
+        problemas: string[];
+        necessita_faceta: boolean;
+        justificativa: string;
+      };
+    };
+    
+    orcamento: {
+      tratamento_principal: string;
+      valor_base_tipo: 'clareamento' | 'facetas_2' | 'facetas_4' | 'facetas_6';
+      procedimentos_inclusos: string[];
+      procedimentos_opcionais: string[];
+      observacoes: string;
+    };
+  };
+}
