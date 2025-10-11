@@ -1,3 +1,5 @@
+import { WHITENING_PROMPT } from './whiteningPrompt.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -5,32 +7,29 @@ const corsHeaders = {
 
 /**
  * ═════════════════════════════════════════════════════════════════════════
- * EDGE FUNCTION: PROCESSAMENTO DE ANÁLISE DENTAL E SIMULAÇÃO DE FACETAS
+ * EDGE FUNCTION: PROCESSAMENTO DE ANÁLISE DENTAL (FACETAS + CLAREAMENTO)
  * ═════════════════════════════════════════════════════════════════════════
  * 
- * FLUXO COMPLETO:
+ * FASE 4: PROMPTS SEPARADOS POR TIPO DE TRATAMENTO
+ * FASE 5: VALIDAÇÃO JSON CONTRA SCHEMA
+ * 
+ * FLUXO:
  * 
  * 1. ANÁLISE (action='analyze'):
- *    - Envia imagem para Gemini
- *    - Gemini gera 2 DOCUMENTOS EM TEXTO:
- *      a) Relatório Técnico (para dentista) - com seções estruturadas
- *      b) Orçamento (para paciente) - com valores e formas de pagamento
- *    - Retorna: { relatorio_tecnico: "...", orcamento: "..." }
+ *    - Recebe treatment_type ('facetas' | 'clareamento')
+ *    - Seleciona prompt apropriado
+ *    - Gemini gera JSON estruturado conforme schema
+ *    - Valida JSON contra interface AnaliseJSON
+ *    - Retorna: { analise_data: {...}, metadata: {...} }
  * 
  * 2. GERAÇÃO (action='generate'):
- *    - Recebe: relatório técnico (texto)
- *    - Extrai automaticamente:
- *      • Seção "DENTES A SEREM TRATADOS" → códigos FDI: (11), (21), etc.
- *      • Seção "ESPECIFICAÇÕES TÉCNICAS" → material, cor, técnica, etc.
- *    - Converte para JSON: { dentes_tratados: [...], especificacoes: {...} }
- *    - Constrói prompt customizado baseado nos dados extraídos
- *    - Gemini gera imagem simulada fotorrealista
- *    - Retorna: { processedImageBase64: "...", simulationData: {...} }
+ *    - Constrói prompt de simulação visual
+ *    - Gemini gera imagem realista
+ *    - Retorna: { processedImageBase64: "..." }
  * 
  * IMPORTANTE:
- * - O ORÇAMENTO não é usado para geração de imagem
- * - Cada caso é diferente (pode ter 0, 4, 6 facetas ou apenas clareamento)
- * - Extração é DINÂMICA, não usa valores fixos
+ * - Cada tipo de tratamento tem seu prompt otimizado
+ * - JSON validado garante consistência de dados
  * ═════════════════════════════════════════════════════════════════════════
  */
 
@@ -1120,7 +1119,7 @@ Deno.serve(async (req) => {
   
   try {
     const body = await req.json();
-    const { imageBase64, action, analysisData, reportText, config } = body;
+    const { imageBase64, action, analysisData, reportText, config, treatment_type } = body;
     
     if (!imageBase64) {
       throw new Error('Imagem não fornecida');
@@ -1139,6 +1138,7 @@ Deno.serve(async (req) => {
       console.log('═══════════════════════════════════════');
       console.log('AÇÃO: ANÁLISE (gerar documentos)');
       console.log('Modelo: Gemini (google/gemini-2.5-flash)');
+      console.log(`Tipo de tratamento: ${treatment_type || 'facetas'}`);
       console.log('═══════════════════════════════════════');
       
       // Receber e processar serviços ativos
@@ -1165,11 +1165,22 @@ Deno.serve(async (req) => {
       
       console.log('✓ Tratamentos disponíveis:', tratamentosDisponiveis);
       
-      // ✅ NOVO: Usar prompt conservador BL2-BL4
+      // ✅ FASE 4: Selecionar prompt baseado em treatment_type
       const servicos_ativos_names = servicos_ativos.map((s: any) => s.name || s);
-      const analysisPrompt = buildAnalysisPrompt({}, servicos_ativos_names);
-      console.log(`📝 Prompt conservador BL2-BL4 construído: ${analysisPrompt.length} caracteres`);
-      console.log('✓ Prompt adaptado aos serviços disponíveis');
+      let analysisPrompt: string;
+      
+      if (treatment_type === 'clareamento') {
+        // Usar prompt simplificado para clareamento
+        analysisPrompt = WHITENING_PROMPT;
+        console.log('📝 Prompt de CLAREAMENTO selecionado');
+      } else {
+        // Usar prompt completo para facetas
+        analysisPrompt = buildAnalysisPrompt({}, servicos_ativos_names);
+        console.log('📝 Prompt de FACETAS selecionado');
+      }
+      
+      console.log(`📝 Prompt construído: ${analysisPrompt.length} caracteres`);
+      console.log('✓ Prompt adaptado ao tipo de tratamento');
       
       // Timeout de 90 segundos para a requisição
       const controller = new AbortController();

@@ -418,7 +418,8 @@ export default function Index() {
         body: JSON.stringify({
           action: 'analyze',
           imageBase64: originalImage,
-          servicos_ativos: servicosParaEdge
+          servicos_ativos: servicosParaEdge,
+          treatment_type: simulationType  // ✅ FASE 4: Enviar tipo de tratamento
         }),
       });
 
