@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
@@ -10,10 +10,12 @@ import { StatsCards } from '@/components/StatsCards';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Budget } from '@/services/budgetService';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const Budgets = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('all');
+  const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [detailBudgetId, setDetailBudgetId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -56,6 +58,9 @@ export const Budgets = () => {
         return false;
       }
     }
+    if (treatmentFilter !== 'all' && budget.treatment_type !== treatmentFilter) {
+      return false;
+    }
     return true;
   });
 
@@ -72,6 +77,23 @@ export const Budgets = () => {
 
         {/* Estatísticas */}
         <StatsCards stats={stats} />
+
+        {/* Filtro por tipo de tratamento */}
+        <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as any)}>
+          <TabsList>
+            <TabsTrigger value="all">
+              Todos
+            </TabsTrigger>
+            <TabsTrigger value="facetas">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Facetas
+            </TabsTrigger>
+            <TabsTrigger value="clareamento">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Clareamento
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Filtros */}
         <div className="space-y-4">
@@ -101,7 +123,7 @@ export const Budgets = () => {
           </div>
         ) : (
           <BudgetTable
-            budgets={budgets}
+            budgets={filteredBudgets}
             onView={handleView}
             onStatusChange={handleStatusChange}
           />

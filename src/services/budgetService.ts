@@ -21,6 +21,7 @@ export interface Budget {
   pdf_url: string | null;
   user_id: string;
   budget_type?: 'automatic' | 'manual';
+  treatment_type: 'facetas' | 'clareamento';
   items?: any[];
   patient?: {
     name: string;
@@ -94,6 +95,7 @@ export async function getAllBudgets(filters?: BudgetFilters): Promise<Budget[]> 
     patient: (budget.patient as any) || null,
     status: budget.status as Budget['status'],
     budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
   }));
 }
@@ -118,6 +120,7 @@ export async function getBudgetById(id: string): Promise<Budget | null> {
     simulation: data.simulation?.[0] || null,
     status: data.status as Budget['status'],
     budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
@@ -146,6 +149,7 @@ export async function createBudget(budgetData: CreateBudgetData): Promise<Budget
     ...data,
     status: data.status as Budget['status'],
     budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
@@ -166,6 +170,7 @@ export async function updateBudgetStatus(
     ...data,
     status: data.status as Budget['status'],
     budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(data.items) ? data.items : (data.items ? [data.items] : [])
   };
 }
@@ -191,6 +196,7 @@ export async function searchBudgets(query: string): Promise<Budget[]> {
     patient: budget.patient?.[0] || null,
     status: budget.status as Budget['status'],
     budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
   }));
 }
@@ -317,6 +323,7 @@ export async function createManualBudget(
     ...data,
     status: data.status as Budget['status'],
     budget_type: data.budget_type as 'automatic' | 'manual',
+    treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(data.items) ? data.items : []
   };
 }

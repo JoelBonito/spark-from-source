@@ -76,6 +76,7 @@ export type Database = {
           status: string | null
           subtotal: number
           teeth_count: number
+          treatment_type: string
           updated_at: string | null
           user_id: string
           valid_until: string | null
@@ -100,6 +101,7 @@ export type Database = {
           status?: string | null
           subtotal: number
           teeth_count: number
+          treatment_type?: string
           updated_at?: string | null
           user_id: string
           valid_until?: string | null
@@ -124,6 +126,7 @@ export type Database = {
           status?: string | null
           subtotal?: number
           teeth_count?: number
+          treatment_type?: string
           updated_at?: string | null
           user_id?: string
           valid_until?: string | null

@@ -1,31 +1,50 @@
 import React from 'react';
-import { DollarSign, CreditCard, Calendar } from 'lucide-react';
+import { DollarSign, CreditCard, Calendar, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface BudgetDisplayProps {
   teethCount: number;
   onTeethCountChange?: (count: number) => void;
   budget: any;
   editable?: boolean;
+  treatmentType?: 'facetas' | 'clareamento';
 }
 
 export const BudgetDisplay = ({
   teethCount,
   onTeethCountChange,
   budget,
-  editable = false
+  editable = false,
+  treatmentType = 'facetas'
 }: BudgetDisplayProps) => {
+  const getTreatmentLabel = () => {
+    return treatmentType === 'facetas' ? 'Facetas Dentárias' : 'Clareamento Dental';
+  };
+
+  const getTeethLabel = () => {
+    return treatmentType === 'facetas' ? 'facetas' : 'dentes';
+  };
+
   return (
     <div className="bg-card rounded-lg border shadow-sm p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <DollarSign className="w-6 h-6 text-green-600" />
-        <h3 className="text-xl font-bold text-foreground">Orçamento Automático</h3>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-6 h-6 text-green-600" />
+          <h3 className="text-xl font-bold text-foreground">Orçamento Automático</h3>
+        </div>
+        <Badge variant={treatmentType === 'facetas' ? 'default' : 'secondary'} className="gap-1">
+          <Sparkles className="w-3 h-3" />
+          {getTreatmentLabel()}
+        </Badge>
       </div>
 
       {/* Resumo */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Número de Facetas Detectadas</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              Número de {treatmentType === 'facetas' ? 'Facetas Detectadas' : 'Dentes para Clareamento'}
+            </p>
             <div className="flex items-center gap-3">
               {editable ? (
                 <input
@@ -39,11 +58,13 @@ export const BudgetDisplay = ({
               ) : (
                 <p className="text-3xl font-bold text-foreground">{teethCount}</p>
               )}
-              <span className="text-muted-foreground">facetas</span>
+              <span className="text-muted-foreground">{getTeethLabel()}</span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground mb-1">Valor por Faceta</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              Valor por {treatmentType === 'facetas' ? 'Faceta' : 'Dente'}
+            </p>
             <p className="text-2xl font-bold text-foreground">
               R$ {budget.pricePerTooth.toFixed(2)}
             </p>
