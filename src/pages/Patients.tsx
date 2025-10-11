@@ -7,11 +7,18 @@ import { usePatientForm } from '@/hooks/usePatientForm';
 import { PatientTable } from '@/components/PatientTable';
 import { PatientModal } from '@/components/PatientModal';
 import { PatientDetailModal } from '@/components/PatientDetailModal';
-import { Patient, deletePatient, searchPatients, getPatientStats } from '@/services/patientService';
+import { ComparisonViewModal } from '@/components/ComparisonViewModal';
+import { TechnicalReportDialog } from '@/components/TechnicalReportDialog';
+import { BudgetDetailModal } from '@/components/BudgetDetailModal';
+import { BudgetFormModal } from '@/components/BudgetFormModal';
+import { PatientWithRelations, deletePatient, searchPatients, getPatientStats } from '@/services/patientService';
+import { updateBudget } from '@/services/budgetService';
+import type { Budget } from '@/services/budgetService';
 import { PatientFormData } from '@/utils/patientValidation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,14 +36,39 @@ export const Patients = () => {
   const { patients, loading, refresh } = usePatients();
   const { saving, createPatient, updatePatient } = usePatientForm();
   
-  const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  const [filteredPatients, setFilteredPatients] = useState<PatientWithRelations[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientWithRelations | null>(null);
   const [detailPatientId, setDetailPatientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [deleteConfirmPatient, setDeleteConfirmPatient] = useState<Patient | null>(null);
+  const [deleteConfirmPatient, setDeleteConfirmPatient] = useState<PatientWithRelations | null>(null);
   const [stats, setStats] = useState({ total: 0, withSimulations: 0, newThisMonth: 0 });
+
+  // Estados para modais de visualização
+  const [comparisonModal, setComparisonModal] = useState<{
+    isOpen: boolean;
+    beforeImage: string;
+    afterImage: string;
+    patientName: string;
+  } | null>(null);
+
+  const [technicalReportModal, setTechnicalReportModal] = useState<{
+    isOpen: boolean;
+    data: any;
+    patientName: string;
+  } | null>(null);
+
+  const [budgetDetailModal, setBudgetDetailModal] = useState<{
+    isOpen: boolean;
+    budgetId: string;
+  } | null>(null);
+
+  const [budgetFormModal, setBudgetFormModal] = useState<{
+    isOpen: boolean;
+    budget: Budget;
+    patientName: string;
+  } | null>(null);
 
   useEffect(() => {
     setFilteredPatients(patients);
@@ -75,17 +107,17 @@ export const Patients = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (patient: Patient) => {
+  const handleEdit = (patient: PatientWithRelations) => {
     setSelectedPatient(patient);
     setIsModalOpen(true);
   };
 
-  const handleView = (patient: Patient) => {
+  const handleView = (patient: PatientWithRelations) => {
     setDetailPatientId(patient.id);
     setIsDetailModalOpen(true);
   };
 
-  const handleNewSimulation = (patient: Patient) => {
+  const handleNewSimulation = (patient: PatientWithRelations) => {
     navigate('/', { state: { selectedPatient: patient } });
   };
 
@@ -163,6 +195,144 @@ export const Patients = () => {
         title: 'Erro',
         description: 'Erro ao deletar paciente',
         variant: 'destructive',
+      });
+    }
+  };
+
+  const handleViewComparison = (patient: PatientWithRelations) => {
+    if (!patient.latest_simulation?.original_image_url || 
+        !patient.latest_simulation?.processed_image_url) {
+      toast({
+        title: 'Aviso',
+        description: 'Este paciente não possui imagens de simulação',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setComparisonModal({
+      isOpen: true,
+      beforeImage: patient.latest_simulation.original_image_url,
+      afterImage: patient.latest_simulation.processed_image_url,
+      patientName: patient.name
+    });
+  };
+
+  const handleViewTechnicalReport = (patient: PatientWithRelations) => {
+    if (!patient.latest_simulation?.technical_notes) {
+      toast({
+        title: 'Aviso',
+        description: 'Este paciente não possui relatório técnico',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    let parsedData;
+    try {
+      parsedData = typeof patient.latest_simulation.technical_notes === 'string'
+        ? JSON.parse(patient.latest_simulation.technical_notes)
+        : patient.latest_simulation.technical_notes;
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar relatório técnico',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setTechnicalReportModal({
+      isOpen: true,
+      data: parsedData,
+      patientName: patient.name
+    });
+  };
+
+  const handleViewBudget = (patient: PatientWithRelations) => {
+    if (!patient.latest_budget) {
+      toast({
+        title: 'Aviso',
+        description: 'Este paciente não possui orçamento',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setBudgetDetailModal({
+      isOpen: true,
+      budgetId: patient.latest_budget.id
+    });
+  };
+
+  const handleEditBudget = async (patient: PatientWithRelations) => {
+    if (!patient.latest_budget) {
+      toast({
+        title: 'Aviso',
+        description: 'Este paciente não possui orçamento',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('id', patient.latest_budget.id)
+        .single();
+
+      if (error) throw error;
+
+      setBudgetFormModal({
+        isOpen: true,
+        budget: data as Budget,
+        patientName: patient.name
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar orçamento',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSaveBudget = async (data: any) => {
+    if (!budgetFormModal) return;
+
+    try {
+      const itemsWithTotals = data.items.map((item: any) => ({
+        ...item,
+        valor_total: item.quantidade * item.valor_unitario
+      }));
+
+      const subtotal = itemsWithTotals.reduce((sum: number, item: any) => 
+        sum + item.valor_total, 0);
+      const discountAmount = subtotal * (data.discount / 100);
+      const finalPrice = subtotal - discountAmount;
+
+      await updateBudget(budgetFormModal.budget.id, {
+        items: itemsWithTotals,
+        subtotal,
+        discount_percentage: data.discount,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+        treatment_type: data.treatment_type
+      });
+
+      toast({
+        title: 'Sucesso',
+        description: 'Orçamento atualizado com sucesso!'
+      });
+
+      setBudgetFormModal(null);
+      refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao salvar orçamento',
+        variant: 'destructive'
       });
     }
   };
@@ -249,6 +419,10 @@ export const Patients = () => {
             onDelete={(patient) => setDeleteConfirmPatient(patient)}
             onView={handleView}
             onNewSimulation={handleNewSimulation}
+            onViewComparison={handleViewComparison}
+            onViewBudget={handleViewBudget}
+            onEditBudget={handleEditBudget}
+            onViewTechnicalReport={handleViewTechnicalReport}
           />
         )}
 
@@ -267,6 +441,49 @@ export const Patients = () => {
           onEdit={handleEditFromDetail}
           onNewSimulation={handleNewSimulationFromDetail}
         />
+
+        {/* Modais de Visualização */}
+        {comparisonModal && (
+          <ComparisonViewModal
+            isOpen={comparisonModal.isOpen}
+            onClose={() => setComparisonModal(null)}
+            beforeImage={comparisonModal.beforeImage}
+            afterImage={comparisonModal.afterImage}
+            patientName={comparisonModal.patientName}
+          />
+        )}
+
+        {technicalReportModal && (
+          <TechnicalReportDialog
+            open={technicalReportModal.isOpen}
+            onOpenChange={(open) => !open && setTechnicalReportModal(null)}
+            data={technicalReportModal.data}
+            patientName={technicalReportModal.patientName}
+            onDownloadPDF={() => {
+              toast({
+                title: 'Info',
+                description: 'Download do relatório em desenvolvimento'
+              });
+            }}
+          />
+        )}
+
+        {budgetDetailModal && (
+          <BudgetDetailModal
+            budgetId={budgetDetailModal.budgetId}
+            isOpen={budgetDetailModal.isOpen}
+            onClose={() => setBudgetDetailModal(null)}
+          />
+        )}
+
+        {budgetFormModal && (
+          <BudgetFormModal
+            isOpen={budgetFormModal.isOpen}
+            onClose={() => setBudgetFormModal(null)}
+            budget={budgetFormModal.budget}
+            onSave={handleSaveBudget}
+          />
+        )}
 
         {/* Confirmação de Delete */}
         <AlertDialog

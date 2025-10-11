@@ -34,6 +34,24 @@ export interface UpdatePatientData {
   status?: string;
 }
 
+export interface PatientWithRelations extends Patient {
+  latest_simulation?: {
+    id: string;
+    original_image_url: string | null;
+    processed_image_url: string | null;
+    technical_notes: string | null;
+    treatment_type: string;
+    created_at: string;
+  } | null;
+  latest_budget?: {
+    id: string;
+    budget_number: string;
+    final_price: number;
+    status: string;
+    created_at: string;
+  } | null;
+}
+
 export async function getAllPatients(): Promise<Patient[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -52,6 +70,52 @@ export async function getAllPatients(): Promise<Patient[]> {
   return (data || []).map(patient => ({
     ...patient,
     simulations_count: patient.simulations?.[0]?.count || 0
+  }));
+}
+
+export async function getPatientsWithRelations(): Promise<PatientWithRelations[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('patients')
+    .select(`
+      *,
+      simulations_count:simulations(count),
+      latest_simulation:simulations(
+        id,
+        original_image_url,
+        processed_image_url,
+        technical_notes,
+        treatment_type,
+        created_at
+      ),
+      latest_budget:budgets(
+        id,
+        budget_number,
+        final_price,
+        status,
+        created_at
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .order('created_at', { foreignTable: 'latest_simulation', ascending: false })
+    .order('created_at', { foreignTable: 'latest_budget', ascending: false })
+    .limit(1, { foreignTable: 'latest_simulation' })
+    .limit(1, { foreignTable: 'latest_budget' });
+
+  if (error) throw error;
+
+  return (data || []).map(patient => ({
+    ...patient,
+    simulations_count: patient.simulations_count?.[0]?.count || 0,
+    latest_simulation: Array.isArray(patient.latest_simulation) && patient.latest_simulation.length > 0 
+      ? patient.latest_simulation[0] 
+      : null,
+    latest_budget: Array.isArray(patient.latest_budget) && patient.latest_budget.length > 0 
+      ? patient.latest_budget[0] 
+      : null
   }));
 }
 

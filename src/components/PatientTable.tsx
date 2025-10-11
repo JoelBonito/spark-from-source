@@ -1,16 +1,29 @@
 import React from 'react';
-import { Eye, Edit, Image, Trash2 } from 'lucide-react';
-import { Patient } from '@/services/patientService';
+import { Eye, Edit, Image, Trash2, MoreHorizontal, FileText, Images, ClipboardList } from 'lucide-react';
+import { PatientWithRelations } from '@/services/patientService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatPhoneNumber } from '@/utils/patientValidation';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from '@/components/ui/dropdown-menu';
 
 interface PatientTableProps {
-  patients: Patient[];
-  onEdit: (patient: Patient) => void;
-  onDelete: (patient: Patient) => void;
-  onView: (patient: Patient) => void;
-  onNewSimulation: (patient: Patient) => void;
+  patients: PatientWithRelations[];
+  onEdit: (patient: PatientWithRelations) => void;
+  onDelete: (patient: PatientWithRelations) => void;
+  onView: (patient: PatientWithRelations) => void;
+  onNewSimulation: (patient: PatientWithRelations) => void;
+  onViewComparison: (patient: PatientWithRelations) => void;
+  onViewBudget: (patient: PatientWithRelations) => void;
+  onEditBudget: (patient: PatientWithRelations) => void;
+  onViewTechnicalReport: (patient: PatientWithRelations) => void;
 }
 
 export const PatientTable: React.FC<PatientTableProps> = ({
@@ -18,7 +31,11 @@ export const PatientTable: React.FC<PatientTableProps> = ({
   onEdit,
   onDelete,
   onView,
-  onNewSimulation
+  onNewSimulation,
+  onViewComparison,
+  onViewBudget,
+  onEditBudget,
+  onViewTechnicalReport
 }) => {
   if (patients.length === 0) {
     return (
@@ -81,36 +98,80 @@ export const PatientTable: React.FC<PatientTableProps> = ({
                   {format(new Date(patient.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => onView(patient)}
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Ver detalhes"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onEdit(patient)}
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onNewSimulation(patient)}
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      title="Nova simulação"
-                    >
-                      <Image className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(patient)}
-                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      title="Deletar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>Ações Rápidas</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem onClick={() => onView(patient)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={() => onEdit(patient)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Paciente
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={() => onNewSimulation(patient)}>
+                        <Image className="mr-2 h-4 w-4" />
+                        Nova Simulação
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Visualizações</DropdownMenuLabel>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => onViewComparison(patient)}
+                        disabled={!patient.latest_simulation?.original_image_url || !patient.latest_simulation?.processed_image_url}
+                      >
+                        <Images className="mr-2 h-4 w-4" />
+                        Ver Antes e Depois
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => onViewTechnicalReport(patient)}
+                        disabled={!patient.latest_simulation?.technical_notes}
+                      >
+                        <ClipboardList className="mr-2 h-4 w-4" />
+                        Ver Relatório Técnico
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Orçamentos</DropdownMenuLabel>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => onViewBudget(patient)}
+                        disabled={!patient.latest_budget}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Ver Orçamento
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => onEditBudget(patient)}
+                        disabled={!patient.latest_budget}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Orçamento
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(patient)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Deletar Paciente
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}
