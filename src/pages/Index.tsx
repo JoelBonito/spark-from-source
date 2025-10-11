@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
 import ImageUpload from "@/components/ImageUpload";
@@ -19,6 +20,7 @@ import { generateBudgetPDF, generateBudgetNumber } from "@/services/pdfService";
 import { getPatientById } from "@/services/patientService";
 import { usePatientForm } from "@/hooks/usePatientForm";
 import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
+import { useConfig } from "@/contexts/ConfigContext";
 
 /**
  * Extrai dados da análise dental de forma compatível com ambas estruturas
@@ -72,10 +74,12 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const { createPatient } = usePatientForm();
+  const { config } = useConfig();
 
   // Estados principais
   const [currentState, setCurrentState] = useState<SimulatorState>('input');
   const [hasApiConfig, setHasApiConfig] = useState(false);
+  const [simulationType, setSimulationType] = useState<'facetas' | 'clareamento'>('facetas');
   
   // Paciente
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -812,9 +816,21 @@ export default function Index() {
           <Card>
             <CardHeader>
               <CardTitle>Nova Simulação</CardTitle>
-              <CardDescription>Preencha os dados e faça o upload da foto</CardDescription>
+              <CardDescription>Escolha o tipo de simulação e preencha os dados</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* FASE 3: Seleção de Tipo de Simulação */}
+              {config?.whiteningSimulatorEnabled && (
+                <div className="space-y-2">
+                  <Label>Tipo de Simulação</Label>
+                  <Tabs value={simulationType} onValueChange={(v) => setSimulationType(v as 'facetas' | 'clareamento')}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="facetas">🦷 Facetas Dentárias</TabsTrigger>
+                      <TabsTrigger value="clareamento">✨ Clareamento Dental</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              )}
               {/* Seletor de Paciente */}
               <div className="space-y-2">
                 <Label>Paciente</Label>
