@@ -22,51 +22,18 @@ import { usePatientForm } from "@/hooks/usePatientForm";
 import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
 import { useConfig } from "@/contexts/ConfigContext";
 
-/**
- * Extrai dados da análise dental de forma compatível com ambas estruturas
- * (nova estrutura de pontuação + retrocompatibilidade)
- */
-function extractAnalysisData(analiseJSON: any) {
-  const analise = analiseJSON?.analise || analiseJSON;
-  
-  return {
-    tom_pele: analise?.tom_pele || 'não especificado',
-    cor_olhos: analise?.cor_olhos || 'não especificado',
-    
-    // Nova estrutura (sistema de pontuação)
-    quantidade_facetas: 
-      analise?.decisao_clinica?.quantidade_facetas ||
-      analise?.quantidade_facetas || 0,
-    
-    conducta: analise?.decisao_clinica?.conducta || '',
-    
-    dentes_tratados: 
-      analise?.decisao_clinica?.dentes_tratados ||
-      analise?.dentes_tratados || [],
-    
-    procedimentos_recomendados: 
-      analise?.procedimentos_recomendados || [],
-    
-    cor_recomendada: analise?.cor_recomendada || 'BL2',
-    
-    pontuacao_total: analise?.estado_geral?.pontuacao_total || 0
-  };
-}
-
 // Tipos simplificados
 type SimulatorState = 'input' | 'processing' | 'completed';
 
 interface AnalysisResult {
   success: boolean;
-  relatorio_tecnico?: string;
-  orcamento?: string;
-  analise_data?: any;
+  relatorio_tecnico: string;
+  orcamento: string;
+  treatment_type: 'facetas' | 'clareamento';
   metadata?: {
-    total_chars?: number;
-    finish_reason?: string;
-    truncated?: boolean;
     model?: string;
     timestamp?: string;
+    run_id?: string;
   };
 }
 
@@ -94,8 +61,6 @@ export default function Index() {
   // Análise e simulação
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
-  const [analiseJSON, setAnaliseJSON] = useState<any>(null);
-  const [orcamentoDinamico, setOrcamentoDinamico] = useState<any>(null);
   
   // Loading states
   const [processingTime, setProcessingTime] = useState<number>(0);
@@ -188,174 +153,6 @@ export default function Index() {
     }
   };
 
-  const fetchActiveServices = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn('⚠️ Usuário não autenticado');
-        return [];
-      }
-
-      const { data: services, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .order('name');
-
-      if (error) {
-        console.error('Erro ao buscar serviços:', error);
-        return [];
-      }
-
-      console.log(`✅ ${services?.length || 0} serviços ativos encontrados`);
-      return services || [];
-    } catch (error) {
-      console.error('Erro ao buscar serviços:', error);
-      return [];
-    }
-  };
-
-  const buildDynamicBudget = async (analiseJSON: any) => {
-    console.log('🔍 Iniciando montagem de orçamento dinâmico (FASE 3: busca por categoria)...');
-    
-    const servicosAtivos = await fetchActiveServices();
-    
-    if (servicosAtivos.length === 0) {
-      toast.warning('Nenhum serviço ativo configurado. Configure na aba Configurações.');
-      return {
-        itens: [],
-        opcionais: [],
-        subtotal: 0,
-        desconto_percentual: 10,
-        desconto_valor: 0,
-        total: 0
-      };
-    }
-    
-    // Helper: busca por categoria fixa
-    const getServiceByCategory = (categoryName: string) => {
-      const service = servicosAtivos.find(
-        s => s.category === categoryName && s.active && s.price > 0
-      );
-      if (!service) {
-        console.warn(`⚠️ Serviço obrigatório '${categoryName}' não encontrado ou inativo/preço zero`);
-      }
-      return service;
-    };
-    
-    const orcamentoItens: any[] = [];
-    const analise = analiseJSON?.analise || analiseJSON;
-    
-    // Quantidade de facetas - NOVA ESTRUTURA com fallback
-    const facetaCount = 
-      analise?.decisao_clinica?.quantidade_facetas ||  // ← Nova estrutura
-      analise?.quantidade_facetas ||                   // ← Retrocompatibilidade
-      0;
-    
-    // Procedimentos recomendados - campo mantido
-    const isClareamentoRecomendado = 
-      analise?.procedimentos_recomendados?.some((p: string) => 
-        p.toLowerCase().includes('clareamento')
-      );
-    
-    console.log(`📊 Dados da análise:`);
-    console.log(`   - Quantidade de facetas: ${facetaCount}`);
-    console.log(`   - Conduta: ${analise?.decisao_clinica?.conducta || 'não especificada'}`);
-    console.log(`   - Clareamento recomendado: ${isClareamentoRecomendado}`);
-    
-    console.log(`📊 Análise: ${facetaCount} facetas, clareamento: ${isClareamentoRecomendado}`);
-    
-    // 1. FACETAS (se recomendado)
-    if (facetaCount > 0) {
-      const faceta = getServiceByCategory('Facetas dentárias');
-      if (faceta) {
-        orcamentoItens.push({
-          servico: faceta.name,
-          quantidade: facetaCount,
-          valor_unitario: faceta.price,
-          valor_total: faceta.price * facetaCount,
-          category: faceta.category
-        });
-        console.log(`✓ Facetas: ${facetaCount}x R$ ${faceta.price.toFixed(2)} = R$ ${(faceta.price * facetaCount).toFixed(2)}`);
-      }
-    }
-    
-    // 2. CLAREAMENTO (se recomendado OU obrigatório por regra 2/4 facetas)
-    if (isClareamentoRecomendado || [2, 4].includes(facetaCount)) {
-      const clareamento = getServiceByCategory('Clareamento');
-      if (clareamento) {
-        orcamentoItens.push({
-          servico: clareamento.name,
-          quantidade: 1,
-          valor_unitario: clareamento.price,
-          valor_total: clareamento.price,
-          category: clareamento.category
-        });
-        console.log(`✓ Clareamento: 1x R$ ${clareamento.price.toFixed(2)}`);
-      }
-    }
-    
-    // 3. CONSULTA (sempre que houver qualquer recomendação)
-    if (facetaCount > 0 || isClareamentoRecomendado) {
-      const consulta = getServiceByCategory('Consulta');
-      if (consulta) {
-        orcamentoItens.push({
-          servico: consulta.name,
-          quantidade: 1,
-          valor_unitario: consulta.price,
-          valor_total: consulta.price,
-          category: consulta.category
-        });
-        console.log(`✓ Consulta: 1x R$ ${consulta.price.toFixed(2)}`);
-      } else {
-        console.error('❌ CRÍTICO: Consulta obrigatória não encontrada! Orçamento será R$ 0.00');
-        toast.error('Erro: Configure o serviço "Consulta de Planejamento" nas Configurações');
-      }
-    }
-    
-    // 4. GENGIVOPLASTIA (opcional)
-    const opcionais: any[] = [];
-    if (analise.gengivoplastia_recomendada || 
-        analise.procedimentos_recomendados?.some((p: string) => 
-          p.toLowerCase().includes('gengivo')
-        )) {
-      const gengivo = getServiceByCategory('Gengivoplastia');
-      if (gengivo) {
-        opcionais.push({
-          servico: gengivo.name,
-          valor: gengivo.price,
-          justificativa: analise.gengivoplastia_justificativa || 
-                        'Recomendado para correção da linha gengival',
-          category: gengivo.category
-        });
-        console.log(`ℹ️ Gengivoplastia (opcional): R$ ${gengivo.price.toFixed(2)}`);
-      }
-    }
-    
-    // 5. Calcular totais
-    const subtotal = orcamentoItens.reduce((sum, i) => sum + i.valor_total, 0);
-    const desconto_percentual = 10;
-    const desconto_valor = subtotal * (desconto_percentual / 100);
-    const total = subtotal - desconto_valor;
-    
-    if (total === 0) {
-      console.error('❌ ORÇAMENTO COM VALOR ZERO! Verifique configuração de serviços');
-      toast.error('Erro ao calcular orçamento: verifique os preços nas Configurações');
-    }
-    
-    console.log(`💰 Orçamento montado: ${orcamentoItens.length} itens, Subtotal: R$ ${subtotal.toFixed(2)}, Total: R$ ${total.toFixed(2)}`);
-    
-    return {
-      itens: orcamentoItens,
-      opcionais,
-      subtotal,
-      desconto_percentual,
-      desconto_valor,
-      total
-    };
-  };
-
   const handleQuickPatientCreate = async (data: { name: string; phone: string }) => {
     try {
       const patient = await createPatient(data);
@@ -381,7 +178,9 @@ export default function Index() {
     setCurrentState('input');
   };
 
-  // FLUXO UNIFICADO: Análise + Geração em uma única função
+  // ═════════════════════════════════════════════════════════════════
+  // FLUXO CORRIGIDO: GENERATE → ANALYZE
+  // ═════════════════════════════════════════════════════════════════
   const handleProcessAndGenerate = async () => {
     if (!originalImage || !patientName) {
       toast.error("Preencha o nome do paciente e faça o upload da foto");
@@ -391,9 +190,6 @@ export default function Index() {
     setCurrentState('processing');
     setProcessingTime(0);
 
-    // Variável local para evitar race condition com setState
-    let dynamicBudgetData: any = null;
-
     try {
       const config = await getConfig();
       if (!config) {
@@ -401,162 +197,20 @@ export default function Index() {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-      // ========================================
-      // PASSO 1: ANÁLISE (3-5 segundos)
-      // ========================================
-      setProcessingStep('Analisando foto e gerando documentos...');
-      
-      // ✅ FASE 2: Buscar serviços ativos e enviar à Edge Function
-      const servicosAtivos = await fetchActiveServices();
-      console.log('✓ Serviços ativos carregados:', servicosAtivos.length);
-      
-      const servicosParaEdge = servicosAtivos.map(s => ({
-        name: s.name,
-        category: s.category || 'outros',
-        price: s.price
-      }));
-      
-      console.log('→ Enviando para Edge Function:', servicosParaEdge);
-      
-      // PATCH 2: Gerar idempotency key
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const idempotencyKey = currentUser ? `${currentUser.id}-${Date.now()}-analyze` : undefined;
-      
-      const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.apiKey}`
-        },
-        body: JSON.stringify({
-          action: 'analyze',
-          imageBase64: originalImage,
-          servicos_ativos: servicosParaEdge,
-          treatment_type: simulationType,
-          idempotencyKey,
-          userId: currentUser?.id,
-          simulationId: null // Será definido após criar a simulação
-        }),
-      });
 
-      // PATCH 1: Tratar erro 403 (módulo desativado)
-      if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.json().catch(() => ({}));
-        
-        if (errorData.code === 'MODULE_DISABLED') {
-          toast.error('Módulo de clareamento desativado', {
-            description: 'Ative em Configurações para usar este recurso'
-          });
-          return;
-        }
-        
-        // PATCH 2: Tratar erro 409 (requisição duplicada)
-        if (errorData.code === 'DUPLICATE_REQUEST') {
-          toast.info('Processamento já iniciado', {
-            description: 'Aguarde a conclusão da análise anterior'
-          });
-          return;
-        }
-        
-        throw new Error(errorData.error || `Erro na análise: ${analysisResponse.status}`);
-      }
-
-      const analysisResult = await analysisResponse.json();
-      
-      if (!analysisResult.success || !analysisResult.analise_data) {
-        throw new Error("JSON de análise não encontrado na resposta");
-      }
-
-      if (analysisResult.metadata?.truncated) {
-        toast.warning("Atenção: Resposta foi truncada.");
-      }
-
-      // ✅ JSON já vem pronto da edge function
-      const analiseJSON = analysisResult.analise_data;
-      setAnaliseJSON(analiseJSON);
-      
-      console.log('📊 Análise JSON recebida:', analiseJSON);
-      const analise = analiseJSON?.analise || analiseJSON;
-      console.log('  - Tom de pele:', analise?.tom_pele);
-      console.log('  - Cor dos olhos:', analise?.cor_olhos);
-      console.log('  - Pontuação total:', analise?.estado_geral?.pontuacao_total);
-      console.log('  - Conduta:', analise?.decisao_clinica?.conducta);
-      console.log('  - Quantidade de facetas:', analise?.decisao_clinica?.quantidade_facetas);
-      console.log('  - Cor recomendada:', analise?.cor_recomendada);
-
-      // ✅ Gerar texto do relatório a partir do JSON
-      const { generateTextReportFromJSON } = await import('@/services/textReportGenerator');
-      const relatorioTexto = generateTextReportFromJSON(analiseJSON);
-      
-      // ✅ Criar objeto compatível com fluxo atual
-      const analysisDataCompat: AnalysisResult = {
-        success: true,
-        relatorio_tecnico: relatorioTexto,
-        orcamento: '',  // Não mais necessário em texto
-        analise_data: analiseJSON,
-        metadata: analysisResult.metadata
-      };
-      
-      setAnalysisData(analysisDataCompat);
-
-      // ✅ Montar orçamento dinâmico
-      const dynamicBudget = await buildDynamicBudget(analiseJSON);
-      console.log('💰 Orçamento dinâmico:', dynamicBudget);
-      setOrcamentoDinamico(dynamicBudget);
-      dynamicBudgetData = dynamicBudget;
-
-      // Salvar simulação inicial
-      const { data: { user } } = await supabase.auth.getUser();
-      let simulationId: string | null = null;
-
-      if (user) {
-        const timestamp = getTimestamp();
-        
-        const fetchResponse = await fetch(originalImage);
-        const blob = await fetchResponse.blob();
-        const originalFileName = `${user.id}/original-${timestamp}.jpeg`;
-        
-        await supabase.storage
-          .from('original-images')
-          .upload(originalFileName, blob, {
-            contentType: blob.type,
-            upsert: true,
-            cacheControl: '3600',
-          });
-        
-        const { data: { publicUrl: originalUrl } } = supabase.storage
-          .from('original-images')
-          .getPublicUrl(originalFileName);
-
-        const { data: simulation } = await supabase
-          .from('simulations')
-          .insert({
-            user_id: user.id,
-            patient_id: selectedPatientId,
-            patient_name: patientName,
-            patient_phone: patientPhone || null,
-            original_image_url: originalUrl,
-            technical_notes: analysisResult.relatorio_tecnico,
-            treatment_type: simulationType,
-            budget_data: {
-              orcamento: analysisResult.orcamento,
-              metadata: analysisResult.metadata,
-            },
-            status: 'analyzed',
-          })
-          .select()
-          .single();
-
-        simulationId = simulation.id;
-        setCurrentSimulationId(simulationId);
+      if (!currentUser) {
+        throw new Error("Usuário não autenticado");
       }
 
       // ========================================
-      // PASSO 2: GERAÇÃO DE IMAGEM (5-8 segundos)
+      // FASE 1: GERAÇÃO DA IMAGEM (5-8 segundos)
       // ========================================
       setProcessingStep('Gerando simulação visual...');
+      console.log('→ FASE 1: Gerando imagem simulada');
 
+      const idempotencyKeyGenerate = `${currentUser.id}-${Date.now()}-generate`;
+      
       const imageResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
@@ -566,121 +220,212 @@ export default function Index() {
         body: JSON.stringify({
           action: 'generate',
           imageBase64: originalImage,
-          reportText: analysisDataCompat.relatorio_tecnico,
-          analiseJSON: analiseJSON, // Dados estruturados da análise para prompt enriquecido
-          config: {
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            maxOutputTokens: config.maxTokens,
-          },
+          treatment_type: simulationType,
+          userId: currentUser.id,
+          idempotencyKey: idempotencyKeyGenerate
         }),
       });
 
       if (!imageResponse.ok) {
         const errorData = await imageResponse.json().catch(() => ({}));
+        
+        if (errorData.code === 'MODULE_DISABLED') {
+          toast.error('Módulo de Clareamento não ativado', {
+            description: 'Ative em Configurações para usar este recurso'
+          });
+          setCurrentState('input');
+          return;
+        }
+        
+        if (errorData.code === 'DUPLICATE_REQUEST') {
+          toast.info('Processamento já em andamento', {
+            description: 'Aguarde a conclusão da geração anterior'
+          });
+          setCurrentState('input');
+          return;
+        }
+        
         throw new Error(errorData.error || `Erro na geração: ${imageResponse.status}`);
       }
 
       const imageResult = await imageResponse.json();
       
-      // ✅ FASE 1: Upload e armazenamento em variável local (evita race condition)
-      let processedImageUrl: string | null = null;
-      
-      if (user && simulationId) {
-        const timestamp = getTimestamp();
-        const fetchResponse = await fetch(imageResult.processedImageBase64);
-        const blob = await fetchResponse.blob();
-        const processedFileName = `${user.id}/processed-${timestamp}.jpeg`;
-        
-        await supabase.storage
-          .from('processed-images')
-          .upload(processedFileName, blob, {
-            contentType: blob.type,
-            upsert: true,
-            cacheControl: '3600',
-          });
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('processed-images')
-          .getPublicUrl(processedFileName);
-
-        console.log('✓ Imagem processada salva:', publicUrl);
-        processedImageUrl = publicUrl; // ✅ Armazenar em variável local
-        
-        await supabase
-          .from('simulations')
-          .update({
-            processed_image_url: processedImageUrl,
-            status: 'completed',
-          })
-          .eq('id', simulationId);
+      if (!imageResult.success || !imageResult.processedImageBase64) {
+        throw new Error("Imagem simulada não foi gerada");
       }
 
+      const processedImageBase64 = imageResult.processedImageBase64;
+      console.log('✓ FASE 1: Imagem gerada com sucesso');
+
+      // Atualizar estado imediatamente
+      setProcessedImage(processedImageBase64);
+
+      // Upload das imagens para storage
+      const timestamp = getTimestamp();
+      let originalUrl: string | null = null;
+      let processedUrl: string | null = null;
+
+      console.log('→ Fazendo upload das imagens...');
+
+      // Upload imagem original
+      const originalBlob = await (await fetch(originalImage)).blob();
+      const originalFileName = `${currentUser.id}/original-${timestamp}.jpeg`;
+      
+      await supabase.storage
+        .from('original-images')
+        .upload(originalFileName, originalBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+          cacheControl: '3600',
+        });
+      
+      const { data: { publicUrl: origUrl } } = supabase.storage
+        .from('original-images')
+        .getPublicUrl(originalFileName);
+      
+      originalUrl = origUrl;
+
+      // Upload imagem processada
+      const processedBlob = await (await fetch(processedImageBase64)).blob();
+      const processedFileName = `${currentUser.id}/processed-${timestamp}.jpeg`;
+      
+      await supabase.storage
+        .from('processed-images')
+        .upload(processedFileName, processedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+          cacheControl: '3600',
+        });
+      
+      const { data: { publicUrl: procUrl } } = supabase.storage
+        .from('processed-images')
+        .getPublicUrl(processedFileName);
+      
+      processedUrl = procUrl;
+      
+      console.log('✓ Upload concluído:', { originalUrl, processedUrl });
+
       // ========================================
-      // PASSO 3: GERAR PDFs AUTOMATICAMENTE
+      // FASE 2: ANÁLISE (ANTES/DEPOIS) (3-5 segundos)
       // ========================================
-      setProcessingStep('Gerando documentos com imagens...');
+      setProcessingStep('Gerando relatório técnico e orçamento...');
+      console.log('→ FASE 2: Analisando ANTES/DEPOIS');
+
+      const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({
+          action: 'analyze',
+          beforeImageBase64: originalImage,
+          afterImageBase64: processedImageBase64,
+          treatment_type: simulationType,
+        }),
+      });
+
+      if (!analysisResponse.ok) {
+        const errorData = await analysisResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro na análise: ${analysisResponse.status}`);
+      }
+
+      const analysisResult = await analysisResponse.json();
+      
+      if (!analysisResult.success || !analysisResult.relatorio_tecnico || !analysisResult.orcamento) {
+        throw new Error("Relatório ou orçamento não foram gerados");
+      }
+
+      console.log('✓ FASE 2: Análise concluída');
+      console.log('  - Relatório técnico:', analysisResult.relatorio_tecnico.substring(0, 100) + '...');
+      console.log('  - Orçamento:', analysisResult.orcamento.substring(0, 100) + '...');
+
+      // Estruturar dados da análise
+      const analysisData: AnalysisResult = {
+        success: true,
+        relatorio_tecnico: analysisResult.relatorio_tecnico,
+        orcamento: analysisResult.orcamento,
+        treatment_type: analysisResult.treatment_type || simulationType,
+        metadata: analysisResult.metadata
+      };
+
+      setAnalysisData(analysisData);
+
+      // ========================================
+      // FASE 3: CRIAR SIMULAÇÃO NO BANCO
+      // ========================================
+      console.log('→ FASE 3: Salvando simulação no banco');
+
+      const { data: simulation } = await supabase
+        .from('simulations')
+        .insert({
+          user_id: currentUser.id,
+          patient_id: selectedPatientId,
+          patient_name: patientName,
+          patient_phone: patientPhone || null,
+          original_image_url: originalUrl,
+          processed_image_url: processedUrl,
+          technical_notes: analysisResult.relatorio_tecnico,
+          treatment_type: simulationType,
+          budget_data: {
+            orcamento: analysisResult.orcamento,
+            metadata: analysisResult.metadata,
+          },
+          status: 'completed',
+        })
+        .select()
+        .single();
+
+      const simulationId = simulation?.id || null;
+      setCurrentSimulationId(simulationId);
+      
+      console.log('✓ FASE 3: Simulação salva:', simulationId);
+
+      // ========================================
+      // FASE 4: GERAR PDFs COM IMAGENS
+      // ========================================
+      setProcessingStep('Gerando documentos PDF...');
+      console.log('→ FASE 4: Gerando PDFs');
 
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
 
-      // ✅ FASE 1: Converter URLs para Base64 usando variável local (não estado React)
-      console.log('→ Convertendo imagens para Base64...');
-      const beforeImageBase64 = originalImage ? await urlToBase64(originalImage) : '';
-      const afterImageBase64 = processedImageUrl ? await urlToBase64(processedImageUrl) : '';
-      
-      console.log('✓ Conversão concluída:', {
-        before: beforeImageBase64 ? 'OK' : 'VAZIO',
-        after: afterImageBase64 ? 'OK' : 'VAZIO'
-      });
+      // Converter imagens para Base64 para os PDFs
+      const beforeImageBase64 = await urlToBase64(originalImage);
+      const afterImageBase64 = await urlToBase64(processedImageBase64);
 
-      // Gerar Relatório Técnico com texto narrativo
+      // Gerar Relatório Técnico
       console.log('→ Gerando Relatório Técnico PDF...');
       const reportPdf = await generateTechnicalReportPDF({
         reportNumber,
         patientName,
         patientPhone: patientPhone || undefined,
         date: new Date(),
-        teethCount: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas ||
-                    analiseJSON?.recomendacao_tratamento?.quantidade_facetas || 0,
-        reportContent: analysisResult.relatorio_tecnico || analysisDataCompat.relatorio_tecnico || 'Análise não disponível',
-        simulationId: simulationId || currentSimulationId || '',
+        teethCount: simulationType === 'facetas' ? 4 : 0,
+        reportContent: analysisResult.relatorio_tecnico,
+        simulationId: simulationId || '',
         beforeImage: beforeImageBase64,
         afterImage: afterImageBase64
       });
       
-      console.log('✓ Relatório Técnico PDF gerado:', reportPdf);
+      console.log('✓ Relatório Técnico PDF gerado');
 
-      // Gerar Orçamento com dados dinâmicos
+      // Gerar Orçamento
       console.log('→ Gerando Orçamento PDF...');
-      console.log('→ Usando orçamento dinâmico:', dynamicBudgetData);
+      const budgetPdf = await generateBudgetPDF({
+        budgetNumber,
+        patientName,
+        patientPhone: patientPhone || undefined,
+        date: new Date(),
+        budgetContent: analysisResult.orcamento,
+        beforeImage: beforeImageBase64,
+        afterImage: afterImageBase64
+      });
       
-      let budgetPdf: string | null = null;
-      
-      if (dynamicBudgetData && dynamicBudgetData.itens?.length > 0) {
-        budgetPdf = await generateBudgetPDF({
-          budgetNumber,
-          patientName,
-          patientPhone: patientPhone || undefined,
-          date: new Date(),
-          itens: dynamicBudgetData.itens,
-          opcionais: dynamicBudgetData.opcionais || [],
-          subtotal: dynamicBudgetData.subtotal,
-          desconto_percentual: dynamicBudgetData.desconto_percentual,
-          desconto_valor: dynamicBudgetData.desconto_valor,
-          total: dynamicBudgetData.total,
-          beforeImage: beforeImageBase64,
-          afterImage: afterImageBase64
-        });
-        console.log('✓ Orçamento PDF gerado:', budgetPdf);
-      } else {
-        console.warn('⚠️ Orçamento sem itens, PDF não será gerado');
-        toast.warning('Orçamento não pôde ser gerado. Verifique os serviços configurados.');
-      }
-      
-      // ✅ FASE 1: Atualizar estado APÓS gerar PDFs (não antes)
-      setProcessedImage(processedImageUrl);
+      console.log('✓ Orçamento PDF gerado');
+
+      setReportPdfUrl(reportPdf);
+      setBudgetPdfUrl(budgetPdf);
 
       // Atualizar simulação com os PDFs
       if (simulationId) {
@@ -688,20 +433,19 @@ export default function Index() {
           .from('simulations')
           .update({
             technical_report_url: reportPdf,
-            budget_pdf_url: budgetPdf || null
+            budget_pdf_url: budgetPdf
           })
           .eq('id', simulationId);
+        
+        console.log('✓ FASE 4: PDFs salvos na simulação');
       }
 
-      setReportPdfUrl(reportPdf);
-      if (budgetPdf) {
-        setBudgetPdfUrl(budgetPdf);
-      }
       setCurrentState('completed');
       toast.success("Simulação concluída com sucesso!");
+      console.log('✅ PROCESSO COMPLETO!');
       
     } catch (err) {
-      console.error("Erro ao processar:", err);
+      console.error("❌ Erro ao processar:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error(errorMessage);
       setCurrentState('input');
@@ -731,13 +475,6 @@ export default function Index() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Extrair números dos PDFs já gerados
-      const { data: simulation } = await supabase
-        .from('simulations')
-        .select('*')
-        .eq('id', currentSimulationId)
-        .single();
-
       const reportNumber = generateReportNumber();
       const budgetNumber = generateBudgetNumber();
 
@@ -759,14 +496,7 @@ export default function Index() {
         treatment_type: simulationType
       });
 
-      // Salvar na tabela budgets com dados estruturados
-      const budgetData = orcamentoDinamico || {
-        subtotal: 0,
-        total: 0,
-        itens: [],
-        desconto_percentual: 10
-      };
-      
+      // Salvar na tabela budgets
       await supabase.from('budgets').insert({
         patient_id: selectedPatientId,
         user_id: user.id,
@@ -775,16 +505,13 @@ export default function Index() {
         pdf_url: budgetPdfUrl,
         before_image: originalImage,
         after_image: processedImage,
-        teeth_count: analiseJSON?.analise?.decisao_clinica?.quantidade_facetas || 
-                     analiseJSON?.analise?.quantidade_facetas || 0,
-        subtotal: budgetData.subtotal,
-        final_price: budgetData.total,
-        price_per_tooth: budgetData.itens?.find((i: any) => i.dentes)?.valor_unitario || 0,
+        teeth_count: simulationType === 'facetas' ? 4 : 0,
+        subtotal: 0,
+        final_price: 0,
+        price_per_tooth: 0,
         treatment_type: simulationType,
         payment_conditions: {
-          desconto: budgetData.desconto_percentual,
-          opcao_vista: budgetData.total,
-          analise: analiseJSON
+          tipo_tratamento: simulationType
         }
       });
 
@@ -804,7 +531,7 @@ export default function Index() {
         after_image: processedImage,
         status: 'new',
         source: 'simulator',
-        treatment_type: simulationType  // FASE 7: Salvar tipo de tratamento
+        treatment_type: simulationType
       });
 
       toast.success("Simulação salva!");
@@ -830,8 +557,6 @@ export default function Index() {
     setSelectedPatientId(null);
     setPatientName("");
     setPatientPhone("");
-    setAnaliseJSON(null);
-    setOrcamentoDinamico(null);
   };
 
   if (!hasApiConfig) {
@@ -858,7 +583,7 @@ export default function Index() {
               <CardDescription>Escolha o tipo de simulação e preencha os dados</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* PATCH 1: Seleção de Tipo de Simulação com bloqueio */}
+              {/* Seleção de Tipo de Simulação */}
               {config?.whiteningSimulatorEnabled && (
                 <div className="space-y-2">
                   <Label>Tipo de Simulação</Label>
@@ -885,6 +610,7 @@ export default function Index() {
                   )}
                 </div>
               )}
+
               {/* Seletor de Paciente */}
               <div className="space-y-2">
                 <Label>Paciente</Label>
