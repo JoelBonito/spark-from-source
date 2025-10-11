@@ -6,13 +6,15 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { LeadDetailModal } from '@/components/LeadDetailModal';
 import { Lead } from '@/services/leadService';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Users, TrendingUp, DollarSign, Target } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 
 export default function CRM() {
   const { leadsByStage, loading, moveLeadToStage, refresh } = useKanbanBoard();
   const { totalLeads, inNegotiation, conversionRate, potentialRevenue } = usePipelineMetrics();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
 
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
@@ -23,15 +25,45 @@ export default function CRM() {
     refresh();
   };
 
+  // FASE 7: Filtrar leads por tipo de tratamento
+  const filteredLeadsByStage = Object.fromEntries(
+    Object.entries(leadsByStage).map(([stage, leads]) => [
+      stage,
+      treatmentFilter === 'all' 
+        ? leads 
+        : leads.filter(lead => lead.treatment_type === treatmentFilter)
+    ])
+  ) as typeof leadsByStage;
+
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">CRM - Funil de Vendas</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie seus leads desde a simulação até o fechamento
-          </p>
+        {/* Header com Filtro */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">CRM - Funil de Vendas</h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie seus leads desde a simulação até o fechamento
+            </p>
+          </div>
+
+          {/* FASE 7: Filtro por tipo de tratamento */}
+          <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)}>
+            <TabsList>
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="facetas" className="flex items-center gap-2">
+                <Smile className="h-4 w-4" />
+                Facetas
+              </TabsTrigger>
+              <TabsTrigger value="clareamento" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Clareamento
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Métricas */}
@@ -109,14 +141,14 @@ export default function CRM() {
           </Card>
         </div>
 
-        {/* Kanban Board */}
+        {/* Kanban Board com Leads Filtrados */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <KanbanBoard
-            leadsByStage={leadsByStage}
+            leadsByStage={filteredLeadsByStage}
             onLeadClick={handleLeadClick}
             onMoveLeadToStage={moveLeadToStage}
           />

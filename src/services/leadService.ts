@@ -17,6 +17,7 @@ export interface Lead {
   next_action?: string;
   next_action_date?: string;
   user_id: string;
+  treatment_type?: 'facetas' | 'clareamento';  // FASE 7
   patient?: {
     name: string;
     phone: string;
@@ -81,7 +82,7 @@ export async function getAllLeads(): Promise<Lead[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as Lead[];
 }
 
 export async function getLeadsByStage(stage: string): Promise<Lead[]> {
@@ -99,7 +100,7 @@ export async function getLeadsByStage(stage: string): Promise<Lead[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as Lead[];
 }
 
 export async function getLeadById(id: string): Promise<Lead | null> {
@@ -113,7 +114,7 @@ export async function getLeadById(id: string): Promise<Lead | null> {
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Lead;
 }
 
 export async function createLead(leadData: CreateLeadData): Promise<Lead> {
@@ -132,7 +133,7 @@ export async function createLead(leadData: CreateLeadData): Promise<Lead> {
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Lead;
 }
 
 export async function updateLead(id: string, leadData: UpdateLeadData): Promise<Lead> {
@@ -144,7 +145,7 @@ export async function updateLead(id: string, leadData: UpdateLeadData): Promise<
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Lead;
 }
 
 export async function updateLeadStage(id: string, newStage: string): Promise<Lead> {
@@ -177,7 +178,7 @@ export async function updateLeadStage(id: string, newStage: string): Promise<Lea
     metadata: { previous_stage: lead.stage, new_stage: newStage }
   });
 
-  return lead;
+  return lead as Lead;
 }
 
 export async function deleteLead(id: string): Promise<void> {
@@ -280,5 +281,5 @@ export async function searchLeads(query: string): Promise<Lead[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as Lead[];
 }

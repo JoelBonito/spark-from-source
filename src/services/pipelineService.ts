@@ -61,9 +61,9 @@ export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> 
     fidelizacao: []
   };
 
-  (data || []).forEach(lead => {
+  (data || []).forEach((lead: any) => {
     if (grouped[lead.stage]) {
-      grouped[lead.stage].push(lead);
+      grouped[lead.stage].push(lead as Lead);
     }
   });
 

@@ -1,6 +1,6 @@
 import { Lead } from '@/services/leadService';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail, Tag, Clock } from 'lucide-react';
+import { Phone, Mail, Tag, Clock, Sparkles, Smile } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -43,11 +43,30 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
       className="bg-card border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer group"
     >
       <div className="space-y-3">
-        {/* Nome */}
-        <div>
-          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+        {/* Nome + Badge de Tipo */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors flex-1">
             {lead.name}
           </h3>
+          {/* FASE 7: Badge de tipo de tratamento */}
+          {lead.treatment_type && (
+            <Badge 
+              variant={lead.treatment_type === 'clareamento' ? 'secondary' : 'default'}
+              className="text-xs flex items-center gap-1 shrink-0"
+            >
+              {lead.treatment_type === 'clareamento' ? (
+                <>
+                  <Sparkles className="h-3 w-3" />
+                  Clareamento
+                </>
+              ) : (
+                <>
+                  <Smile className="h-3 w-3" />
+                  Facetas
+                </>
+              )}
+            </Badge>
+          )}
         </div>
 
         {/* Contato */}

@@ -766,7 +766,8 @@ export default function Index() {
         before_image: originalImage,
         after_image: processedImage,
         status: 'new',
-        source: 'simulator'
+        source: 'simulator',
+        treatment_type: simulationType  // FASE 7: Salvar tipo de tratamento
       });
 
       toast.success("Simulação salva!");
