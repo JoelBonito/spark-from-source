@@ -33,13 +33,37 @@ const corsHeaders = {
  * ═════════════════════════════════════════════════════════════════════════
  */
 
+// PATCH 5: Logger estruturado com run_id
+function createLogger(runId: string) {
+  const prefix = `[${runId.substring(0,8)}]`;
+  
+  return {
+    info: (msg: string, ...args: any[]) => console.log(`${prefix} ℹ️  ${msg}`, ...args),
+    success: (msg: string, ...args: any[]) => console.log(`${prefix} ✓ ${msg}`, ...args),
+    warn: (msg: string, ...args: any[]) => console.warn(`${prefix} ⚠️  ${msg}`, ...args),
+    error: (msg: string, ...args: any[]) => console.error(`${prefix} ❌ ${msg}`, ...args),
+    debug: (msg: string, data: any) => console.log(`${prefix} 🔍 ${msg}`, JSON.stringify(data, null, 2))
+  };
+}
+
+// PATCH 4: Calcular hash SHA256 do prompt
+async function sha256(text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const PROMPT_VERSION = '2.0'; // Incrementar quando mudar lógica de scoring
+const MODEL_NAME = 'google/gemini-2.5-flash';
+
 /**
+ * PATCH 3: Parser robusto e consciente de tipo de tratamento
  * Extrai informações das seções "DENTES A SEREM TRATADOS" e "ESPECIFICAÇÕES TÉCNICAS"
  * do relatório técnico gerado pelo Gemini.
- * 
- * IMPORTANTE: Esta função NÃO recebe JSON do Gemini, ela EXTRAI de um texto livre!
  */
-function parseReport(report: string) {
+function parseReport(report: string, treatment: 'facetas' | 'clareamento') {
   const result: { dentes_tratados: string[]; especificacoes: Record<string, string> } = {
     dentes_tratados: [],
     especificacoes: {},
@@ -51,99 +75,68 @@ function parseReport(report: string) {
   }
 
   const text = report.replace(/\r/g, '');
-  console.log('📄 Iniciando parsing do relatório...');
+  console.log(`📄 Parsing relatório (tipo: ${treatment}, tamanho: ${text.length} chars)`);
   
   // ========================================
-  // EXTRAÇÃO DE DENTES
+  // EXTRAÇÃO DE DENTES (apenas para facetas)
   // ========================================
-  console.log('🔍 Procurando seção "DENTES A SEREM TRATADOS"...');
-  
-  let dentesSection = '';
-  const dentesMatch = text.match(/DENTES\s+A\s+SEREM\s+TRATADOS([\s\S]*?)(?=ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS|PLANEJAMENTO|$)/i);
-  
-  if (dentesMatch) {
-    dentesSection = dentesMatch[1];
-    console.log('✓ Seção de dentes encontrada');
+  if (treatment === 'facetas') {
+    console.log('🔍 Procurando seção "DENTES A SEREM TRATADOS"...');
+    
+    // Busca flexível com sinônimos
+    const dentesRegex = /(?:DENTES?\s+(?:A\s+SEREM?\s+)?TRATADOS?|ELEMENTOS?\s+DENTAIS?|TEETH\s+TO\s+TREAT)([\s\S]*?)(?:ESPECIFICA[ÇC][ÕO]ES|PLANEJAMENTO|$)/i;
+    const dentesMatch = text.match(dentesRegex);
+    
+    if (dentesMatch) {
+      const dentesSection = dentesMatch[1];
+      console.log('✓ Seção de dentes encontrada');
+      
+      // Códigos FDI: (11), (21), etc.
+      const teethRegex = /\((\d{2})\)/g;
+      const teeth = [] as string[];
+      let m;
+      while ((m = teethRegex.exec(dentesSection)) !== null) {
+        teeth.push(m[1]);
+      }
+      
+      result.dentes_tratados = teeth;
+      console.log(`✓ Dentes FDI extraídos: [${teeth.join(', ')}]`);
+      
+      if (teeth.length === 0) {
+        console.warn('⚠️ Nenhum código FDI encontrado na seção');
+      }
+    } else {
+      console.log('ℹ️  Seção de dentes não encontrada (pode ser normal para clareamento)');
+    }
   } else {
-    console.warn('✗ Seção "DENTES A SEREM TRATADOS" não encontrada');
-  }
-  
-  if (dentesSection) {
-    // Procurar por códigos FDI entre parênteses: (11), (21), (12), etc.
-    const teethRegex = /\((\d{2})\)/g;
-    const teeth = [] as string[];
-    let m;
-    while ((m = teethRegex.exec(dentesSection)) !== null) {
-      teeth.push(m[1]);
-    }
-    
-    result.dentes_tratados = teeth;
-    console.log(`✓ Dentes extraídos: [${teeth.join(', ')}]`);
-    
-    if (teeth.length === 0) {
-      console.log('ℹ️  Nenhum dente com código FDI encontrado - Caso de clareamento apenas');
-    }
+    console.log('ℹ️  Tipo clareamento: pulando extração de dentes FDI');
   }
   
   // ========================================
-  // EXTRAÇÃO DE ESPECIFICAÇÕES TÉCNICAS
+  // EXTRAÇÃO DE ESPECIFICAÇÕES (ambos os tipos)
   // ========================================
-  console.log('🔍 Procurando seção "ESPECIFICAÇÕES TÉCNICAS"...');
+  console.log('🔍 Procurando especificações técnicas...');
   
-  let specsSection = '';
-  const specsMatch = text.match(/ESPECIFICA[ÇC][ÕO]ES\s+T[ÉE]CNICAS([\s\S]*?)(?=PLANEJAMENTO\s+DO\s+TRATAMENTO|CUIDADOS\s+P[ÓO]S|PROGN[ÓO]STICO|CONTRAINDICA[ÇC][ÕO]ES|OBSERVA[ÇC][ÕO]ES|IMPORTANTE|$)/i);
+  const specsRegex = /(?:ESPECIFICA[ÇC][ÕO]ES?\s+T[ÉE]CNICAS?|TECHNICAL\s+SPECS?|DETALHES\s+T[ÉE]CNICOS?)([\s\S]*?)(?:PLANEJAMENTO|CUIDADOS|PROGN[ÓO]STICO|$)/i;
+  const specsMatch = text.match(specsRegex);
   
   if (specsMatch) {
-    specsSection = specsMatch[1];
-    console.log('✓ Seção de especificações encontrada');
-  } else {
-    console.warn('✗ Seção "ESPECIFICAÇÕES TÉCNICAS" não encontrada');
-  }
-  
-  if (specsSection) {
-    const lines = specsSection.split(/\n/).map((l) => l.trim()).filter((l) => l);
+    const specsSection = specsMatch[1];
+    console.log('✓ Especificações encontradas');
     
+    // Extrair pares chave:valor
+    const lines = specsSection.split('\n').filter(l => l.trim());
     for (const line of lines) {
-      // Remover asteriscos e dividir por ':'
-      const cleanLine = line.replace(/^\*+\s*/g, '').replace(/\*+/g, '').trim();
-      const colonIndex = cleanLine.indexOf(':');
-      
-      if (colonIndex === -1) continue;
-      
-      const label = cleanLine.substring(0, colonIndex).trim();
-      const value = cleanLine.substring(colonIndex + 1).trim().replace(/\.$/, '');
-      
-      // Normalizar label para comparação (remover acentos e caracteres especiais)
-      const key = label
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove diacríticos
-        .replace(/[^a-z\s]/g, '')
-        .trim();
-      
-      // Mapear para os campos esperados
-      if (/material/.test(key)) {
-        result.especificacoes.material = value;
-        console.log(`  - Material: ${value}`);
-      } else if (/tecnica/.test(key)) {
-        result.especificacoes.tecnica = value;
-        console.log(`  - Técnica: ${value}`);
-      } else if (/espessura/.test(key)) {
-        result.especificacoes.espessura = value;
-        console.log(`  - Espessura: ${value}`);
-      } else if (/preparo/.test(key)) {
-        result.especificacoes.preparo = value;
-        console.log(`  - Preparo: ${value}`);
-      } else if (/cor/.test(key)) {
-        result.especificacoes.cor = value;
-        console.log(`  - Cor: ${value}`);
-      } else if (/cimenta/.test(key)) {
-        result.especificacoes.cimentacao = value;
-        console.log(`  - Cimentação: ${value}`);
+      const kvMatch = line.match(/^([^:]+):\s*(.+)$/);
+      if (kvMatch) {
+        const key = kvMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
+        const value = kvMatch[2].trim();
+        result.especificacoes[key] = value;
       }
     }
-    
-    console.log(`✓ Total de especificações extraídas: ${Object.keys(result.especificacoes).length}`);
+    console.log(`✓ ${Object.keys(result.especificacoes).length} especificações extraídas`);
+  } else {
+    console.log(`ℹ️  Especificações não encontradas (normal para ${treatment})`);
   }
   
   console.log('📊 Parsing concluído');
@@ -1117,9 +1110,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   
+  // PATCH 5: Gerar run_id único para rastreamento
+  const runId = crypto.randomUUID();
+  const log = createLogger(runId);
+  
   try {
     const body = await req.json();
-    const { imageBase64, action, analysisData, reportText, config, treatment_type } = body;
+    const { imageBase64, action, analysisData, reportText, config, treatment_type, simulationId, userId } = body;
     
     if (!imageBase64) {
       throw new Error('Imagem não fornecida');
@@ -1135,11 +1132,82 @@ Deno.serve(async (req) => {
     // ANÁLISE: Gera relatório técnico + orçamento
     // ========================================
     if (action === 'analyze') {
-      console.log('═══════════════════════════════════════');
-      console.log('AÇÃO: ANÁLISE (gerar documentos)');
-      console.log('Modelo: Gemini (google/gemini-2.5-flash)');
-      console.log(`Tipo de tratamento: ${treatment_type || 'facetas'}`);
-      console.log('═══════════════════════════════════════');
+      log.info('═══════════════════════════════════════');
+      log.info(`AÇÃO: ANÁLISE - Tipo: ${treatment_type || 'facetas'}`);
+      log.info(`Modelo: ${MODEL_NAME}`);
+      log.info('═══════════════════════════════════════');
+      
+      // PATCH 1: Guard clause - verificar permissão do módulo de clareamento
+      if (treatment_type === 'clareamento') {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: userConfig, error: configError } = await supabase
+          .from('user_configs')
+          .select('whitening_simulator_enabled')
+          .eq('user_id', userId)
+          .single();
+        
+        if (configError || !userConfig?.whitening_simulator_enabled) {
+          log.error('Tentativa de usar clareamento sem permissão');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Módulo de Clareamento não ativado para esta conta',
+              code: 'MODULE_DISABLED',
+              success: false 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
+        }
+        log.success('Permissão de clareamento verificada');
+      }
+      
+      // PATCH 2: Idempotência - verificar requisição duplicada
+      if (simulationId && body.idempotencyKey) {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: existing } = await supabase
+          .from('simulations')
+          .select('id, status, created_at')
+          .eq('user_id', userId)
+          .eq('idempotency_key', body.idempotencyKey)
+          .neq('status', 'error')
+          .maybeSingle();
+        
+        if (existing) {
+          const age = Date.now() - new Date(existing.created_at).getTime();
+          
+          if (age < 300000) { // 5 minutos
+            log.warn(`Requisição duplicada detectada (${Math.round(age/1000)}s atrás)`);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Processamento já em andamento',
+                simulationId: existing.id,
+                status: existing.status,
+                code: 'DUPLICATE_REQUEST'
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+            );
+          }
+        }
+        
+        // Atualizar status para 'analyzing'
+        await supabase
+          .from('simulations')
+          .update({ 
+            status: 'analyzing', 
+            run_id: runId,
+            idempotency_key: body.idempotencyKey
+          })
+          .eq('id', simulationId);
+        
+        log.info(`Idempotency key registrado: ${body.idempotencyKey}`);
+      }
       
       // Receber e processar serviços ativos
       const servicos_ativos = body.servicos_ativos || [];
@@ -1425,7 +1493,8 @@ Deno.serve(async (req) => {
       
       // EXTRAIR dados das seções relevantes
       // (Orçamento é IGNORADO - não é usado para geração de imagem)
-      const extracted = parseReport(report);
+      const treatmentType = body.treatment_type || analiseData?.analise?.tipo_tratamento || 'facetas';
+      const extracted = parseReport(report, treatmentType);
       
       // Obter serviços ativos
       const servicos_ativos_generate = (body.servicos_ativos || []).map((s: any) => s.name || s);

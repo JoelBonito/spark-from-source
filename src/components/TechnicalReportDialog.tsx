@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Download, Sun } from "lucide-react";
 import { AnalysisData } from "@/types/simulation";
 
 interface TechnicalReportDialogProps {
@@ -24,10 +25,18 @@ export function TechnicalReportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Relatório Técnico Completo</DialogTitle>
-          <DialogDescription>
-            Análise detalhada do caso clínico - {patientName}
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Relatório Técnico Completo</DialogTitle>
+              <DialogDescription>
+                Análise detalhada do caso clínico - {patientName}
+              </DialogDescription>
+            </div>
+            {/* PATCH 4: Badge de versão */}
+            <Badge variant="outline" className="text-xs">
+              Gemini · v2.0
+            </Badge>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -56,9 +65,10 @@ export function TechnicalReportDialog({
             </div>
           </section>
 
-          {/* Avaliação Por Dente */}
-          <section>
-            <h3 className="font-semibold text-lg mb-3">Avaliação Dental Detalhada</h3>
+          {/* PATCH 6: Condicional - esconder seção de dentes em clareamento */}
+          {(data as any).treatment_type !== 'clareamento' && relatorio_tecnico.avaliacao_por_dente?.length > 0 && (
+            <section>
+              <h3 className="font-semibold text-lg mb-3">Avaliação Dental Detalhada</h3>
             <div className="space-y-4">
               {relatorio_tecnico.avaliacao_por_dente.map((dente) => (
                 <div key={dente.dente} className="border rounded-lg p-4 bg-muted/30">
@@ -87,6 +97,22 @@ export function TechnicalReportDialog({
               ))}
             </div>
           </section>
+          )}
+          
+          {/* PATCH 6: Alert específico para clareamento */}
+          {(data as any).treatment_type === 'clareamento' && (
+            <section className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+              <div className="flex items-start gap-2">
+                <Sun className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Clareamento Total</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Procedimento aplicado em toda a arcada dentária para uniformização da cor
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Diagnóstico */}
           <section>

@@ -324,9 +324,12 @@ export type Database = {
           before_image: string | null
           created_at: string
           id: string
+          model_name: string | null
           patient_id: string | null
           patient_name: string
           pdf_url: string | null
+          prompt_sha256: string | null
+          prompt_version: string | null
           report_number: string
           simulation_id: string | null
           user_id: string
@@ -336,9 +339,12 @@ export type Database = {
           before_image?: string | null
           created_at?: string
           id?: string
+          model_name?: string | null
           patient_id?: string | null
           patient_name: string
           pdf_url?: string | null
+          prompt_sha256?: string | null
+          prompt_version?: string | null
           report_number: string
           simulation_id?: string | null
           user_id: string
@@ -348,9 +354,12 @@ export type Database = {
           before_image?: string | null
           created_at?: string
           id?: string
+          model_name?: string | null
           patient_id?: string | null
           patient_name?: string
           pdf_url?: string | null
+          prompt_sha256?: string | null
+          prompt_version?: string | null
           report_number?: string
           simulation_id?: string | null
           user_id?: string
@@ -419,14 +428,18 @@ export type Database = {
           budget_data: Json | null
           budget_pdf_url: string | null
           created_at: string | null
+          error_message: string | null
           final_price: number | null
           id: string
+          idempotency_key: string | null
           original_image_url: string | null
           patient_id: string | null
           patient_name: string | null
           patient_phone: string | null
           price_per_tooth: number | null
           processed_image_url: string | null
+          retry_count: number | null
+          run_id: string | null
           status: string | null
           technical_notes: string | null
           technical_report_url: string | null
@@ -441,14 +454,18 @@ export type Database = {
           budget_data?: Json | null
           budget_pdf_url?: string | null
           created_at?: string | null
+          error_message?: string | null
           final_price?: number | null
           id?: string
+          idempotency_key?: string | null
           original_image_url?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           price_per_tooth?: number | null
           processed_image_url?: string | null
+          retry_count?: number | null
+          run_id?: string | null
           status?: string | null
           technical_notes?: string | null
           technical_report_url?: string | null
@@ -463,14 +480,18 @@ export type Database = {
           budget_data?: Json | null
           budget_pdf_url?: string | null
           created_at?: string | null
+          error_message?: string | null
           final_price?: number | null
           id?: string
+          idempotency_key?: string | null
           original_image_url?: string | null
           patient_id?: string | null
           patient_name?: string | null
           patient_phone?: string | null
           price_per_tooth?: number | null
           processed_image_url?: string | null
+          retry_count?: number | null
+          run_id?: string | null
           status?: string | null
           technical_notes?: string | null
           technical_report_url?: string | null

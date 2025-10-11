@@ -419,6 +419,10 @@ export default function Index() {
       
       console.log('→ Enviando para Edge Function:', servicosParaEdge);
       
+      // PATCH 2: Gerar idempotency key
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const idempotencyKey = currentUser ? `${currentUser.id}-${Date.now()}-analyze` : undefined;
+      
       const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
@@ -429,12 +433,32 @@ export default function Index() {
           action: 'analyze',
           imageBase64: originalImage,
           servicos_ativos: servicosParaEdge,
-          treatment_type: simulationType  // ✅ FASE 4: Enviar tipo de tratamento
+          treatment_type: simulationType,
+          idempotencyKey,
+          userId: currentUser?.id,
+          simulationId: null // Será definido após criar a simulação
         }),
       });
 
+      // PATCH 1: Tratar erro 403 (módulo desativado)
       if (!analysisResponse.ok) {
         const errorData = await analysisResponse.json().catch(() => ({}));
+        
+        if (errorData.code === 'MODULE_DISABLED') {
+          toast.error('Módulo de clareamento desativado', {
+            description: 'Ative em Configurações para usar este recurso'
+          });
+          return;
+        }
+        
+        // PATCH 2: Tratar erro 409 (requisição duplicada)
+        if (errorData.code === 'DUPLICATE_REQUEST') {
+          toast.info('Processamento já iniciado', {
+            description: 'Aguarde a conclusão da análise anterior'
+          });
+          return;
+        }
+        
         throw new Error(errorData.error || `Erro na análise: ${analysisResponse.status}`);
       }
 
@@ -831,16 +855,31 @@ export default function Index() {
               <CardDescription>Escolha o tipo de simulação e preencha os dados</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* FASE 3: Seleção de Tipo de Simulação */}
+              {/* PATCH 1: Seleção de Tipo de Simulação com bloqueio */}
               {config?.whiteningSimulatorEnabled && (
                 <div className="space-y-2">
                   <Label>Tipo de Simulação</Label>
                   <Tabs value={simulationType} onValueChange={(v) => setSimulationType(v as 'facetas' | 'clareamento')}>
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="facetas">🦷 Facetas Dentárias</TabsTrigger>
-                      <TabsTrigger value="clareamento">✨ Clareamento Dental</TabsTrigger>
+                      <TabsTrigger 
+                        value="clareamento"
+                        disabled={!config?.whiteningSimulatorEnabled}
+                      >
+                        ✨ Clareamento Dental
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
+                  
+                  {/* Alert quando módulo desativado */}
+                  {simulationType === 'clareamento' && !config?.whiteningSimulatorEnabled && (
+                    <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm">
+                      <p className="font-semibold text-destructive">Módulo desativado</p>
+                      <p className="text-destructive-foreground">
+                        Ative o simulador de clareamento em Configurações → Módulos do Sistema
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {/* Seletor de Paciente */}

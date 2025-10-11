@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CreditCard, Calendar, Sparkles } from 'lucide-react';
+import { DollarSign, CreditCard, Calendar, Sparkles, Sun } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface BudgetDisplayProps {
@@ -32,8 +32,13 @@ export const BudgetDisplay = ({
           <DollarSign className="w-6 h-6 text-green-600" />
           <h3 className="text-xl font-bold text-foreground">Orçamento Automático</h3>
         </div>
+        {/* PATCH 6: Badge de tipo com ícone */}
         <Badge variant={treatmentType === 'facetas' ? 'default' : 'secondary'} className="gap-1">
-          <Sparkles className="w-3 h-3" />
+          {treatmentType === 'clareamento' ? (
+            <Sun className="w-3 h-3" />
+          ) : (
+            <Sparkles className="w-3 h-3" />
+          )}
           {getTreatmentLabel()}
         </Badge>
       </div>
