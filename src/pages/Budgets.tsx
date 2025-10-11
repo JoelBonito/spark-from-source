@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
@@ -8,9 +8,12 @@ import { BudgetDetailModal } from '@/components/BudgetDetailModal';
 import { BudgetFilters } from '@/components/BudgetFilters';
 import { StatsCards } from '@/components/StatsCards';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Budget } from '@/services/budgetService';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BudgetFormModal } from '@/components/BudgetFormModal';
+import { createManualBudget } from '@/services/budgetService';
 
 export const Budgets = () => {
   const { toast } = useToast();
@@ -19,13 +22,15 @@ export const Budgets = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [detailBudgetId, setDetailBudgetId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
 
   const filters = {
     status: activeTab,
     search: searchQuery
   };
 
-  const { budgets, stats, loading, refresh } = useBudgets(filters);
+  const { budgets, stats, loading, refresh, updateBudget, archiveBudget } = useBudgets(filters);
   const { updateStatus } = useBudgetStatus();
 
   const handleView = (budget: Budget) => {
@@ -50,6 +55,82 @@ export const Budgets = () => {
     }
   };
 
+  const handleEdit = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setIsFormModalOpen(true);
+  };
+
+  const handleArchive = async (budget: Budget) => {
+    try {
+      await archiveBudget(budget.id);
+      toast({
+        title: 'Sucesso',
+        description: 'Orçamento arquivado com sucesso',
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao arquivar orçamento',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleNewBudget = () => {
+    setSelectedBudget(null);
+    setIsFormModalOpen(true);
+  };
+
+  const handleSaveBudget = async (data: any) => {
+    try {
+      if (selectedBudget) {
+        // Modo edição
+        const itemsWithTotals = data.items.map((item: any) => ({
+          ...item,
+          valor_total: item.quantidade * item.valor_unitario
+        }));
+
+        const subtotal = itemsWithTotals.reduce((sum: number, item: any) => 
+          sum + item.valor_total, 0);
+        const discountAmount = subtotal * (data.discount / 100);
+        const finalPrice = subtotal - discountAmount;
+
+        await updateBudget(selectedBudget.id, {
+          items: itemsWithTotals,
+          subtotal,
+          discount_percentage: data.discount,
+          discount_amount: discountAmount,
+          final_price: finalPrice,
+          treatment_type: data.treatment_type
+        });
+
+        toast({
+          title: 'Sucesso',
+          description: 'Orçamento atualizado com sucesso',
+        });
+      } else {
+        // Modo criação (usar createManualBudget existente)
+        await createManualBudget(data.patient_id, data.items, data.discount);
+        
+        toast({
+          title: 'Sucesso',
+          description: 'Orçamento criado com sucesso',
+        });
+      }
+
+      setIsFormModalOpen(false);
+      setSelectedBudget(null);
+      refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao salvar orçamento',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const filteredBudgets = budgets.filter(budget => {
     if (filters.search) {
       const patientName = budget.patient?.name || '';
@@ -68,11 +149,17 @@ export const Budgets = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-3xl font-bold text-foreground">Orçamentos</h2>
-          <p className="text-muted-foreground mt-1">
-            Gerencie todos os orçamentos gerados
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">Orçamentos</h2>
+            <p className="text-muted-foreground mt-1">
+              Gerencie todos os orçamentos gerados
+            </p>
+          </div>
+          <Button onClick={handleNewBudget} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Orçamento
+          </Button>
         </div>
 
         {/* Estatísticas */}
@@ -126,6 +213,8 @@ export const Budgets = () => {
             budgets={filteredBudgets}
             onView={handleView}
             onStatusChange={handleStatusChange}
+            onEdit={handleEdit}
+            onArchive={handleArchive}
           />
         )}
 
@@ -134,6 +223,17 @@ export const Budgets = () => {
           budgetId={detailBudgetId}
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
+        />
+
+        {/* Modal de formulário */}
+        <BudgetFormModal
+          isOpen={isFormModalOpen}
+          onClose={() => {
+            setIsFormModalOpen(false);
+            setSelectedBudget(null);
+          }}
+          budget={selectedBudget}
+          onSave={handleSaveBudget}
         />
       </div>
     </Layout>

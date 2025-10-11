@@ -17,7 +17,7 @@ export interface Budget {
   final_price: number;
   payment_conditions: any;
   valid_until: string | null;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'archived';
   pdf_url: string | null;
   user_id: string;
   budget_type?: 'automatic' | 'manual';
@@ -326,4 +326,59 @@ export async function createManualBudget(
     treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(data.items) ? data.items : []
   };
+}
+
+// Atualizar orçamento existente
+export async function updateBudget(
+  budgetId: string,
+  updates: {
+    items?: any[];
+    discount_percentage?: number;
+    discount_amount?: number;
+    final_price?: number;
+    subtotal?: number;
+    valid_until?: Date;
+    treatment_type?: 'facetas' | 'clareamento';
+  }
+): Promise<Budget> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const updateData: any = { ...updates };
+  
+  if (updates.valid_until) {
+    updateData.valid_until = updates.valid_until.toISOString().split('T')[0];
+  }
+
+  const { data, error } = await supabase
+    .from('budgets')
+    .update(updateData)
+    .eq('id', budgetId)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    ...data,
+    status: data.status as Budget['status'],
+    budget_type: (data.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (data.treatment_type as 'facetas' | 'clareamento') || 'facetas',
+    items: Array.isArray(data.items) ? data.items : []
+  };
+}
+
+// Arquivar orçamento
+export async function archiveBudget(budgetId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('budgets')
+    .update({ status: 'archived' })
+    .eq('id', budgetId)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
 }

@@ -1,15 +1,17 @@
 import React from 'react';
-import { Eye, Download, MoreVertical } from 'lucide-react';
+import { Eye, Download, MoreVertical, Pencil, Archive, Sparkles, Sun } from 'lucide-react';
 import { Budget } from '@/services/budgetService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/utils/formatters';
 import { StatusBadge } from './StatusBadge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -17,12 +19,16 @@ interface BudgetTableProps {
   budgets: Budget[];
   onView: (budget: Budget) => void;
   onStatusChange: (budget: Budget, status: Budget['status']) => void;
+  onEdit: (budget: Budget) => void;
+  onArchive: (budget: Budget) => void;
 }
 
 export const BudgetTable: React.FC<BudgetTableProps> = ({
   budgets,
   onView,
-  onStatusChange
+  onStatusChange,
+  onEdit,
+  onArchive
 }) => {
   if (budgets.length === 0) {
     return (
@@ -43,6 +49,9 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Paciente
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Tipo
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Dentes
@@ -76,6 +85,15 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                   <div className="text-sm text-foreground">
                     {budget.patient?.name || '-'}
                   </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Badge variant={budget.treatment_type === 'clareamento' ? 'secondary' : 'default'}>
+                    {budget.treatment_type === 'clareamento' ? (
+                      <><Sun className="w-3 h-3 mr-1" /> Clareamento</>
+                    ) : (
+                      <><Sparkles className="w-3 h-3 mr-1" /> Facetas</>
+                    )}
+                  </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-foreground">{budget.teeth_count}</div>
@@ -128,6 +146,14 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem 
+                          onClick={() => onEdit(budget)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Editar Orçamento
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onStatusChange(budget, 'pending')}>
                           Marcar como Pendente
                         </DropdownMenuItem>
@@ -142,6 +168,14 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onStatusChange(budget, 'rejected')}>
                           Marcar como Recusado
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => onArchive(budget)}
+                          className="cursor-pointer text-destructive"
+                        >
+                          <Archive className="w-4 h-4 mr-2" />
+                          Arquivar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

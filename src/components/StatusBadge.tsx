@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
 interface StatusBadgeProps {
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'archived';
 }
 
 const statusConfig = {
@@ -28,6 +28,10 @@ const statusConfig = {
   },
   expired: {
     label: 'Expirado',
+    className: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20'
+  },
+  archived: {
+    label: 'Arquivado',
     className: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20'
   }
 };

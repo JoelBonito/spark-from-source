@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getAllBudgets, getBudgetStats, Budget, BudgetFilters } from '@/services/budgetService';
+import { 
+  getAllBudgets, 
+  getBudgetStats, 
+  Budget, 
+  BudgetFilters,
+  updateBudget,
+  archiveBudget
+} from '@/services/budgetService';
 
 export function useBudgets(filters?: BudgetFilters) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -40,6 +47,8 @@ export function useBudgets(filters?: BudgetFilters) {
     stats,
     loading,
     error,
-    refresh: loadBudgets
+    refresh: loadBudgets,
+    updateBudget,
+    archiveBudget
   };
 }
