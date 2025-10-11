@@ -538,6 +538,7 @@ export default function Index() {
             patient_phone: patientPhone || null,
             original_image_url: originalUrl,
             technical_notes: analysisResult.relatorio_tecnico,
+            treatment_type: simulationType,
             budget_data: {
               orcamento: analysisResult.orcamento,
               metadata: analysisResult.metadata,
