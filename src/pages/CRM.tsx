@@ -4,17 +4,26 @@ import { useKanbanBoard } from '@/hooks/useKanbanBoard';
 import { usePipelineMetrics } from '@/hooks/usePipelineMetrics';
 import { KanbanBoard } from '@/components/KanbanBoard';
 import { LeadDetailModal } from '@/components/LeadDetailModal';
+import { BudgetDetailModal } from '@/components/BudgetDetailModal';
+import { BudgetFormModal } from '@/components/BudgetFormModal';
 import { Lead } from '@/services/leadService';
+import { Budget, updateBudget } from '@/services/budgetService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
+import { toast } from 'sonner';
 
 export default function CRM() {
-  const { leadsByStage, loading, moveLeadToStage, refresh } = useKanbanBoard();
+  const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard();
   const { totalLeads, inNegotiation, conversionRate, potentialRevenue } = usePipelineMetrics();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
+  
+  const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+  const [isBudgetDetailOpen, setIsBudgetDetailOpen] = useState(false);
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
 
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
@@ -23,6 +32,53 @@ export default function CRM() {
   const handleCloseModal = () => {
     setSelectedLead(null);
     refresh();
+  };
+
+  const handleViewBudget = (budgetId: string) => {
+    setSelectedBudgetId(budgetId);
+    setIsBudgetDetailOpen(true);
+  };
+
+  const handleEditBudget = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setIsBudgetFormOpen(true);
+  };
+
+  const handleSaveBudget = async (data: any) => {
+    try {
+      if (selectedBudget) {
+        const itemsWithTotals = data.items.map((item: any) => ({
+          ...item,
+          valor_total: item.quantidade * item.valor_unitario
+        }));
+
+        const subtotal = itemsWithTotals.reduce((sum: number, item: any) => 
+          sum + item.valor_total, 0);
+        const discountAmount = subtotal * (data.discount / 100);
+        const finalPrice = subtotal - discountAmount;
+
+        await updateBudget(selectedBudget.id, {
+          items: itemsWithTotals,
+          subtotal,
+          discount_percentage: data.discount,
+          discount_amount: discountAmount,
+          final_price: finalPrice,
+          treatment_type: data.treatment_type
+        });
+
+        toast.success('Orçamento atualizado com sucesso!');
+      }
+
+      setIsBudgetFormOpen(false);
+      setSelectedBudget(null);
+      refresh();
+    } catch (error) {
+      toast.error('Erro ao salvar orçamento');
+    }
+  };
+
+  const handleDeleteLead = (leadId: string) => {
+    deleteLead(leadId);
   };
 
   // FASE 7: Filtrar leads por tipo de tratamento
@@ -151,14 +207,36 @@ export default function CRM() {
             leadsByStage={filteredLeadsByStage}
             onLeadClick={handleLeadClick}
             onMoveLeadToStage={moveLeadToStage}
+            onDeleteLead={handleDeleteLead}
           />
         )}
 
-        {/* Modal de Detalhes */}
+        {/* Modais */}
         <LeadDetailModal
           leadId={selectedLead?.id || null}
           isOpen={!!selectedLead}
           onClose={handleCloseModal}
+          onViewBudget={handleViewBudget}
+          onEditBudget={handleEditBudget}
+        />
+
+        <BudgetFormModal
+          isOpen={isBudgetFormOpen}
+          onClose={() => {
+            setIsBudgetFormOpen(false);
+            setSelectedBudget(null);
+          }}
+          budget={selectedBudget}
+          onSave={handleSaveBudget}
+        />
+
+        <BudgetDetailModal
+          budgetId={selectedBudgetId}
+          isOpen={isBudgetDetailOpen}
+          onClose={() => {
+            setIsBudgetDetailOpen(false);
+            setSelectedBudgetId(null);
+          }}
         />
       </div>
     </Layout>

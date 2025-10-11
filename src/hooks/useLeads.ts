@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getAllLeads, Lead } from '@/services/leadService';
+import { getAllLeads, deleteLead, Lead } from '@/services/leadService';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);

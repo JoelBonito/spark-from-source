@@ -1,18 +1,38 @@
 import { Lead } from '@/services/leadService';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail, Tag, Clock, Sparkles, Smile } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Phone, Mail, Tag, Clock, Sparkles, Smile, MoreHorizontal, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useState } from 'react';
 
 interface LeadCardProps {
   lead: Lead;
   onClick: () => void;
+  onDelete?: (leadId: string) => void;
 }
 
-export function LeadCard({ lead, onClick }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onDelete }: LeadCardProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
     attributes,
     listeners,
@@ -33,21 +53,53 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
     addSuffix: true
   });
 
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(lead.id);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={onClick}
-      className="bg-card border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer group"
-    >
-      <div className="space-y-3">
-        {/* Nome + Badge de Tipo */}
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors flex-1">
-            {lead.name}
-          </h3>
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="bg-card border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer group relative"
+      >
+        {/* Menu de Ações */}
+        {onDelete && (
+          <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true);
+                  }}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Deletar Card
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        <div className="space-y-3" onClick={onClick}>
+          {/* Nome + Badge de Tipo */}
+          <div className="flex items-start justify-between gap-2 pr-8">
+            <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors flex-1">
+              {lead.name}
+            </h3>
           {/* FASE 7: Badge de tipo de tratamento */}
           {lead.treatment_type && (
             <Badge 
@@ -113,13 +165,32 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           <span>{timeInStage}</span>
         </div>
 
-        {/* Fonte */}
-        <div className="flex items-center justify-between">
-          <Badge variant="outline" className="text-xs">
-            {lead.source === 'simulacao' ? 'Simulação' : lead.source}
-          </Badge>
+          {/* Fonte */}
+          <div className="flex items-center justify-between">
+            <Badge variant="outline" className="text-xs">
+              {lead.source === 'simulacao' ? 'Simulação' : lead.source}
+            </Badge>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Alert Dialog de Confirmação */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar este lead? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

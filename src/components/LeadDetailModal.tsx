@@ -8,15 +8,21 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useState } from 'react';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Image, Eye, Pencil, Download } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ComparisonViewModal } from './ComparisonViewModal';
+import { TechnicalReportDialog } from './TechnicalReportDialog';
+import { StatusBadge } from './StatusBadge';
+import { Budget } from '@/services/budgetService';
 
 interface LeadDetailModalProps {
   leadId: string | null;
   isOpen: boolean;
   onClose: () => void;
+  onViewBudget?: (budgetId: string) => void;
+  onEditBudget?: (budget: Budget) => void;
 }
 
 const stageNames: Record<string, string> = {
@@ -33,8 +39,8 @@ const stageColors: Record<string, string> = {
   fidelizacao: 'default'
 };
 
-export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProps) {
-  const { lead, activities, simulations, loading, updateLead, addActivity } = useLeadDetail(leadId);
+export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditBudget }: LeadDetailModalProps) {
+  const { lead, activities, simulations, budgets, loading, updateLead, addActivity } = useLeadDetail(leadId);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -42,6 +48,15 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
     email: '',
     notes: ''
   });
+  const [comparisonModal, setComparisonModal] = useState<{
+    isOpen: boolean;
+    beforeImage: string;
+    afterImage: string;
+  } | null>(null);
+  const [technicalReportModal, setTechnicalReportModal] = useState<{
+    isOpen: boolean;
+    data: any;
+  } | null>(null);
 
   // Atualizar form quando lead carregar
   useState(() => {
@@ -70,6 +85,32 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
       title: 'Nota adicionada',
       description: note
     });
+  };
+
+  const handleOpenComparison = (simulation: any) => {
+    if (simulation.original_image_url && simulation.processed_image_url) {
+      setComparisonModal({
+        isOpen: true,
+        beforeImage: simulation.original_image_url,
+        afterImage: simulation.processed_image_url
+      });
+    }
+  };
+
+  const handleOpenTechnicalReport = (simulation: any) => {
+    if (simulation.technical_notes) {
+      try {
+        const parsedData = typeof simulation.technical_notes === 'string'
+          ? JSON.parse(simulation.technical_notes)
+          : simulation.technical_notes;
+        setTechnicalReportModal({
+          isOpen: true,
+          data: parsedData
+        });
+      } catch (error) {
+        console.error('Error parsing technical notes:', error);
+      }
+    }
   };
 
   if (!isOpen || !leadId) return null;
@@ -104,10 +145,11 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
               {/* Coluna Principal */}
               <div className="col-span-2 space-y-6">
                 <Tabs defaultValue="info" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="info">Informações</TabsTrigger>
                     <TabsTrigger value="timeline">Timeline</TabsTrigger>
                     <TabsTrigger value="simulations">Simulações</TabsTrigger>
+                    <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="info" className="space-y-4">
@@ -199,10 +241,12 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                             key={simulation.id}
                             className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                           >
-                            <div className="flex items-start justify-between">
+                            <div className="flex items-start justify-between mb-3">
                               <div>
                                 <p className="font-medium">
-                                  {simulation.teeth_count} facetas
+                                  {simulation.treatment_type === 'clareamento' 
+                                    ? 'Clareamento Total' 
+                                    : `${simulation.teeth_count} facetas`}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                   {format(new Date(simulation.created_at), "dd/MM/yyyy 'às' HH:mm")}
@@ -213,14 +257,91 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                                   </p>
                                 )}
                               </div>
+                            </div>
+
+                            <div className="flex gap-2 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenComparison(simulation)}
+                                disabled={!simulation.original_image_url || !simulation.processed_image_url}
+                              >
+                                <Image className="h-4 w-4 mr-1" />
+                                Ver Antes e Depois
+                              </Button>
+                              
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenTechnicalReport(simulation)}
+                                disabled={!simulation.technical_notes}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Ver Relatório Técnico
+                              </Button>
+
                               {simulation.budget_pdf_url && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => window.open(simulation.budget_pdf_url, '_blank')}
                                 >
-                                  <FileText className="h-4 w-4 mr-1" />
+                                  <Download className="h-4 w-4 mr-1" />
                                   PDF
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="budgets" className="space-y-4">
+                    {budgets.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Nenhum orçamento gerado
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {budgets.map((budget) => (
+                          <div
+                            key={budget.id}
+                            className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <p className="font-medium">{budget.budget_number}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(new Date(budget.created_at), "dd/MM/yyyy 'às' HH:mm")}
+                                </p>
+                                <p className="text-lg font-semibold text-green-600 mt-1">
+                                  {formatCurrency(budget.final_price)}
+                                </p>
+                              </div>
+                              <StatusBadge status={budget.status} />
+                            </div>
+
+                            <div className="flex gap-2">
+                              {onViewBudget && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => onViewBudget(budget.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Visualizar
+                                </Button>
+                              )}
+                              
+                              {onEditBudget && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => onEditBudget(budget)}
+                                >
+                                  <Pencil className="h-4 w-4 mr-1" />
+                                  Editar
                                 </Button>
                               )}
                             </div>
@@ -255,6 +376,27 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
           <div className="text-center py-8">
             <p className="text-muted-foreground">Lead não encontrado</p>
           </div>
+        )}
+
+        {/* Modais Secundários */}
+        {comparisonModal && (
+          <ComparisonViewModal
+            isOpen={comparisonModal.isOpen}
+            onClose={() => setComparisonModal(null)}
+            beforeImage={comparisonModal.beforeImage}
+            afterImage={comparisonModal.afterImage}
+            patientName={lead?.name || ''}
+          />
+        )}
+
+        {technicalReportModal && (
+          <TechnicalReportDialog
+            open={technicalReportModal.isOpen}
+            onOpenChange={(open) => !open && setTechnicalReportModal(null)}
+            data={technicalReportModal.data}
+            patientName={lead?.name || ''}
+            onDownloadPDF={() => {}}
+          />
         )}
       </DialogContent>
     </Dialog>

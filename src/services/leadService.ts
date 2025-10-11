@@ -17,12 +17,17 @@ export interface Lead {
   next_action?: string;
   next_action_date?: string;
   user_id: string;
-  treatment_type?: 'facetas' | 'clareamento';  // FASE 7
+  treatment_type?: 'facetas' | 'clareamento';
   patient?: {
     name: string;
     phone: string;
     email?: string;
   };
+}
+
+export interface ExtendedLead extends Lead {
+  simulationId: string | null;
+  simulation?: any;
 }
 
 export interface Activity {

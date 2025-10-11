@@ -13,6 +13,7 @@ interface KanbanColumnProps {
   };
   leads: Lead[];
   onLeadClick: (lead: Lead) => void;
+  onDeleteLead?: (leadId: string) => void;
 }
 
 const colorClasses: Record<string, string> = {
@@ -22,7 +23,7 @@ const colorClasses: Record<string, string> = {
   green: 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600'
 };
 
-export function KanbanColumn({ stage, leads, onLeadClick }: KanbanColumnProps) {
+export function KanbanColumn({ stage, leads, onLeadClick, onDeleteLead }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -65,6 +66,7 @@ export function KanbanColumn({ stage, leads, onLeadClick }: KanbanColumnProps) {
                 key={lead.id}
                 lead={lead}
                 onClick={() => onLeadClick(lead)}
+                onDelete={onDeleteLead}
               />
             ))}
           </SortableContext>

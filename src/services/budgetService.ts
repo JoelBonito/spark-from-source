@@ -382,3 +382,25 @@ export async function archiveBudget(budgetId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+export async function getPatientBudgets(patientId: string): Promise<Budget[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map(budget => ({
+    ...budget,
+    status: budget.status as Budget['status'],
+    budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+    treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
+    items: Array.isArray(budget.items) ? budget.items : []
+  }));
+}

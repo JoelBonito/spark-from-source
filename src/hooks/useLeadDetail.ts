@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getLeadById, getLeadActivities, updateLead, createActivity, Lead, Activity, UpdateLeadData, CreateActivityData } from '@/services/leadService';
 import { getPatientSimulations } from '@/services/patientService';
+import { getPatientBudgets, Budget } from '@/services/budgetService';
 import { toast } from 'sonner';
 
 export function useLeadDetail(leadId: string | null) {
   const [lead, setLead] = useState<Lead | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [simulations, setSimulations] = useState<any[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadLeadData = async () => {
@@ -21,12 +23,14 @@ export function useLeadDetail(leadId: string | null) {
       setLead(leadData);
 
       if (leadData) {
-        const [activitiesData, simulationsData] = await Promise.all([
+        const [activitiesData, simulationsData, budgetsData] = await Promise.all([
           getLeadActivities(leadId),
-          leadData.patient_id ? getPatientSimulations(leadData.patient_id) : Promise.resolve([])
+          leadData.patient_id ? getPatientSimulations(leadData.patient_id) : Promise.resolve([]),
+          leadData.patient_id ? getPatientBudgets(leadData.patient_id) : Promise.resolve([])
         ]);
         setActivities(activitiesData);
         setSimulations(simulationsData);
+        setBudgets(budgetsData);
       }
     } catch (err) {
       console.error('Error loading lead details:', err);
@@ -72,6 +76,7 @@ export function useLeadDetail(leadId: string | null) {
     lead,
     activities,
     simulations,
+    budgets,
     loading,
     updateLead: handleUpdateLead,
     addActivity: handleAddActivity,
