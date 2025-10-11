@@ -90,6 +90,7 @@ export interface Config {
   promptTemplate: string;
   servicePrices: ServicePrice[];
   crmEnabled: boolean;
+  whiteningSimulatorEnabled?: boolean;
 }
 
 export const DEFAULT_PROMPT = `Você é um especialista em design de sorriso digital e odontologia estética.
