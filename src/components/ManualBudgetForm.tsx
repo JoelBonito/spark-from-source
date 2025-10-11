@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { createManualBudget } from '@/services/budgetService';
-import { getConfig } from '@/utils/storage';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BudgetItem {
   servico: string;
@@ -100,15 +100,26 @@ export default function ManualBudgetForm({
   };
 
   // Buscar serviços configurados para sugestões
-  const [availableServices, setAvailableServices] = useState<string[]>([]);
+  const [availableServices, setAvailableServices] = useState<Array<{ id: string; name: string; price: number }>>([]);
   
-  useState(() => {
-    getConfig().then(config => {
-      if (config?.servicePrices) {
-        setAvailableServices(config.servicePrices.map(s => s.name));
+  useEffect(() => {
+    const loadServices = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: services } = await supabase
+        .from('services')
+        .select('id, name, price')
+        .eq('user_id', user.id)
+        .eq('active', true)
+        .order('name');
+
+      if (services) {
+        setAvailableServices(services);
       }
-    });
-  });
+    };
+    loadServices();
+  }, []);
 
   const subtotal = calculateSubtotal();
   const discountAmount = subtotal * (discount / 100);
@@ -150,12 +161,10 @@ export default function ManualBudgetForm({
                         onValueChange={(value) => {
                           updateItem(index, 'servico', value);
                           // Auto-preencher preço se disponível
-                          getConfig().then(config => {
-                            const service = config?.servicePrices.find(s => s.name === value);
-                            if (service) {
-                              updateItem(index, 'valor_unitario', service.price);
-                            }
-                          });
+                          const service = availableServices.find(s => s.name === value);
+                          if (service) {
+                            updateItem(index, 'valor_unitario', service.price);
+                          }
                         }}
                       >
                         <SelectTrigger id={`servico-${index}`}>
@@ -163,8 +172,8 @@ export default function ManualBudgetForm({
                         </SelectTrigger>
                         <SelectContent>
                           {availableServices.map(service => (
-                            <SelectItem key={service} value={service}>
-                              {service}
+                            <SelectItem key={service.id} value={service.name}>
+                              {service.name} - R$ {service.price.toFixed(2)}
                             </SelectItem>
                           ))}
                           <SelectItem value="__custom__">Outro (customizado)</SelectItem>

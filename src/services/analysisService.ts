@@ -21,7 +21,6 @@ export interface CalculatedBudget {
   paymentOptions: any;
   needsClareamento: boolean;
   valorClareamento: number;
-  servicePrices: any;
   complexidade: string;
 }
 

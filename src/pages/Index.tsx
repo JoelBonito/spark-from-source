@@ -190,16 +190,26 @@ export default function Index() {
 
   const fetchActiveServices = async () => {
     try {
-      const config = await getConfig();
-      if (!config || !config.servicePrices) {
-        console.warn('⚠️ Nenhuma configuração de serviços encontrada');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('⚠️ Usuário não autenticado');
         return [];
       }
-      
-      // Filtrar apenas serviços ativos (considera true se campo não existir)
-      const ativos = config.servicePrices.filter(s => s.active !== false);
-      console.log(`✅ ${ativos.length} serviços ativos encontrados`);
-      return ativos;
+
+      const { data: services, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('active', true)
+        .order('name');
+
+      if (error) {
+        console.error('Erro ao buscar serviços:', error);
+        return [];
+      }
+
+      console.log(`✅ ${services?.length || 0} serviços ativos encontrados`);
+      return services || [];
     } catch (error) {
       console.error('Erro ao buscar serviços:', error);
       return [];

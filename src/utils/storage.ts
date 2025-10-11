@@ -1,85 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// FASE 1: Serviços com categorias fixas obrigatórias
-export const DEFAULT_SERVICES = [
-  // ===== SERVIÇOS OBRIGATÓRIOS (não removíveis) =====
-  { 
-    name: "Faceta de Porcelana (por dente)", 
-    description: "Faceta em porcelana feldspática ou dissilicato de lítio",
-    price: 2500.00, 
-    category: "Facetas dentárias",
-    active: true,
-    base: true,
-    required: true
-  },
-  { 
-    name: "Clareamento Dental Profissional", 
-    description: "Clareamento em consultório",
-    price: 800.00, 
-    category: "Clareamento",
-    active: true,
-    base: false,
-    required: true
-  },
-  { 
-    name: "Consulta de Planejamento", 
-    description: "Consulta inicial com análise e proposta",
-    price: 200.00, 
-    category: "Consulta",
-    active: true,
-    base: false,
-    required: true
-  },
-  { 
-    name: "Gengivoplastia", 
-    description: "Correção do contorno gengival",
-    price: 800.00, 
-    category: "Gengivoplastia",
-    active: true,
-    base: false,
-    required: false
-  },
-  
-  // ===== SERVIÇOS OPCIONAIS (podem ser adicionados/removidos) =====
-  { 
-    name: "Lente de Contato Dental (por dente)", 
-    description: "Lâmina ultra-fina de porcelana",
-    price: 2800.00, 
-    category: "Opcional",
-    active: true,
-    base: false,
-    required: false
-  },
-  { 
-    name: "Moldagem Digital", 
-    description: "Escaneamento intraoral 3D",
-    price: 300.00, 
-    category: "Opcional",
-    active: true,
-    base: false,
-    required: false
-  },
-  { 
-    name: "Planejamento Digital do Sorriso (DSD)", 
-    description: "Design digital do novo sorriso",
-    price: 500.00, 
-    category: "Opcional",
-    active: true,
-    base: false,
-    required: false
-  },
-];
-
-export interface ServicePrice {
-  name: string;
-  description: string;
-  price: number;
-  category: 'Facetas dentárias' | 'Clareamento' | 'Consulta' | 'Gengivoplastia' | 'Opcional' | string;
-  active: boolean;
-  base: boolean;
-  required?: boolean; // NOVO: indica se é obrigatório (não removível na UI)
-}
-
 export interface Config {
   apiKey: string;
   backendUrl: string;
@@ -88,7 +8,6 @@ export interface Config {
   topP: number;
   maxTokens: number;
   promptTemplate: string;
-  servicePrices: ServicePrice[];
   crmEnabled: boolean;
   whiteningSimulatorEnabled?: boolean;
 }
@@ -159,8 +78,8 @@ export async function saveConfig(config: Config): Promise<void> {
       top_p: config.topP,
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
-      service_prices: config.servicePrices as any,
       crm_enabled: config.crmEnabled,
+      whitening_simulator_enabled: config.whiteningSimulatorEnabled,
     }, { onConflict: 'user_id' });
 
   if (error) throw error;
@@ -179,17 +98,6 @@ export async function getConfig(): Promise<Config | null> {
   if (error) throw error;
   if (!data) return null;
 
-  // Garantir compatibilidade com dados antigos
-  const rawServices = data.service_prices || DEFAULT_SERVICES;
-  const servicePrices = (Array.isArray(rawServices) ? rawServices : DEFAULT_SERVICES).map((service: any) => ({
-    name: service.name,
-    description: service.description || '',
-    price: service.price,
-    base: service.base || false,
-    category: service.category || 'Outros',
-    active: service.active !== undefined ? service.active : true,
-  }));
-
   return {
     apiKey: data.api_key,
     backendUrl: data.backend_url,
@@ -198,8 +106,8 @@ export async function getConfig(): Promise<Config | null> {
     topP: Number(data.top_p),
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
-    servicePrices,
     crmEnabled: data.crm_enabled !== false,
+    whiteningSimulatorEnabled: data.whitening_simulator_enabled || false,
   };
 }
 

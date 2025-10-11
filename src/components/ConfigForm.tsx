@@ -26,7 +26,6 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
-    servicePrices: [],
     crmEnabled: true,
     whiteningSimulatorEnabled: false
   });
@@ -86,7 +85,6 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
-      servicePrices: formData.servicePrices,
       crmEnabled: formData.crmEnabled,
       whiteningSimulatorEnabled: whiteningEnabled
     };
