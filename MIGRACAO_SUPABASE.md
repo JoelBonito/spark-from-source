@@ -3,7 +3,7 @@
 ## 📋 Status da Migração
 
 ✅ **Estrutura do Banco de Dados**: Migrada  
-✅ **Edge Function**: Deployada  
+✅ **Edge Function**: Deployada (v2.0 - Google Gemini)  
 ✅ **Variáveis de Ambiente**: Atualizadas  
 ✅ **Scripts de Migração**: Criados  
 ⏳ **Dados**: Aguardando execução dos scripts  
@@ -13,19 +13,32 @@
 
 ## 🎯 Próximos Passos
 
-### 1. Configurar Secret da Edge Function
+### 1️⃣ Configurar API do Google Gemini (OBRIGATÓRIO)
 
-A Edge Function foi deployada, mas precisa do secret `LOVABLE_API_KEY`:
+A Edge Function agora usa **Google Gemini diretamente** (sem depender do Lovable AI Gateway).
 
-1. Acesse: https://supabase.com/dashboard/project/hqexulgmmtghwtgnqtfy/settings/functions
-2. Vá na aba **"Secrets"**
-3. Clique em **"Add Secret"**
-4. Configure:
-   - **Nome**: `LOVABLE_API_KEY`
-   - **Valor**: Sua chave da API Lovable (obtenha no painel do Lovable)
-5. Clique em **"Save"**
+**Guia completo**: Veja o arquivo `CONFIGURAR_GEMINI.md`
 
-### 2. Obter a Service Role Key
+**Resumo rápido:**
+
+1. **Obter API Key do Google Gemini:**
+   - Acesse: https://aistudio.google.com/app/apikey
+   - Clique em "Create API key"
+   - Copie a chave gerada
+
+2. **Configurar Secret no Supabase:**
+   - Acesse: https://supabase.com/dashboard/project/hqexulgmmtghwtgnqtfy/settings/functions
+   - Vá em "Secrets"
+   - Adicione:
+     - **Nome**: `GEMINI_API_KEY`
+     - **Valor**: Sua API key do Google Gemini
+
+3. **Custos:**
+   - Free tier: ~30-50 simulações/dia grátis
+   - Pago: ~$0.04 por simulação (~R$ 0.21)
+   - Veja detalhes completos em `CONFIGURAR_GEMINI.md`
+
+### 2️⃣ Obter a Service Role Key (para migração de dados)
 
 Para executar os scripts de migração, você precisa da **service_role key**:
 
@@ -34,7 +47,7 @@ Para executar os scripts de migração, você precisa da **service_role key**:
 3. Clique em **"Reveal"** e copie a chave
 4. **⚠️ IMPORTANTE**: Esta chave é secreta! Nunca a compartilhe ou commit no Git
 
-### 3. Migrar os Dados
+### 3️⃣ Migrar os Dados (SE HOUVER DADOS NO LOVABLE)
 
 Execute o script de migração de dados:
 
@@ -55,7 +68,7 @@ O script vai:
 - ✅ Migrar todas as tabelas na ordem correta
 - ✅ Exibir progresso e estatísticas
 
-### 4. Migrar os Arquivos de Storage
+### 4️⃣ Migrar os Arquivos de Storage (SE HOUVER ARQUIVOS NO LOVABLE)
 
 Execute o script de migração de storage:
 
@@ -73,7 +86,7 @@ O script vai:
 - ✅ Migrar bucket `original-images` (Imagens originais)
 - ✅ Migrar bucket `processed-images` (Imagens processadas)
 
-### 5. Testar a Aplicação
+### 5️⃣ Testar a Aplicação
 
 Após a migração, teste todas as funcionalidades:
 
@@ -93,7 +106,7 @@ npm run dev
 - [ ] CRM (leads, atividades)
 - [ ] Configurações do usuário
 
-### 6. Configurar Autenticação
+### 6️⃣ Configurar Autenticação
 
 Configure os provedores de autenticação no Supabase:
 
@@ -126,8 +139,14 @@ A Edge Function `process-dental-facets` foi deployada em:
 https://hqexulgmmtghwtgnqtfy.supabase.co/functions/v1/process-dental-facets
 ```
 
+**Versão:** 2.0 (Google Gemini Direct)
+
 **Secrets necessários:**
-- `LOVABLE_API_KEY`: Chave da API Lovable (configure manualmente)
+- `GEMINI_API_KEY`: Chave da API do Google Gemini (configure manualmente)
+
+**Modelos usados:**
+- Análise: `gemini-2.0-flash-exp`
+- Geração de imagem: `gemini-2.0-flash-exp`
 
 ---
 
@@ -164,13 +183,16 @@ https://hqexulgmmtghwtgnqtfy.supabase.co/functions/v1/process-dental-facets
 
 ## 🚨 Troubleshooting
 
-### Erro: "Module not found"
-**Solução**: A Edge Function foi atualizada para incluir o CORS inline. Faça pull do repositório.
+### Erro: "GEMINI_API_KEY não configurada"
+**Solução**: Configure o secret no painel do Supabase. Veja `CONFIGURAR_GEMINI.md`.
 
-### Erro: "LOVABLE_API_KEY não configurada"
-**Solução**: Configure o secret no painel do Supabase (ver passo 1).
+### Erro: "API key not valid"
+**Solução**: 
+1. Verifique se a API key do Gemini está correta
+2. Confirme que a API do Gemini está habilitada no Google Cloud
+3. Tente gerar uma nova API key
 
-### Erro: "Invalid API key"
+### Erro: "Invalid API key" (scripts de migração)
 **Solução**: Verifique se a service_role key está correta nos scripts de migração.
 
 ### Erro: "Bucket not found"
@@ -182,6 +204,32 @@ https://hqexulgmmtghwtgnqtfy.supabase.co/functions/v1/process-dental-facets
 2. Verifique se as políticas RLS estão corretas
 3. Verifique se o usuário está autenticado
 
+### Erro: "Quota exceeded" (Gemini)
+**Solução**: 
+1. Você atingiu o limite do free tier do Google Gemini
+2. Aguarde o reset diário (meia-noite UTC)
+3. Ou habilite billing no Google Cloud
+
+---
+
+## 💰 Comparação de Custos
+
+### Lovable Cloud
+- **Free Tier**: Limitado
+- **Pro**: ~$25-50/mês
+- **Inclui**: Banco, Storage, Edge Functions, AI Gateway
+
+### Supabase + Google Gemini
+- **Supabase Free**: Generoso (500MB DB, 1GB storage)
+- **Supabase Pro**: $25/mês (8GB DB, 100GB storage)
+- **Gemini Free**: ~30-50 simulações/dia grátis
+- **Gemini Pago**: ~$0.04/simulação (~R$ 0.21)
+
+**Exemplo mensal:**
+- 100 simulações: Supabase Free + Gemini Free = **$0/mês**
+- 500 simulações: Supabase Free + Gemini = **~$20/mês**
+- 1000 simulações: Supabase Pro + Gemini = **~$66/mês**
+
 ---
 
 ## 📞 Suporte
@@ -190,7 +238,8 @@ Se encontrar problemas:
 
 1. **Documentação Supabase**: https://supabase.com/docs
 2. **Discord Supabase**: https://discord.supabase.com
-3. **Stack Overflow**: https://stackoverflow.com/questions/tagged/supabase
+3. **Google AI Studio**: https://aistudio.google.com/
+4. **Stack Overflow**: https://stackoverflow.com/questions/tagged/supabase
 
 ---
 
@@ -200,6 +249,11 @@ Se encontrar problemas:
 - **NUNCA** commit a service_role key no Git
 - Use apenas em scripts locais ou variáveis de ambiente seguras
 - Esta chave tem acesso total ao banco de dados
+
+### ⚠️ Gemini API Key
+- Configure apenas como secret no Supabase
+- **NUNCA** use no código frontend
+- Monitore o uso no Google Cloud Console
 
 ### ⚠️ Migração de Dados
 - Execute os scripts de migração **apenas uma vez**
@@ -213,8 +267,18 @@ Se encontrar problemas:
 
 ---
 
+## 📚 Documentação Adicional
+
+- **CONFIGURAR_GEMINI.md** - Guia completo de configuração da API do Google Gemini
+- **INSTRUCOES_LOVABLE.md** - O que fazer com o projeto Lovable Cloud
+- **migrate_data.js** - Script de migração de dados
+- **migrate_storage.js** - Script de migração de storage
+
+---
+
 **Data da Migração:** 12 de outubro de 2025  
 **Projeto Origem:** Lovable Cloud  
 **Projeto Destino:** Supabase (trusmile)  
-**Status:** ✅ Estrutura migrada, aguardando migração de dados
+**Edge Function:** v2.0 (Google Gemini Direct)  
+**Status:** ✅ Estrutura migrada, aguardando migração de dados e configuração do Gemini
 
