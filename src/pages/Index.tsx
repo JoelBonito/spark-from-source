@@ -312,13 +312,18 @@ export default function Index() {
       }));
       
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       const idempotencyKey = currentUser ? `${currentUser.id}-${Date.now()}-analyze` : undefined;
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
+      }
       
       const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.apiKey}`
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           action: 'analyze',
@@ -423,7 +428,7 @@ export default function Index() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.apiKey}`
+          "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           action: 'generate',
