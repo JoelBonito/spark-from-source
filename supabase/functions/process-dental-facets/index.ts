@@ -9,10 +9,10 @@ const corsHeaders = {
  * EDGE FUNCTION: PROCESSAMENTO DE ANÁLISE DENTAL (FACETAS + CLAREAMENTO)
  * ═════════════════════════════════════════════════════════════════════════
  * 
- * DEPLOY SEGURO - FASE 1: APENAS NOVOS PROMPTS DE GERAÇÃO
+ * VERSÃO INDEPENDENTE - USA GOOGLE GEMINI DIRETAMENTE
  * 
- * Mantém estrutura atual de análise + sistema de pontuação
- * Atualiza apenas os prompts de geração de imagem
+ * Não depende do gateway Lovable AI
+ * Usa a API oficial do Google Gemini
  * ═════════════════════════════════════════════════════════════════════════
  */
 
@@ -28,10 +28,11 @@ function createLogger(runId: string) {
   };
 }
 
-const MODEL_NAME = 'google/gemini-2.5-flash';
+const MODEL_NAME_ANALYSIS = 'gemini-2.0-flash-exp';
+const MODEL_NAME_GENERATION = 'gemini-2.0-flash-exp';
 
 // ═════════════════════════════════════════════════════════════════════════
-// NOVOS PROMPTS DE GERAÇÃO (FASE 1 - DEPLOY SEGURO)
+// PROMPTS DE GERAÇÃO
 // ═════════════════════════════════════════════════════════════════════════
 
 const PROMPT_FACETAS = `
@@ -122,7 +123,25 @@ function buildSimulationPrompt(treatment_type: string): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// SERVIDOR PRINCIPAL (MANTÉM ESTRUTURA ATUAL)
+// FUNÇÃO: Converter imagem base64 para formato Gemini
+// ═════════════════════════════════════════════════════════════════════════
+
+function prepareImageForGemini(imageBase64: string) {
+  // Remove o prefixo data:image/...;base64, se existir
+  const base64Data = imageBase64.includes(',') 
+    ? imageBase64.split(',')[1] 
+    : imageBase64;
+  
+  return {
+    inlineData: {
+      mimeType: 'image/jpeg',
+      data: base64Data
+    }
+  };
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// SERVIDOR PRINCIPAL
 // ═════════════════════════════════════════════════════════════════════════
 
 Deno.serve(async (req) => {
@@ -152,18 +171,18 @@ Deno.serve(async (req) => {
       throw new Error('Imagem não fornecida');
     }
     
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      throw new Error('LOVABLE_API_KEY não configurada');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY não configurada. Configure em: https://supabase.com/dashboard/project/hqexulgmmtghwtgnqtfy/settings/functions');
     }
 
     // ========================================
-    // AÇÃO: ANÁLISE (mantém código atual)
+    // AÇÃO: ANÁLISE
     // ========================================
     if (action === 'analyze') {
       log.info('═══════════════════════════════════════');
       log.info(`ANÁLISE - Tipo: ${treatment_type || 'facetas'}`);
-      log.info(`Modelo: ${MODEL_NAME}`);
+      log.info(`Modelo: ${MODEL_NAME_ANALYSIS}`);
       log.info('═══════════════════════════════════════');
       
       // Verificar permissão para clareamento
@@ -234,49 +253,61 @@ Deno.serve(async (req) => {
           .eq('id', simulationId);
       }
 
-      // Construir prompt de análise (mantém sistema atual)
+      // Construir prompt de análise
       const servicosNomes = servicos_ativos?.map((s: any) => s.name || s) || [];
       
-      // TODO: Aqui você mantém seu prompt de análise atual
-      // Por enquanto, retorna estrutura simplificada
-      const analysisPrompt = `Analise esta imagem dental e retorne JSON estruturado com análise técnica.`;
+      const analysisPrompt = `Analise esta imagem dental e retorne JSON estruturado com análise técnica completa.
+      
+Serviços disponíveis: ${servicosNomes.join(', ')}
+
+Retorne um JSON com a seguinte estrutura:
+{
+  "analise_geral": "descrição geral do caso",
+  "dentes_analisados": ["11", "21", "12", "22", ...],
+  "problemas_identificados": ["problema1", "problema2", ...],
+  "tratamentos_recomendados": ["tratamento1", "tratamento2", ...],
+  "pontuacao_estetica": 7.5,
+  "observacoes": "observações adicionais"
+}`;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
 
       try {
-        const analysisResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: MODEL_NAME,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: analysisPrompt },
-                  { type: 'image_url', image_url: { url: imageBase64 } },
-                ],
-              },
-            ],
-            response_mime_type: 'application/json',
-            max_tokens: 10000,
-            temperature: 0.3,
-          }),
-          signal: controller.signal,
-        });
+        // Chamar API do Google Gemini diretamente
+        const analysisResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_ANALYSIS}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: analysisPrompt },
+                  prepareImageForGemini(imageBase64)
+                ]
+              }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 10000,
+                responseMimeType: 'application/json'
+              }
+            }),
+            signal: controller.signal,
+          }
+        );
         
         clearTimeout(timeoutId);
         
         if (!analysisResponse.ok) {
-          throw new Error(`Erro na análise: ${analysisResponse.status}`);
+          const errorText = await analysisResponse.text();
+          throw new Error(`Erro na análise: ${analysisResponse.status} - ${errorText}`);
         }
         
         const analysisResult = await analysisResponse.json();
-        const responseText = analysisResult.choices?.[0]?.message?.content?.trim();
+        const responseText = analysisResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
         
         if (!responseText) {
           throw new Error('Gemini não retornou conteúdo');
@@ -301,7 +332,7 @@ Deno.serve(async (req) => {
             success: true,
             analise_data,
             metadata: {
-              model: MODEL_NAME,
+              model: MODEL_NAME_ANALYSIS,
               timestamp: new Date().toISOString(),
               run_id: runId
             }
@@ -319,14 +350,15 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // AÇÃO: GERAÇÃO (USA NOVOS PROMPTS)
+    // AÇÃO: GERAÇÃO DE IMAGEM
     // ========================================
     if (action === 'generate') {
       log.info('═══════════════════════════════════════');
       log.info(`GERAÇÃO - Tipo: ${treatment_type || 'facetas'}`);
+      log.info(`Modelo: ${MODEL_NAME_GENERATION}`);
       log.info('═══════════════════════════════════════');
 
-      // Selecionar prompt adequado (NOVO)
+      // Selecionar prompt adequado
       const simulationPrompt = buildSimulationPrompt(treatment_type || 'facetas');
       log.info(`Prompt selecionado: ${treatment_type === 'clareamento' ? 'CLAREAMENTO' : 'FACETAS'}`);
 
@@ -337,41 +369,49 @@ Deno.serve(async (req) => {
       }, 120000);
 
       try {
-        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-image-preview',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: simulationPrompt },
-                  { type: 'image_url', image_url: { url: imageBase64 } },
-                ],
-              },
-            ],
-            modalities: ['image', 'text'],
-            max_tokens: 8000,
-          }),
-          signal: controller.signal,
-        });
+        // Chamar API do Google Gemini para geração de imagem
+        const imageResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_GENERATION}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: simulationPrompt },
+                  prepareImageForGemini(imageBase64)
+                ]
+              }],
+              generationConfig: {
+                temperature: 0.4,
+                maxOutputTokens: 8000,
+                responseMimeType: 'image/jpeg'
+              }
+            }),
+            signal: controller.signal,
+          }
+        );
         
         clearTimeout(timeoutId);
         
         if (!imageResponse.ok) {
-          throw new Error(`Erro na geração: ${imageResponse.status}`);
+          const errorText = await imageResponse.text();
+          throw new Error(`Erro na geração: ${imageResponse.status} - ${errorText}`);
         }
         
         const imageResult = await imageResponse.json();
-        const generatedImage = imageResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         
-        if (!generatedImage) {
+        // Extrair imagem gerada
+        const generatedImageData = imageResult.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        
+        if (!generatedImageData) {
           throw new Error('Nenhuma imagem foi gerada');
         }
+        
+        // Converter para formato base64 completo
+        const generatedImage = `data:image/jpeg;base64,${generatedImageData}`;
         
         log.success('Imagem simulada gerada');
         
@@ -380,7 +420,7 @@ Deno.serve(async (req) => {
             success: true,
             processedImageBase64: generatedImage,
             metadata: {
-              model: 'google/gemini-2.5-flash-image-preview',
+              model: MODEL_NAME_GENERATION,
               timestamp: new Date().toISOString(),
               run_id: runId
             }
