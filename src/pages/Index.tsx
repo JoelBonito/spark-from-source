@@ -414,6 +414,7 @@ export default function Index() {
       // Salvar simulação completa
       const { data: { user } } = await supabase.auth.getUser();
       let simulationId: string | null = null;
+      let processedImageUrl: string = processedImageBase64; // Inicializa com base64 por padrão
 
       if (user) {
         const timestamp = getTimestamp();
@@ -448,11 +449,13 @@ export default function Index() {
             cacheControl: '3600',
           });
         
-        const { data: { publicUrl: processedImageUrl } } = supabase.storage
+        const { data: { publicUrl: uploadedImageUrl } } = supabase.storage
           .from('processed-images')
           .getPublicUrl(processedFileName);
 
-        console.log('✓ Imagens salvas:', { originalUrl, processedImageUrl });
+        processedImageUrl = uploadedImageUrl; // Atualiza a variável do escopo externo
+
+        console.log('✓ Imagens salvas:', { originalUrl, processedImageUrl: uploadedImageUrl });
 
         // Criar simulação com todas as informações
         const { data: simulation } = await supabase
