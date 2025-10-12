@@ -298,48 +298,9 @@ export default function Index() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       // ========================================
-      // PASSO 1: GERAÇÃO DE IMAGEM SIMULADA
+      // PASSO 1: ANÁLISE (mantém fluxo atual)
       // ========================================
-      setProcessingStep('Gerando simulação visual...');
-      
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.access_token) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      const imageResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          action: 'generate',
-          imageBase64: originalImage,
-          treatment_type: simulationType,
-          config: {
-            temperature: config.temperature,
-            topK: config.topK,
-            topP: config.topP,
-            maxOutputTokens: config.maxTokens,
-          },
-        }),
-      });
-
-      if (!imageResponse.ok) {
-        const errorData = await imageResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erro na geração: ${imageResponse.status}`);
-      }
-
-      const imageResult = await imageResponse.json();
-      const processedImageBase64 = imageResult.processedImageBase64;
-
-      // ========================================
-      // PASSO 2: ANÁLISE (com imagem original + simulada)
-      // ========================================
-      setProcessingStep('Analisando resultado e gerando documentos...');
+      setProcessingStep('Analisando foto e gerando documentos...');
       
       const servicosAtivos = await fetchActiveServices();
       console.log('✓ Serviços ativos carregados:', servicosAtivos.length);
@@ -350,7 +311,13 @@ export default function Index() {
         price: s.price
       }));
       
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       const idempotencyKey = currentUser ? `${currentUser.id}-${Date.now()}-analyze` : undefined;
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
+      }
       
       const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
@@ -361,7 +328,6 @@ export default function Index() {
         body: JSON.stringify({
           action: 'analyze',
           imageBase64: originalImage,
-          processedImageBase64: processedImageBase64,
           servicos_ativos: servicosParaEdge,
           treatment_type: simulationType,
           idempotencyKey,
@@ -411,22 +377,21 @@ export default function Index() {
       
       setAnalysisData(analysisDataCompat);
 
-      // Salvar simulação completa
+      // Salvar simulação inicial
       const { data: { user } } = await supabase.auth.getUser();
       let simulationId: string | null = null;
 
       if (user) {
         const timestamp = getTimestamp();
         
-        // Upload imagem original
-        const fetchResponseOriginal = await fetch(originalImage);
-        const blobOriginal = await fetchResponseOriginal.blob();
+        const fetchResponse = await fetch(originalImage);
+        const blob = await fetchResponse.blob();
         const originalFileName = `${user.id}/original-${timestamp}.jpeg`;
         
         await supabase.storage
           .from('original-images')
-          .upload(originalFileName, blobOriginal, {
-            contentType: blobOriginal.type,
+          .upload(originalFileName, blob, {
+            contentType: blob.type,
             upsert: true,
             cacheControl: '3600',
           });
@@ -435,26 +400,6 @@ export default function Index() {
           .from('original-images')
           .getPublicUrl(originalFileName);
 
-        // Upload imagem processada
-        const fetchResponseProcessed = await fetch(processedImageBase64);
-        const blobProcessed = await fetchResponseProcessed.blob();
-        const processedFileName = `${user.id}/processed-${timestamp}.jpeg`;
-        
-        await supabase.storage
-          .from('processed-images')
-          .upload(processedFileName, blobProcessed, {
-            contentType: blobProcessed.type,
-            upsert: true,
-            cacheControl: '3600',
-          });
-        
-        const { data: { publicUrl: processedImageUrl } } = supabase.storage
-          .from('processed-images')
-          .getPublicUrl(processedFileName);
-
-        console.log('✓ Imagens salvas:', { originalUrl, processedImageUrl });
-
-        // Criar simulação com todas as informações
         const { data: simulation } = await supabase
           .from('simulations')
           .insert({
@@ -463,18 +408,83 @@ export default function Index() {
             patient_name: patientName,
             patient_phone: patientPhone || null,
             original_image_url: originalUrl,
-            processed_image_url: processedImageUrl,
             technical_notes: JSON.stringify(analiseJSON),
             treatment_type: simulationType,
-            status: 'completed',
+            status: 'analyzed',
           })
           .select()
           .single();
 
         simulationId = simulation.id;
         setCurrentSimulationId(simulationId);
-        setProcessedImage(processedImageUrl);
       }
+
+      // ========================================
+      // PASSO 2: GERAÇÃO DE IMAGEM
+      // ========================================
+      setProcessingStep('Gerando simulação visual...');
+
+      const imageResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          action: 'generate',
+          imageBase64: originalImage,
+          treatment_type: simulationType,
+          config: {
+            temperature: config.temperature,
+            topK: config.topK,
+            topP: config.topP,
+            maxOutputTokens: config.maxTokens,
+          },
+        }),
+      });
+
+      if (!imageResponse.ok) {
+        const errorData = await imageResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro na geração: ${imageResponse.status}`);
+      }
+
+      const imageResult = await imageResponse.json();
+      const processedImageBase64 = imageResult.processedImageBase64;
+
+      // Upload da imagem processada
+      let processedImageUrl: string | null = null;
+      
+      if (user && simulationId) {
+        const timestamp = getTimestamp();
+        const fetchResponse = await fetch(processedImageBase64);
+        const blob = await fetchResponse.blob();
+        const processedFileName = `${user.id}/processed-${timestamp}.jpeg`;
+        
+        await supabase.storage
+          .from('processed-images')
+          .upload(processedFileName, blob, {
+            contentType: blob.type,
+            upsert: true,
+            cacheControl: '3600',
+          });
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('processed-images')
+          .getPublicUrl(processedFileName);
+
+        console.log('✓ Imagem processada salva:', publicUrl);
+        processedImageUrl = publicUrl;
+        
+        await supabase
+          .from('simulations')
+          .update({
+            processed_image_url: processedImageUrl,
+            status: 'completed',
+          })
+          .eq('id', simulationId);
+      }
+
+      setProcessedImage(processedImageUrl);
 
       // ========================================
       // PASSO 3: GERAR PDFs

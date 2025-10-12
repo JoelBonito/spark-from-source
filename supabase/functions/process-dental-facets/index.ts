@@ -287,28 +287,50 @@ Deno.serve(async (req) => {
           .eq('id', simulationId);
       }
 
-      // Construir prompt de análise
+      // Construir prompt de análise comparativa
       const servicosNomes = servicos_ativos?.map((s: any) => s.name || s) || [];
+      const processedImageBase64 = body.processedImageBase64;
       
-      const analysisPrompt = `Analise esta imagem dental e retorne JSON estruturado com análise técnica completa.
-      
+      const analysisPrompt = `Você é um dentista especialista analisando um caso de ${treatment_type === 'clareamento' ? 'clareamento dental' : 'facetas dentárias'}.
+
+IMAGENS FORNECIDAS:
+1. Primeira imagem: ANTES do tratamento (situação atual do paciente)
+2. Segunda imagem: DEPOIS do tratamento (simulação do resultado)
+
+TAREFA:
+Analise as duas imagens e crie:
+1. ANÁLISE TÉCNICA comparativa (antes vs depois)
+2. ORÇAMENTO detalhado dos procedimentos necessários
+
 Serviços disponíveis: ${servicosNomes.join(', ')}
 
 Retorne um JSON com a seguinte estrutura:
 {
-  "analise_geral": "descrição geral do caso",
+  "analise_geral": "descrição comparativa do antes e depois",
   "dentes_analisados": ["11", "21", "12", "22", ...],
-  "problemas_identificados": ["problema1", "problema2", ...],
+  "problemas_identificados": ["problema1 no antes", "problema2 no antes", ...],
   "tratamentos_recomendados": ["tratamento1", "tratamento2", ...],
-  "pontuacao_estetica": 7.5,
-  "observacoes": "observações adicionais"
+  "pontuacao_estetica_antes": 6.5,
+  "pontuacao_estetica_depois": 9.0,
+  "melhoras_observadas": ["melhora1", "melhora2", ...],
+  "observacoes": "observações técnicas adicionais"
 }`;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
 
       try {
-        // Chamar API do Google Gemini diretamente
+        // Chamar API do Google Gemini com ambas as imagens
+        const parts = [
+          { text: analysisPrompt },
+          prepareImageForGemini(imageBase64)
+        ];
+        
+        // Adicionar imagem processada se fornecida
+        if (processedImageBase64) {
+          parts.push(prepareImageForGemini(processedImageBase64));
+        }
+        
         const analysisResponse = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_ANALYSIS}:generateContent?key=${geminiApiKey}`,
           {
@@ -318,10 +340,7 @@ Retorne um JSON com a seguinte estrutura:
             },
             body: JSON.stringify({
               contents: [{
-                parts: [
-                  { text: analysisPrompt },
-                  prepareImageForGemini(imageBase64)
-                ]
+                parts: parts
               }],
               generationConfig: {
                 temperature: 0.3,
