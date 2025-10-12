@@ -154,6 +154,38 @@ Deno.serve(async (req) => {
   const log = createLogger(runId);
   
   try {
+    // Validar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      log.error('Sem header de autorização');
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - Token ausente' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Criar cliente Supabase para validar o token
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.58.0');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: authHeader }
+      }
+    });
+
+    // Verificar usuário autenticado
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      log.error('Token inválido ou expirado:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - Token inválido' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    log.info(`Usuário autenticado: ${user.email} (${user.id.substring(0, 8)}...)`);
+    
     const body = await req.json();
     const { 
       imageBase64, 
@@ -163,9 +195,11 @@ Deno.serve(async (req) => {
       config, 
       treatment_type, 
       simulationId, 
-      userId,
       servicos_ativos 
     } = body;
+    
+    // Usar o userId do token autenticado (mais seguro)
+    const userId = user.id;
     
     if (!imageBase64) {
       throw new Error('Imagem não fornecida');
