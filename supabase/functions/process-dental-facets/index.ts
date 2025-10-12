@@ -29,7 +29,7 @@ function createLogger(runId: string) {
 }
 
 const MODEL_NAME_ANALYSIS = 'gemini-2.0-flash-exp';
-const MODEL_NAME_GENERATION = 'gemini-2.0-flash-exp';
+const MODEL_NAME_GENERATION = 'gemini-2.5-flash-image';
 
 // ═════════════════════════════════════════════════════════════════════════
 // PROMPTS DE GERAÇÃO
@@ -421,7 +421,7 @@ Retorne um JSON com a seguinte estrutura:
               generationConfig: {
                 temperature: 0.4,
                 maxOutputTokens: 8000,
-                responseMimeType: 'image/jpeg'
+                responseModalities: ['Image']
               }
             }),
             signal: controller.signal,
