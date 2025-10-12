@@ -1,4 +1,4 @@
-project_id = "emlllyoovwdzajhrwydz"
+project_id = "hqexulgmmtghwtgnqtfy"
 
 [functions.process-dental-facets]
-verify_jwt = false
+verify_jwt = true
