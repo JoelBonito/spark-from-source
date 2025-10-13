@@ -26,9 +26,9 @@ import { createClient } from '@supabase/supabase-js';
 // CONFIGURAÇÕES
 // ═════════════════════════════════════════════════════════════════════════
 
-// LOVABLE CLOUD (Origem)
-const SOURCE_URL = 'https://emlllyoovwdzajhrwydz.supabase.co';
-const SOURCE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtbGxseW9vdndkemFqaHJ3eWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMzAzMTIsImV4cCI6MjA3NDgwNjMxMn0.UTCKwc_WaUeVig9fQT_T4gQA8uk3EcsD-G8Xz-D3_Pg';
+// LOVABLE CLOUD (Origem) - ATUALIZADO PARA O PROJETO CORRETO
+const SOURCE_URL = 'https://hqexulgmmtghwtgnqtfy.supabase.co';
+const SOURCE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxZXh1bGdtbXRnaHd0Z25xdGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMzg1NzksImV4cCI6MjA3NTYxNDU3OX0.7G8MdMj2lSj8Ov9bacg6GkaLpMMiNFXAPceIbH8uVXk';
 
 // SUPABASE NOVO (Destino)
 const TARGET_URL = 'https://hqexulgmmtghwtgnqtfy.supabase.co';
