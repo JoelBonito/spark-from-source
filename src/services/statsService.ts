@@ -116,7 +116,15 @@ export async function getExpiredBudgets() {
     .in('status', ['pending', 'sent', 'viewed'])
     .lte('valid_until', today);
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar orçamentos expirados:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
   return data || [];
 }
 
@@ -135,6 +143,14 @@ export async function getStaleLeads() {
     .neq('stage', 'conversao')
     .neq('stage', 'fidelizacao');
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar leads inativos:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
   return data || [];
 }

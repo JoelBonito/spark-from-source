@@ -52,7 +52,15 @@ export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> 
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar leads agrupados:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
 
   const grouped: Record<string, Lead[]> = {
     novo_lead: [],

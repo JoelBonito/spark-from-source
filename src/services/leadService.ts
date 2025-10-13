@@ -86,7 +86,15 @@ export async function getAllLeads(): Promise<Lead[]> {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar leads:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
   return (data || []) as Lead[];
 }
 
@@ -104,7 +112,16 @@ export async function getLeadsByStage(stage: string): Promise<Lead[]> {
     .eq('stage', stage)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar leads por stage:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      stage
+    });
+    throw error;
+  }
   return (data || []) as Lead[];
 }
 
@@ -116,10 +133,19 @@ export async function getLeadById(id: string): Promise<Lead | null> {
       patient:patients(name, phone, email)
     `)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
-  return data as Lead;
+  if (error) {
+    console.error('❌ Erro ao buscar lead por ID:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      leadId: id
+    });
+    throw error;
+  }
+  return data as Lead | null;
 }
 
 export async function createLead(leadData: CreateLeadData): Promise<Lead> {
@@ -285,6 +311,15 @@ export async function searchLeads(query: string): Promise<Lead[]> {
     .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar leads:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      query
+    });
+    throw error;
+  }
   return (data || []) as Lead[];
 }

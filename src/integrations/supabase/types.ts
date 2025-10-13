@@ -160,6 +160,7 @@ export type Database = {
           simulation_id: string | null
           source: string
           status: string
+          treatment_type: string | null
           user_id: string
         }
         Insert: {
@@ -173,6 +174,7 @@ export type Database = {
           simulation_id?: string | null
           source?: string
           status?: string
+          treatment_type?: string | null
           user_id: string
         }
         Update: {
@@ -186,6 +188,7 @@ export type Database = {
           simulation_id?: string | null
           source?: string
           status?: string
+          treatment_type?: string | null
           user_id?: string
         }
         Relationships: [

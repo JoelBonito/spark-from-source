@@ -88,7 +88,16 @@ export async function getAllBudgets(filters?: BudgetFilters): Promise<Budget[]> 
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar orçamentos:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      filters
+    });
+    throw error;
+  }
 
   return (data || []).map(budget => ({
     ...budget,
@@ -109,9 +118,18 @@ export async function getBudgetById(id: string): Promise<Budget | null> {
       simulation:simulations(*)
     `)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar orçamento por ID:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      budgetId: id
+    });
+    throw error;
+  }
   if (!data) return null;
 
   return {
@@ -189,7 +207,16 @@ export async function searchBudgets(query: string): Promise<Budget[]> {
     .or(`budget_number.ilike.%${query}%`)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar orçamentos:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      query
+    });
+    throw error;
+  }
 
   return (data || []).map(budget => ({
     ...budget,
