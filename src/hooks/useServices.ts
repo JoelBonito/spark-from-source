@@ -51,9 +51,18 @@ export function useServices() {
         .from('services')
         .insert({ ...serviceData, user_id: user.id })
         .select()
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao criar serviço:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
+      if (!data) throw new Error('Falha ao criar serviço');
       
       await fetchServices();
       toast.success('Serviço criado com sucesso');

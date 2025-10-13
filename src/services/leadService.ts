@@ -161,9 +161,18 @@ export async function createLead(leadData: CreateLeadData): Promise<Lead> {
       }
     ])
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao criar lead:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Falha ao criar lead');
   return data as Lead;
 }
 
@@ -173,9 +182,19 @@ export async function updateLead(id: string, leadData: UpdateLeadData): Promise<
     .update(leadData)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao atualizar lead:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      leadId: id
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Lead não encontrado');
   return data as Lead;
 }
 
@@ -189,9 +208,20 @@ export async function updateLeadStage(id: string, newStage: string): Promise<Lea
     .update({ stage: newStage })
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao atualizar stage do lead:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      leadId: id,
+      newStage
+    });
+    throw error;
+  }
+  if (!lead) throw new Error('Lead não encontrado');
 
   // Criar activity automática
   const stageNames: Record<string, string> = {
@@ -245,9 +275,18 @@ export async function createActivity(activityData: CreateActivityData): Promise<
       }
     ])
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao criar atividade:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Falha ao criar atividade');
   return data;
 }
 

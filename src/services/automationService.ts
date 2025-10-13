@@ -29,12 +29,22 @@ export async function autoProcessSimulation(
     // Check if lead already exists for this patient
     let leadId: string;
     if (patientId) {
-      const { data: existingLead } = await supabase
+      const { data: existingLead, error: leadError } = await supabase
         .from('leads')
         .select('id')
         .eq('patient_id', patientId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (leadError) {
+        console.error('❌ Erro ao verificar lead existente:', {
+          code: leadError.code,
+          message: leadError.message,
+          details: leadError.details,
+          hint: leadError.hint,
+          patientId
+        });
+      }
 
       if (existingLead) {
         leadId = existingLead.id;
@@ -125,12 +135,22 @@ export async function markExpiredBudgets(): Promise<number> {
     for (const budget of expiredBudgets) {
       if (budget.patient_id) {
         // Find lead for this patient
-        const { data: lead } = await supabase
+        const { data: lead, error: leadError } = await supabase
           .from('leads')
           .select('id')
           .eq('patient_id', budget.patient_id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
+
+        if (leadError) {
+          console.error('❌ Erro ao buscar lead para orçamento expirado:', {
+            code: leadError.code,
+            message: leadError.message,
+            details: leadError.details,
+            hint: leadError.hint,
+            patientId: budget.patient_id
+          });
+        }
 
         if (lead) {
           await supabase.from('activities').insert({

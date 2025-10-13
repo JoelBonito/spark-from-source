@@ -142,12 +142,18 @@ export async function saveSimulationAnalysis(
       technical_notes: `Prompt: ${simulationPrompt.substring(0, 500)}...`, 
     })
     .select()
-    .single();
+    .maybeSingle();
   
   if (error) {
-    console.error('Erro ao salvar análise:', error);
+    console.error('❌ Erro ao salvar análise:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
     throw error;
   }
+  if (!data) throw new Error('Falha ao salvar análise');
   
   return data;
 }

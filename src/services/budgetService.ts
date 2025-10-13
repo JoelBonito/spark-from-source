@@ -160,9 +160,18 @@ export async function createBudget(budgetData: CreateBudgetData): Promise<Budget
       }
     ])
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao criar orçamento:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Falha ao criar orçamento');
   return {
     ...data,
     status: data.status as Budget['status'],
@@ -181,9 +190,20 @@ export async function updateBudgetStatus(
     .update({ status })
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao atualizar status do orçamento:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      budgetId: id,
+      newStatus: status
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Orçamento não encontrado');
   return {
     ...data,
     status: data.status as Budget['status'],
@@ -289,9 +309,18 @@ export async function createManualBudget(
     .from('patients')
     .select('name, phone')
     .eq('id', patientId)
-    .single();
+    .maybeSingle();
 
-  if (patientError) throw patientError;
+  if (patientError) {
+    console.error('❌ Erro ao buscar paciente:', {
+      code: patientError.code,
+      message: patientError.message,
+      details: patientError.details,
+      hint: patientError.hint,
+      patientId
+    });
+    throw patientError;
+  }
   if (!patient) throw new Error('Paciente não encontrado');
 
   // Calcular valores
@@ -342,9 +371,18 @@ export async function createManualBudget(
       }
     ])
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao criar orçamento manual:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Falha ao criar orçamento manual');
   
   return {
     ...data,
@@ -383,9 +421,19 @@ export async function updateBudget(
     .eq('id', budgetId)
     .eq('user_id', user.id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao atualizar orçamento:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      budgetId
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Orçamento não encontrado');
 
   return {
     ...data,

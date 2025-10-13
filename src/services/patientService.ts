@@ -127,9 +127,18 @@ export async function getPatientById(id: string): Promise<Patient | null> {
       simulations:simulations(count)
     `)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao buscar paciente por ID:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      patientId: id
+    });
+    throw error;
+  }
   if (!data) return null;
 
   return {
@@ -151,9 +160,18 @@ export async function createPatient(patientData: CreatePatientData): Promise<Pat
       }
     ])
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao criar paciente:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Falha ao criar paciente');
   return data;
 }
 
@@ -163,9 +181,19 @@ export async function updatePatient(id: string, patientData: UpdatePatientData):
     .update(patientData)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('❌ Erro ao atualizar paciente:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      patientId: id
+    });
+    throw error;
+  }
+  if (!data) throw new Error('Paciente não encontrado');
   return data;
 }
 
