@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { saveConfig, getConfig, DEFAULT_PROMPT, type Config } from "@/utils/storage";
 import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/contexts/ConfigContext";
-
 export default function ConfigForm() {
   const navigate = useNavigate();
   const {
@@ -37,7 +36,6 @@ export default function ConfigForm() {
       }
     });
   }, []);
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.apiKey || formData.apiKey.length < 20) {
@@ -67,7 +65,6 @@ export default function ConfigForm() {
     if (!formData.promptTemplate.trim()) {
       newErrors.promptTemplate = "Template do prompt é obrigatório";
     }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -131,13 +128,7 @@ export default function ConfigForm() {
           </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="backendUrl">Backend URL *</Label>
-          <Input id="backendUrl" type="text" value={formData.backendUrl} disabled placeholder={import.meta.env.VITE_SUPABASE_URL} className="bg-muted" />
-          <p className="text-xs text-muted-foreground">
-            ℹ️ Usando Lovable Cloud (configurado automaticamente)
-          </p>
-        </div>
+        
       </div>
 
       {/* PARÂMETROS AVANÇADOS */}
@@ -239,31 +230,13 @@ export default function ConfigForm() {
                 Ative para permitir simulações de clareamento dental
               </p>
             </div>
-            <Switch
-              id="whiteningEnabled"
-              checked={whiteningEnabled}
-              onCheckedChange={setWhiteningEnabled}
-            />
+            <Switch id="whiteningEnabled" checked={whiteningEnabled} onCheckedChange={setWhiteningEnabled} />
           </div>
         </div>
       </div>
 
       {/* INFORMATIVO - SERVIÇOS AGORA GERIDOS EM ABA PRÓPRIA */}
-      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
-          Serviços e Preços da Clínica
-        </h2>
-        
-        <div className="bg-muted/50 p-4 rounded-lg border border-muted">
-          <p className="text-sm text-muted-foreground">
-            ℹ️ A gestão de serviços e preços foi movida para a aba <strong>"Serviços"</strong> no menu lateral.
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Acesse <strong>Serviços</strong> para configurar os preços de facetas, clareamento e outros procedimentos.
-          </p>
-        </div>
-      </div>
+      
 
       <div className="flex justify-end gap-3 pb-6">
           <Button type="submit" className="flex items-center gap-2 bg-primary hover:bg-primary/90">
