@@ -41,7 +41,7 @@ Você é um simulador de tratamento dental fotorrealista.
 TAREFA: Gere uma imagem simulada do "DEPOIS" aplicando o padrão técnico da clínica.
 
 PADRÃO TÉCNICO FIXO:
-✓ Facetas em resina composta BL3 em TODOS os dentes visíveis no sorriso
+✓ Facetas em resina composta BL2 em TODOS os dentes visíveis no sorriso
 ✓ Bordas incisais translúcidas nos incisivos (12, 11, 21, 22)
 ✓ Cor uniforme BL3 (branco natural harmonioso - escala Vita)
 ✓ Alinhamento corrigido (se necessário)
