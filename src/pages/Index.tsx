@@ -22,8 +22,8 @@ import { usePatientForm } from "@/hooks/usePatientForm";
 import { generateTechnicalReportPDF, generateReportNumber } from "@/services/technicalReportService";
 import { useConfig } from "@/contexts/ConfigContext";
 
-// Tipos simplificados
-type SimulatorState = 'input' | 'processing' | 'completed';
+// Tipos simplificados (ATUALIZADO: 2 etapas)
+type SimulatorState = 'input' | 'processing_image' | 'confirm_image' | 'processing_analysis' | 'completed';
 
 interface AnalysisResult {
   success: boolean;
@@ -145,6 +145,10 @@ export default function Index() {
   const [reportPdfUrl, setReportPdfUrl] = useState<string | null>(null);
   const [showBudgetPdfModal, setShowBudgetPdfModal] = useState(false);
   const [showReportPdfModal, setShowReportPdfModal] = useState(false);
+  
+  // Controle do fluxo de 2 etapas
+  const [imageGenerated, setImageGenerated] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   // Auth e Config check
   useEffect(() => {
@@ -178,10 +182,10 @@ export default function Index() {
     return () => subscription.unsubscribe();
   }, [navigate, location]);
 
-  // Timer para loading
+  // Timer para loading (ATUALIZADO: processing_image OU processing_analysis)
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (currentState === 'processing') {
+    if (currentState === 'processing_image' || currentState === 'processing_analysis') {
       const startTime = Date.now();
       interval = setInterval(() => {
         setProcessingTime(Date.now() - startTime);
@@ -279,15 +283,18 @@ export default function Index() {
     setCurrentState('input');
   };
 
-  // FLUXO UNIFICADO: Análise + Geração
-  const handleProcessAndGenerate = async () => {
+  // ═════════════════════════════════════════════════════════════════
+  // ETAPA 1: GERAR APENAS IMAGEM SIMULADA (30-40s)
+  // ═════════════════════════════════════════════════════════════════
+  const handleGenerateImageOnly = async () => {
     if (!originalImage || !patientName) {
       toast.error("Preencha o nome do paciente e faça o upload da foto");
       return;
     }
 
-    setCurrentState('processing');
+    setCurrentState('processing_image');
     setProcessingTime(0);
+    setProcessingStep('Gerando simulação visual...');
 
     try {
       const config = await getConfig();
@@ -296,19 +303,13 @@ export default function Index() {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-      // ========================================
-      // PASSO 1: GERAÇÃO DE IMAGEM SIMULADA
-      // ========================================
-      setProcessingStep('Gerando simulação visual...');
-      
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
         throw new Error('Usuário não autenticado');
       }
 
+      // APENAS GERAÇÃO DE IMAGEM
       const imageResponse = await fetch(`${supabaseUrl}/functions/v1/process-dental-facets`, {
         method: "POST",
         headers: {
@@ -336,10 +337,52 @@ export default function Index() {
       const imageResult = await imageResponse.json();
       const processedImageBase64 = imageResult.processedImageBase64;
 
-      // ========================================
-      // PASSO 2: ANÁLISE (com imagem original + simulada)
-      // ========================================
-      setProcessingStep('Analisando resultado e gerando documentos...');
+      setProcessedImage(processedImageBase64);
+      setImageGenerated(true);
+      setAwaitingConfirmation(true);
+      setCurrentState('confirm_image');
+
+      toast.success("Simulação visual gerada! Analise o resultado.");
+
+    } catch (err) {
+      console.error("Erro ao gerar imagem:", err);
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(errorMessage);
+      setCurrentState('input');
+      setProcessedImage(null);
+      setImageGenerated(false);
+    }
+  };
+
+  // ═════════════════════════════════════════════════════════════════
+  // ETAPA 2: ANÁLISE COMPLETA (apenas se usuário aprovar - 60-90s)
+  // ═════════════════════════════════════════════════════════════════
+  const handleContinueToAnalysis = async () => {
+    if (!processedImage || !originalImage || !patientName) {
+      toast.error("Dados insuficientes para análise");
+      return;
+    }
+
+    setCurrentState('processing_analysis');
+    setProcessingTime(0);
+    setProcessingStep('Analisando resultado e gerando documentos...');
+    setAwaitingConfirmation(false);
+
+    try {
+      const config = await getConfig();
+      if (!config) {
+        throw new Error("Configuração não encontrada");
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // ANÁLISE (action: 'analyze')
       
       const servicosAtivos = await fetchActiveServices();
       console.log('✓ Serviços ativos carregados:', servicosAtivos.length);
@@ -361,7 +404,7 @@ export default function Index() {
         body: JSON.stringify({
           action: 'analyze',
           imageBase64: originalImage,
-          processedImageBase64: processedImageBase64,
+          processedImageBase64: processedImage,
           servicos_ativos: servicosParaEdge,
           treatment_type: simulationType,
           idempotencyKey,
@@ -377,15 +420,13 @@ export default function Index() {
           toast.error('Módulo de clareamento desativado', {
             description: 'Ative em Configurações para usar este recurso'
           });
-          setCurrentState('input');
+          setCurrentState('confirm_image');
           return;
         }
         
         if (errorData.code === 'DUPLICATE_REQUEST') {
-          toast.info('Processamento já em andamento', {
-            description: 'Aguarde a conclusão da análise anterior'
-          });
-          setCurrentState('input');
+          toast.info('Processamento já em andamento');
+          setCurrentState('confirm_image');
           return;
         }
         
@@ -437,7 +478,7 @@ export default function Index() {
           .getPublicUrl(originalFileName);
 
         // Upload imagem processada
-        const fetchResponseProcessed = await fetch(processedImageBase64);
+        const fetchResponseProcessed = await fetch(processedImage);
         const blobProcessed = await fetchResponseProcessed.blob();
         const processedFileName = `${user.id}/processed-${timestamp}.jpeg`;
         
@@ -488,7 +529,7 @@ export default function Index() {
       const budgetNumber = generateBudgetNumber();
 
       const beforeImageBase64 = originalImage ? await urlToBase64(originalImage) : '';
-      const afterImageBase64 = processedImageUrl ? await urlToBase64(processedImageUrl) : '';
+      const afterImageBase64 = processedImage ? await urlToBase64(processedImage) : '';
 
       // Gerar Relatório Técnico
       console.log('→ Gerando Relatório Técnico PDF...');
@@ -540,14 +581,25 @@ export default function Index() {
       }
 
       setCurrentState('completed');
-      toast.success("Simulação concluída com sucesso!");
+      toast.success("Análise concluída com sucesso!");
       
     } catch (err) {
-      console.error("Erro ao processar:", err);
+      console.error("Erro ao processar análise:", err);
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
       toast.error(errorMessage);
-      setCurrentState('input');
+      setCurrentState('confirm_image');
     }
+  };
+
+  // ═════════════════════════════════════════════════════════════════
+  // REJEITAR SIMULAÇÃO (Fazer Nova)
+  // ═════════════════════════════════════════════════════════════════
+  const handleRejectImage = () => {
+    setProcessedImage(null);
+    setImageGenerated(false);
+    setAwaitingConfirmation(false);
+    setCurrentState('input');
+    toast.info('Faça uma nova simulação ajustando a foto ou o tratamento');
   };
 
   const handleViewTechnicalReport = () => {
@@ -663,6 +715,8 @@ export default function Index() {
     setPatientName("");
     setPatientPhone("");
     setAnaliseJSON(null);
+    setImageGenerated(false);
+    setAwaitingConfirmation(false);
   };
 
   if (!hasApiConfig) {
@@ -761,28 +815,28 @@ export default function Index() {
                 />
               </div>
 
-              {/* Botão Processar */}
+              {/* Botão Processar (ETAPA 1) */}
               <Button
-                onClick={handleProcessAndGenerate}
+                onClick={handleGenerateImageOnly}
                 disabled={!patientName || !originalImage}
                 size="lg"
                 className="w-full"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                Processar e Gerar Simulação
+                Gerar Simulação Visual
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* LOADING: Processando */}
-        {currentState === 'processing' && (
+        {/* LOADING: Gerando Imagem */}
+        {currentState === 'processing_image' && (
           <Card>
             <CardContent className="py-16 text-center">
               <Loader2 className="h-16 w-16 animate-spin mx-auto mb-6 text-primary" />
               <p className="text-xl font-medium mb-2">{processingStep}</p>
               <p className="text-sm text-muted-foreground mb-4">
-                Aguarde 8-15 segundos
+                Aguarde 30-40 segundos
               </p>
               {processingTime > 0 && (
                 <div className="space-y-2">
@@ -792,7 +846,111 @@ export default function Index() {
                   <div className="w-64 mx-auto bg-muted rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min((processingTime / 15000) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((processingTime / 40000) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* TELA INTERMEDIÁRIA: CONFIRMAÇÃO DA IMAGEM */}
+        {currentState === 'confirm_image' && processedImage && originalImage && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Simulação Visual Gerada</CardTitle>
+              <CardDescription>Analise o resultado antes de gerar análise completa</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <ComparisonView
+                beforeImage={originalImage}
+                afterImage={processedImage}
+                isProcessing={false}
+                processingTime={0}
+              />
+
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  {simulationType === 'facetas' 
+                    ? '💎 Simulação com FACETAS DE RESINA COMPOSTA' 
+                    : '✨ Simulação com CLAREAMENTO DENTAL'}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  {simulationType === 'facetas'
+                    ? 'Formato, cor e alinhamento modificados para criar sorriso harmonioso'
+                    : 'Apenas cor modificada, mantendo formato e características naturais dos dentes'}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-lg font-semibold">
+                    Gostou da simulação?
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Você deseja gerar análise técnica e orçamento detalhado?
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={handleRejectImage}
+                    variant="outline"
+                    size="lg"
+                    className="border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950/30"
+                  >
+                    <span className="text-xl mr-2">❌</span>
+                    Não, fazer nova
+                  </Button>
+                  <Button
+                    onClick={handleContinueToAnalysis}
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <span className="text-xl mr-2">✅</span>
+                    Sim, gerar análise
+                  </Button>
+                </div>
+
+                <div className="bg-muted/50 p-4 rounded-lg text-sm">
+                  <p className="font-medium mb-2">
+                    📋 Ao clicar em "Sim", vamos gerar:
+                  </p>
+                  <ul className="space-y-1 ml-4 list-disc text-muted-foreground">
+                    <li>Análise clínica completa (antes vs. depois)</li>
+                    <li>Relatório técnico profissional (PDF)</li>
+                    <li>Orçamento detalhado por procedimentos (PDF)</li>
+                    <li>Dados para CRM e acompanhamento</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-amber-600 flex items-center justify-center">
+                    <Loader2 className="h-3 w-3 mr-1" />
+                    Tempo estimado: ~60 segundos
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* LOADING: Processando Análise */}
+        {currentState === 'processing_analysis' && (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <Loader2 className="h-16 w-16 animate-spin mx-auto mb-6 text-primary" />
+              <p className="text-xl font-medium mb-2">{processingStep}</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Gerando análise completa e documentos...
+              </p>
+              {processingTime > 0 && (
+                <div className="space-y-2">
+                  <p className="text-lg font-mono text-muted-foreground">
+                    {(processingTime / 1000).toFixed(1)}s
+                  </p>
+                  <div className="w-64 mx-auto bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min((processingTime / 90000) * 100, 100)}%` }}
                     />
                   </div>
                 </div>

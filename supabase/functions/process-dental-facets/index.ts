@@ -31,8 +31,11 @@ function createLogger(runId: string) {
 const MODEL_NAME_ANALYSIS = 'gemini-2.0-flash-exp';
 const MODEL_NAME_GENERATION = 'gemini-2.5-flash-image';
 
+// Importar prompts modulares
+import { getAnalysisPrompt } from './prompts.ts';
+
 // ═════════════════════════════════════════════════════════════════════════
-// PROMPTS DE GERAÇÃO
+// PROMPTS DE GERAÇÃO (mantidos inline para geração de imagem)
 // ═════════════════════════════════════════════════════════════════════════
 
 const PROMPT_FACETAS = `
@@ -287,34 +290,11 @@ Deno.serve(async (req) => {
           .eq('id', simulationId);
       }
 
-      // Construir prompt de análise comparativa
-      const servicosNomes = servicos_ativos?.map((s: any) => s.name || s) || [];
+      // Usar prompt modular de análise
       const processedImageBase64 = body.processedImageBase64;
+      const analysisPrompt = getAnalysisPrompt(treatment_type || 'facetas');
       
-      const analysisPrompt = `Você é um dentista especialista analisando um caso de ${treatment_type === 'clareamento' ? 'clareamento dental' : 'facetas dentárias'}.
-
-IMAGENS FORNECIDAS:
-1. Primeira imagem: ANTES do tratamento (situação atual do paciente)
-2. Segunda imagem: DEPOIS do tratamento (simulação do resultado)
-
-TAREFA:
-Analise as duas imagens e crie:
-1. ANÁLISE TÉCNICA comparativa (antes vs depois)
-2. ORÇAMENTO detalhado dos procedimentos necessários
-
-Serviços disponíveis: ${servicosNomes.join(', ')}
-
-Retorne um JSON com a seguinte estrutura:
-{
-  "analise_geral": "descrição comparativa do antes e depois",
-  "dentes_analisados": ["11", "21", "12", "22", ...],
-  "problemas_identificados": ["problema1 no antes", "problema2 no antes", ...],
-  "tratamentos_recomendados": ["tratamento1", "tratamento2", ...],
-  "pontuacao_estetica_antes": 6.5,
-  "pontuacao_estetica_depois": 9.0,
-  "melhoras_observadas": ["melhora1", "melhora2", ...],
-  "observacoes": "observações técnicas adicionais"
-}`;
+      log.info(`Usando prompt de análise para: ${treatment_type || 'facetas'}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
