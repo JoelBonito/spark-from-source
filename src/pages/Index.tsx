@@ -455,7 +455,7 @@ export default function Index() {
       // Salvar simulação completa
       const { data: { user } } = await supabase.auth.getUser();
       let simulationId: string | null = null;
-      let processedImageUrl: string = processedImageBase64; // Inicializa com base64 por padrão
+      let processedImageUrl: string = processedImage; // Inicializa com base64 por padrão
 
       if (user) {
         const timestamp = getTimestamp();
