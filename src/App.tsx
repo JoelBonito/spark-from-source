@@ -11,9 +11,9 @@ const Index = lazy(() => import("./pages/Index"));
 const Config = lazy(() => import("./pages/Config"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Patients = lazy(() => import("./pages/Patients").then(module => ({ default: module.Patients })));
 const CRM = lazy(() => import("./pages/CRM"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Dashboard = lazy(() => import("./pages/Dashboard").then(module => ({ default: module.default })));
+const Patients = lazy(() => import("./pages/Patients").then(module => ({ default: module.Patients })));
 const Services = lazy(() => import("./pages/Services").then(module => ({ default: module.Services })));
 const Budgets = lazy(() => import("./pages/Budgets").then(module => ({ default: module.Budgets })));
 
