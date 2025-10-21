@@ -2,14 +2,30 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Edit, Smile, FileText, Calendar } from 'lucide-react';
-import { mockPatients, mockSimulations } from '@/lib/mock-data';
+import { usePatientDetail } from '@/hooks/usePatientDetail';
 
 export default function PatientDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { patient, simulations, loading } = usePatientDetail(id || null);
 
-  const patient = mockPatients.find((p) => p.id === id);
+  if (loading) {
+    return (
+      <div className="space-y-6 fade-in-up">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-9 w-64" />
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
 
   if (!patient) {
     return (
@@ -86,30 +102,36 @@ export default function PatientDetailPage() {
         <CardHeader>
           <CardTitle className="font-display">Histórico de Simulações</CardTitle>
           <CardDescription>
-            {mockSimulations.length} simulações realizadas
+            {simulations.length} simulações realizadas
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {mockSimulations.map((sim) => (
-              <div
-                key={sim.id}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                onClick={() => navigate(`/simulations/${sim.id}`)}
-              >
-                <div className="flex items-center gap-3">
-                  <Smile className="h-8 w-8 text-primary" />
-                  <div>
-                    <p className="font-medium">{sim.treatment_type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(sim.created_at).toLocaleDateString('pt-BR')}
-                    </p>
+          {simulations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma simulação realizada ainda
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {simulations.map((sim: any) => (
+                <div
+                  key={sim.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => navigate(`/simulations/${sim.id}`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Smile className="h-8 w-8 text-primary" />
+                    <div>
+                      <p className="font-medium">{sim.treatment_type}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(sim.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
                   </div>
+                  <Badge>{sim.status}</Badge>
                 </div>
-                <Badge>{sim.status}</Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
