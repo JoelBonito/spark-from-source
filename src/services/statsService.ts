@@ -4,6 +4,7 @@ import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
 export interface DashboardStats {
   totalPatients: number;
   simulationsMonth: number;
+  totalSimulations: number;
   totalBudgets: number;
   acceptedBudgets: number;
   conversionRate: number;
@@ -11,6 +12,14 @@ export interface DashboardStats {
   confirmedRevenue: number;
   avgTicket: number;
   simulationsByDay: Array<{ date: string; count: number }>;
+  simulationsByMonth: Array<{ month: string; value: number }>;
+  latestSimulations: Array<{
+    id: string;
+    patient_name: string;
+    treatment_type: 'facetas' | 'clareamento';
+    processed_image_url?: string;
+    created_at: string;
+  }>;
   funnelDistribution: {
     novo_lead: number;
     qualificacao: number;
@@ -76,6 +85,35 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     return { date: format(date, 'dd/MM'), count };
   });
 
+  // Total de simulações (todos os tempos)
+  const { count: totalSimulations } = await supabase
+    .from('simulations')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  // Simulações por mês (últimos 6 meses)
+  const sixMonthsAgo = subDays(today, 180);
+  const { data: allSimulations } = await supabase
+    .from('simulations')
+    .select('created_at')
+    .eq('user_id', user.id)
+    .gte('created_at', sixMonthsAgo.toISOString());
+
+  const simulationsByMonth = groupSimulationsByMonth(allSimulations || []);
+
+  // Últimas simulações
+  const { data: latestSimulations } = await supabase
+    .from('simulations')
+    .select('id, patient_name, treatment_type, processed_image_url, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const typedLatestSimulations = (latestSimulations || []).map(sim => ({
+    ...sim,
+    treatment_type: sim.treatment_type as 'facetas' | 'clareamento'
+  }));
+
   // Distribuição no funil (usando tabela leads)
   const { data: leads } = await supabase
     .from('leads')
@@ -92,6 +130,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     totalPatients: totalPatients || 0,
     simulationsMonth: simulationsMonth?.length || 0,
+    totalSimulations: totalSimulations || 0,
     totalBudgets,
     acceptedBudgets,
     conversionRate,
@@ -99,8 +138,35 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     confirmedRevenue,
     avgTicket,
     simulationsByDay,
+    simulationsByMonth,
+    latestSimulations: typedLatestSimulations,
     funnelDistribution
   };
+}
+
+function groupSimulationsByMonth(simulations: Array<{ created_at: string }>) {
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const grouped: Record<string, number> = {};
+
+  simulations.forEach((sim) => {
+    const date = new Date(sim.created_at);
+    const monthYear = `${months[date.getMonth()]}/${date.getFullYear().toString().slice(-2)}`;
+    grouped[monthYear] = (grouped[monthYear] || 0) + 1;
+  });
+
+  const result: Array<{ month: string; value: number }> = [];
+  const now = new Date();
+  
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthYear = `${months[date.getMonth()]}/${date.getFullYear().toString().slice(-2)}`;
+    result.push({
+      month: monthYear,
+      value: grouped[monthYear] || 0,
+    });
+  }
+
+  return result;
 }
 
 export async function getExpiredBudgets() {
