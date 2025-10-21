@@ -1,22 +1,34 @@
+import { AppHeader } from './AppHeader';
+import { AppSidebar } from './AppSidebar';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useNotifications } from "@/hooks/useNotifications";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children?: React.ReactNode }) {
   // Enable real-time notifications
   useNotifications();
+  
+  const location = useLocation();
+  const isAuthRoute = location.pathname === '/auth';
+  
+  // Para rotas de auth, retornar apenas os children sem layout
+  if (isAuthRoute && children) {
+    return <>{children}</>;
+  }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar fixa em desktop */}
+      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 z-40">
         <AppSidebar />
-        <SidebarInset className="flex-1">
-          <header className="sticky top-0 z-50 h-14 flex items-center gap-4 border-b bg-background px-4">
-            <SidebarTrigger />
-          </header>
-          <main className="flex-1 p-6">{children}</main>
-        </SidebarInset>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 lg:pl-64">
+        <AppHeader />
+        <main className="p-6 lg:p-8">
+          {children || <Outlet />}
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

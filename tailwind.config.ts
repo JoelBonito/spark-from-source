@@ -13,6 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+      },
+      boxShadow: {
+        sm: '0px 2px 4px rgba(0, 0, 0, 0.05)',
+        DEFAULT: '0px 4px 6px rgba(0, 0, 0, 0.1)',
+        md: '0px 8px 12px rgba(0, 0, 0, 0.1)',
+        lg: '0px 12px 20px rgba(0, 0, 0, 0.1)',
+        xl: '0px 16px 24px rgba(0, 0, 0, 0.1)',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -65,11 +76,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        chart: {
+          "1": "hsl(var(--chart-1))",
+          "2": "hsl(var(--chart-2))",
+          "3": "hsl(var(--chart-3))",
+          "4": "hsl(var(--chart-4))",
+          "5": "hsl(var(--chart-5))",
+        },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: '0.75rem',
+        md: '0.5rem',
+        sm: '0.375rem',
       },
       keyframes: {
         "accordion-down": {
