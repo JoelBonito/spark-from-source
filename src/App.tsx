@@ -8,6 +8,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { ConfigProvider } from '@/contexts/ConfigContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
+import { useNotifications } from '@/hooks/useNotifications';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('@/pages/Index'));
@@ -185,13 +186,18 @@ const router = createBrowserRouter([
   },
 ]);
 
+function AppContent() {
+  useNotifications();
+  return <RouterProvider router={router} />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ConfigProvider>
           <TooltipProvider>
-            <RouterProvider router={router} />
+            <AppContent />
             <Toaster />
             <Sonner />
           </TooltipProvider>

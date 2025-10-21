@@ -1,8 +1,9 @@
-import { useLocation } from 'react-router-dom';
-import { Bell, Settings, Menu } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AppSidebar } from './AppSidebar';
+import NotificationBell from './notifications/NotificationBell';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -21,11 +22,11 @@ const PAGE_TITLES: Record<string, string> = {
 
 export function AppHeader() {
   const location = useLocation();
+  const navigate = useNavigate();
   const title = PAGE_TITLES[location.pathname] || 'Dashboard';
 
   return (
     <header className="sticky top-0 z-50 h-14 flex items-center justify-between border-b bg-background px-4">
-      {/* Mobile Menu */}
       <Sheet>
         <SheetTrigger asChild className="lg:hidden">
           <Button variant="ghost" size="icon">
@@ -37,15 +38,11 @@ export function AppHeader() {
         </SheetContent>
       </Sheet>
 
-      {/* Page Title */}
       <h1 className="text-xl font-display font-bold">{title}</h1>
 
-      {/* Actions */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon">
-          <Bell className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon">
+        <NotificationBell />
+        <Button variant="ghost" size="icon" onClick={() => navigate('/config')}>
           <Settings className="h-5 w-5" />
         </Button>
       </div>

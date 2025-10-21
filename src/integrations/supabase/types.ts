@@ -55,9 +55,48 @@ export type Database = {
           },
         ]
       }
+      analyses: {
+        Row: {
+          analysis_data: Json | null
+          budget_data: Json | null
+          created_at: string
+          id: string
+          report_data: Json | null
+          simulation_id: string
+          user_id: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          budget_data?: Json | null
+          created_at?: string
+          id?: string
+          report_data?: Json | null
+          simulation_id: string
+          user_id: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          budget_data?: Json | null
+          created_at?: string
+          id?: string
+          report_data?: Json | null
+          simulation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyses_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           after_image: string | null
+          analysis_id: string | null
           before_image: string | null
           budget_number: string
           budget_type: string | null
@@ -83,6 +122,7 @@ export type Database = {
         }
         Insert: {
           after_image?: string | null
+          analysis_id?: string | null
           before_image?: string | null
           budget_number: string
           budget_type?: string | null
@@ -108,6 +148,7 @@ export type Database = {
         }
         Update: {
           after_image?: string | null
+          analysis_id?: string | null
           before_image?: string | null
           budget_number?: string
           budget_type?: string | null
@@ -132,6 +173,13 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "budgets_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "budgets_patient_id_fkey"
             columns: ["patient_id"]
@@ -223,6 +271,7 @@ export type Database = {
           phone: string
           source: string | null
           stage: string | null
+          status: string | null
           tags: string[] | null
           treatment_type: string | null
           updated_at: string | null
@@ -242,6 +291,7 @@ export type Database = {
           phone: string
           source?: string | null
           stage?: string | null
+          status?: string | null
           tags?: string[] | null
           treatment_type?: string | null
           updated_at?: string | null
@@ -261,6 +311,7 @@ export type Database = {
           phone?: string
           source?: string | null
           stage?: string | null
+          status?: string | null
           tags?: string[] | null
           treatment_type?: string | null
           updated_at?: string | null
@@ -276,10 +327,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           address: string | null
           birth_date: string | null
+          city: string | null
+          cpf: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -287,13 +373,17 @@ export type Database = {
           name: string
           notes: string | null
           phone: string
+          state: string | null
           status: string | null
           updated_at: string | null
           user_id: string
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
           birth_date?: string | null
+          city?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -301,13 +391,17 @@ export type Database = {
           name: string
           notes?: string | null
           phone: string
+          state?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
           birth_date?: string | null
+          city?: string | null
+          cpf?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -315,15 +409,18 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string
+          state?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
       reports: {
         Row: {
           after_image: string | null
+          analysis_id: string | null
           before_image: string | null
           created_at: string
           id: string
@@ -340,6 +437,7 @@ export type Database = {
         }
         Insert: {
           after_image?: string | null
+          analysis_id?: string | null
           before_image?: string | null
           created_at?: string
           id?: string
@@ -356,6 +454,7 @@ export type Database = {
         }
         Update: {
           after_image?: string | null
+          analysis_id?: string | null
           before_image?: string | null
           created_at?: string
           id?: string
@@ -371,6 +470,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_patient_id_fkey"
             columns: ["patient_id"]
@@ -527,6 +633,7 @@ export type Database = {
           crm_enabled: boolean | null
           id: string
           max_tokens: number
+          profile_picture_url: string | null
           prompt_template: string
           temperature: number
           top_k: number
@@ -544,6 +651,7 @@ export type Database = {
           crm_enabled?: boolean | null
           id?: string
           max_tokens?: number
+          profile_picture_url?: string | null
           prompt_template: string
           temperature?: number
           top_k?: number
@@ -561,6 +669,7 @@ export type Database = {
           crm_enabled?: boolean | null
           id?: string
           max_tokens?: number
+          profile_picture_url?: string | null
           prompt_template?: string
           temperature?: number
           top_k?: number
