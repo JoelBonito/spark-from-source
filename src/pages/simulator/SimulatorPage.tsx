@@ -97,11 +97,15 @@ export default function SimulatorPage() {
       reader.onload = async () => {
         const base64 = reader.result as string;
 
-        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('process-dental-facets', {
-          body: { image: base64, action: 'generate', treatmentType }
-        });
+      const { data: edgeData, error: edgeError } = await supabase.functions.invoke('process-dental-facets', {
+        body: { imageBase64: base64, action: 'generate', treatment_type: treatmentType }
+      });
 
-        if (edgeError) throw edgeError;
+        if (edgeError) {
+          console.error('Erro da Edge Function:', edgeError);
+          toast.error(`Erro ao processar imagem: ${edgeError.message || 'Erro desconhecido'}`);
+          throw edgeError;
+        }
 
         const processedBlob = await fetch(edgeData.processedImage).then(r => r.blob());
         const processedFileName = `${user.id}/${Date.now()}-processed.png`;

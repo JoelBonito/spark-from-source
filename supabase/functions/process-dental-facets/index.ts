@@ -119,8 +119,9 @@ SAÍDA:
 // FUNÇÃO AUXILIAR: Seleção de Prompt
 // ═════════════════════════════════════════════════════════════════════════
 
-function buildSimulationPrompt(treatment_type: string): string {
-  return treatment_type === 'clareamento' 
+function buildSimulationPrompt(treatment_type?: string): string {
+  const type = treatment_type?.toLowerCase() || 'facetas';
+  return type === 'clareamento' 
     ? PROMPT_CLAREAMENTO 
     : PROMPT_FACETAS;
 }
@@ -203,6 +204,14 @@ Deno.serve(async (req) => {
     
     // Usar o userId do token autenticado (mais seguro)
     const userId = user.id;
+    
+    // Log dos parâmetros recebidos
+    log.info(`Parâmetros recebidos: action=${action}, treatment_type=${treatment_type || 'undefined'}`);
+    
+    // Validar treatment_type
+    if (treatment_type && !['facetas', 'clareamento'].includes(treatment_type)) {
+      log.warn(`treatment_type inválido: '${treatment_type}', usando 'facetas' como padrão`);
+    }
     
     if (!imageBase64) {
       throw new Error('Imagem não fornecida');
