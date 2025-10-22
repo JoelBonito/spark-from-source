@@ -172,7 +172,7 @@ export default function SimulatorPage() {
         discount_percentage: discount,
         discount_amount: discountAmount,
         final_price: finalPrice,
-        status: 'pending',
+        status: 'draft',
         budget_type: 'automatic'
       });
 
