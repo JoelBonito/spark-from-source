@@ -114,8 +114,28 @@ export default function SimulatorPage() {
           throw new Error('Imagem processada não foi retornada');
         }
 
-        // Converter base64 para blob
-        const processedBlob = await fetch(edgeData.processedImageBase64).then(r => r.blob());
+        // Converter base64 (pode vir em PNG) para JPEG real via canvas
+        const processedBlob: Blob = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas não suportado'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error('Falha ao converter para JPEG'));
+            }, 'image/jpeg', 0.92);
+          };
+          img.onerror = () => reject(new Error('Falha ao carregar imagem base64'));
+          img.src = edgeData.processedImageBase64;
+        });
 
         // Validar se o blob foi criado corretamente
         if (!processedBlob || processedBlob.size === 0) {
