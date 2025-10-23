@@ -1,6 +1,6 @@
 {
-  "name": "Facet.AI - Simulador de Facetas Dentárias",
-  "short_name": "Facet.AI",
+  "name": "TruSmile AI - Simulador de Facetas Dentárias",
+  "short_name": "TruSmile AI",
   "description": "Simulador de facetas dentárias com IA",
   "start_url": "/",
   "display": "standalone",
