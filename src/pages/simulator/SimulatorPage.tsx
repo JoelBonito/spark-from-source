@@ -107,7 +107,25 @@ export default function SimulatorPage() {
           throw edgeError;
         }
 
-        const processedBlob = await fetch(edgeData.processedImage).then(r => r.blob());
+        // Validar se a Edge Function retornou a imagem
+        if (!edgeData.processedImageBase64) {
+          console.error('Edge Function não retornou imagem processada');
+          toast.error('Erro: Imagem não foi gerada pela IA');
+          throw new Error('Imagem processada não foi retornada');
+        }
+
+        // Converter base64 para blob
+        const processedBlob = await fetch(edgeData.processedImageBase64).then(r => r.blob());
+
+        // Validar se o blob foi criado corretamente
+        if (!processedBlob || processedBlob.size === 0) {
+          console.error('Blob da imagem processada está vazio');
+          toast.error('Erro: Imagem processada está corrompida');
+          throw new Error('Blob inválido');
+        }
+
+        console.log(`✅ Blob criado: ${processedBlob.size} bytes, tipo: ${processedBlob.type}`);
+
         const processedFileName = `${user.id}/${Date.now()}-processed.jpg`;
 
         const { error: processedUploadError } = await supabase.storage
