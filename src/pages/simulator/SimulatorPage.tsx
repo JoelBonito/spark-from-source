@@ -108,11 +108,13 @@ export default function SimulatorPage() {
         }
 
         const processedBlob = await fetch(edgeData.processedImage).then(r => r.blob());
-        const processedFileName = `${user.id}/${Date.now()}-processed.png`;
+        const processedFileName = `${user.id}/${Date.now()}-processed.jpg`;
 
         const { error: processedUploadError } = await supabase.storage
           .from('processed-images')
-          .upload(processedFileName, processedBlob);
+          .upload(processedFileName, processedBlob, {
+            contentType: 'image/jpeg'
+          });
 
         if (processedUploadError) throw processedUploadError;
 
