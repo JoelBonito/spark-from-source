@@ -2,8 +2,6 @@ import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { FACETAS_REPORT_PROMPT, CLAREAMENTO_REPORT_PROMPT } from '@/config/technicalReportPrompt';
 
 export interface TechnicalReportData {
   reportNumber: string;
@@ -26,26 +24,31 @@ export function generateReportNumber(): string {
 
 export async function generateTechnicalReportWithGemini(
   imageBase64: string,
-  geminiApiKey: string,
   treatmentType: 'facetas' | 'clareamento' = 'facetas'
 ): Promise<string> {
-  const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  console.log('Gerando relatório técnico via Edge Function...');
 
-  const imagePart = {
-    inlineData: {
-      data: imageBase64.split(',')[1],
-      mimeType: "image/jpeg",
-    },
-  };
+  // Chamar Edge Function em vez de API diretamente
+  const { data, error } = await supabase.functions.invoke('process-dental-facets', {
+    body: {
+      imageBase64,
+      action: 'report',
+      treatment_type: treatmentType
+    }
+  });
 
-  const prompt = treatmentType === 'clareamento' 
-    ? CLAREAMENTO_REPORT_PROMPT 
-    : FACETAS_REPORT_PROMPT;
+  if (error) {
+    console.error('Erro ao gerar relatório via Edge Function:', error);
+    throw new Error(`Falha ao gerar relatório: ${error.message}`);
+  }
 
-  const result = await model.generateContent([prompt, imagePart]);
-  const response = await result.response;
-  return response.text();
+  if (!data?.reportContent) {
+    console.error('Edge Function não retornou conteúdo do relatório');
+    throw new Error('Relatório não foi gerado');
+  }
+
+  console.log('Relatório técnico gerado com sucesso via Edge Function');
+  return data.reportContent;
 }
 
 export async function generateTechnicalReportWithClaude(

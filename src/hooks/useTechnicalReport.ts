@@ -16,16 +16,15 @@ export function useTechnicalReport() {
     patientName: string,
     patientPhone: string | undefined,
     teethCount: number,
-    geminiApiKey: string,
     simulationId?: string,
     treatmentType: 'facetas' | 'clareamento' = 'facetas'
   ) => {
     setGenerating(true);
-    
+
     try {
-      // Gerar conteúdo do relatório com Gemini
-      console.log('Gerando relatório técnico com Gemini...');
-      const content = await generateTechnicalReportWithGemini(imageBase64, geminiApiKey, treatmentType);
+      // Gerar conteúdo do relatório com Gemini via Edge Function
+      console.log('Gerando relatório técnico via Edge Function...');
+      const content = await generateTechnicalReportWithGemini(imageBase64, treatmentType);
       setReportContent(content);
       
       // Gerar PDF

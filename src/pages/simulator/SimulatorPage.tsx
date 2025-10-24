@@ -194,10 +194,8 @@ export default function SimulatorPage() {
     toast.info('Gerando relatório técnico e orçamento...');
 
     try {
-      const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!geminiKey) throw new Error('GEMINI_API_KEY não configurada');
-
-      await generateReport(originalImageUrl, patient.name, patient.phone, teethCount, geminiKey, simulationId, treatmentType);
+      // Não precisa mais da API key - será usada via Edge Function
+      await generateReport(originalImageUrl, patient.name, patient.phone, teethCount, simulationId, treatmentType);
 
       const baseServices = services.filter(s => s.active && s.base);
       const pricePerTooth = baseServices.reduce((sum, s) => sum + Number(s.price), 0) / teethCount || 600;

@@ -392,6 +392,87 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
+    // AÇÃO: GERAÇÃO DE RELATÓRIO TÉCNICO
+    // ========================================
+    if (action === 'report') {
+      log.info('═══════════════════════════════════════');
+      log.info(`RELATÓRIO TÉCNICO - Tipo: ${treatment_type || 'facetas'}`);
+      log.info(`Modelo: ${MODEL_NAME_ANALYSIS}`);
+      log.info('═══════════════════════════════════════');
+
+      // Importar o prompt de relatório
+      const { FACETAS_REPORT_PROMPT, CLAREAMENTO_REPORT_PROMPT } = await import('./reportPrompts.ts');
+
+      const reportPrompt = treatment_type === 'clareamento'
+        ? CLAREAMENTO_REPORT_PROMPT
+        : FACETAS_REPORT_PROMPT;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+      try {
+        const reportResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_ANALYSIS}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: reportPrompt },
+                  prepareImageForGemini(imageBase64)
+                ]
+              }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 4000
+              }
+            }),
+            signal: controller.signal,
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!reportResponse.ok) {
+          const errorText = await reportResponse.text();
+          throw new Error(`Erro ao gerar relatório: ${reportResponse.status} - ${errorText}`);
+        }
+
+        const reportResult = await reportResponse.json();
+        const reportContent = reportResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (!reportContent) {
+          throw new Error('Gemini não retornou conteúdo do relatório');
+        }
+
+        log.success('Relatório técnico gerado');
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            reportContent,
+            metadata: {
+              model: MODEL_NAME_ANALYSIS,
+              timestamp: new Date().toISOString(),
+              run_id: runId
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Geração de relatório cancelada por timeout (90s)');
+        }
+        throw error;
+      }
+    }
+
+    // ========================================
     // AÇÃO: GERAÇÃO DE IMAGEM
     // ========================================
     if (action === 'generate') {
