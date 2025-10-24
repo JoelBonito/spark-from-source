@@ -2,8 +2,6 @@ import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { FACETAS_REPORT_PROMPT, CLAREAMENTO_REPORT_PROMPT } from '@/config/technicalReportPrompt';
 
 export interface TechnicalReportData {
   reportNumber: string;
@@ -24,88 +22,8 @@ export function generateReportNumber(): string {
   return `REL-${year}${month}-${random}`;
 }
 
-export async function generateTechnicalReportWithGemini(
-  imageBase64: string,
-  geminiApiKey: string,
-  treatmentType: 'facetas' | 'clareamento' = 'facetas'
-): Promise<string> {
-  const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-
-  const imagePart = {
-    inlineData: {
-      data: imageBase64.split(',')[1],
-      mimeType: "image/jpeg",
-    },
-  };
-
-  const prompt = treatmentType === 'clareamento' 
-    ? CLAREAMENTO_REPORT_PROMPT 
-    : FACETAS_REPORT_PROMPT;
-
-  const result = await model.generateContent([prompt, imagePart]);
-  const response = await result.response;
-  return response.text();
-}
-
-export async function generateTechnicalReportWithClaude(
-  imageBase64: string,
-  claudeApiKey: string,
-  treatmentType: 'facetas' | 'clareamento' = 'facetas'
-): Promise<string> {
-  try {
-    console.log('Gerando relatório técnico com Claude...');
-    
-    const prompt = treatmentType === 'clareamento' 
-      ? CLAREAMENTO_REPORT_PROMPT 
-      : FACETAS_REPORT_PROMPT;
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${claudeApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-20250514',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { 
-                type: 'text', 
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageBase64 }
-              }
-            ]
-          }
-        ],
-        max_tokens: 4000,
-        temperature: 0.3
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Claude API error: ${error}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('Claude não retornou conteúdo');
-    }
-
-    return content;
-  } catch (error) {
-    console.error('Erro ao gerar relatório com Claude:', error);
-    throw error;
-  }
-}
+// DEPRECATED: Report generation moved to Edge Function for security
+// Use process-dental-facets Edge Function with action: 'generate-report' instead
 
 export async function generateTechnicalReportPDF(data: TechnicalReportData): Promise<string> {
   const doc = new jsPDF();

@@ -392,6 +392,97 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
+    // AÇÃO: GERAR RELATÓRIO TÉCNICO
+    // ========================================
+    if (action === 'generate-report') {
+      log.info('═══════════════════════════════════════');
+      log.info(`RELATÓRIO TÉCNICO - Tipo: ${treatment_type || 'facetas'}`);
+      log.info(`Modelo: ${MODEL_NAME_ANALYSIS}`);
+      log.info('═══════════════════════════════════════');
+
+      const { getReportPrompt } = await import('./prompts.ts');
+      
+      // Se analysisData não foi fornecido, gerar análise primeiro
+      let finalAnalysisData = analysisData;
+      
+      if (!finalAnalysisData) {
+        log.info('Gerando análise antes do relatório...');
+        const analysisPrompt = getAnalysisPrompt(treatment_type || 'facetas');
+        
+        const parts = [
+          { text: analysisPrompt },
+          prepareImageForGemini(imageBase64)
+        ];
+        
+        if (body.processedImageBase64) {
+          parts.push(prepareImageForGemini(body.processedImageBase64));
+        }
+        
+        const analysisResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_ANALYSIS}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 10000,
+                responseMimeType: 'application/json'
+              }
+            })
+          }
+        );
+        
+        if (!analysisResponse.ok) {
+          throw new Error(`Erro na análise: ${analysisResponse.status}`);
+        }
+        
+        const analysisResult = await analysisResponse.json();
+        const responseText = analysisResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        
+        if (!responseText) throw new Error('Gemini não retornou análise');
+        
+        let cleanJsonText = responseText.trim();
+        if (cleanJsonText.startsWith('```')) {
+          cleanJsonText = cleanJsonText.replace(/```(json)?\s*/i, '').trim().replace(/```$/, '').trim();
+        }
+        finalAnalysisData = JSON.parse(cleanJsonText);
+      }
+
+      // Gerar prompt do relatório
+      const reportPrompt = getReportPrompt(finalAnalysisData, treatment_type || 'facetas');
+      log.info(`Prompt selecionado: ${treatment_type === 'clareamento' ? 'CLAREAMENTO' : 'FACETAS'}`);
+
+      const genAI = await import('https://esm.sh/@google/generative-ai@0.24.1');
+      const GoogleGenerativeAI = genAI.GoogleGenerativeAI;
+      const ai = new GoogleGenerativeAI(geminiApiKey);
+      const model = ai.getGenerativeModel({ model: MODEL_NAME_ANALYSIS });
+
+      try {
+        const result = await model.generateContent([reportPrompt]);
+        const response = await result.response;
+        const reportText = response.text();
+
+        log.success('Relatório técnico gerado com sucesso');
+
+        return new Response(
+          JSON.stringify({
+            reportContent: reportText,
+            success: true
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (error: any) {
+        log.error('Erro ao gerar relatório:', error.message);
+        throw error;
+      }
+    }
+
+    // ========================================
     // AÇÃO: GERAÇÃO DE IMAGEM
     // ========================================
     if (action === 'generate') {
