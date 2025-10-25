@@ -50,7 +50,7 @@ export function AppSidebar() {
   return <div className="flex flex-col h-full w-64 border-r bg-gradient-to-b from-white to-accent/30 dark:from-sidebar dark:to-accent/10">
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
-        
+        <Logo variant="compact" width={140} />
       </div>
 
       {/* Navigation */}

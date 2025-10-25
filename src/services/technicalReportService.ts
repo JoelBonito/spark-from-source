@@ -32,22 +32,33 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   const margin = 20;
   const contentWidth = pageWidth - (2 * margin);
   
-  // Header colorido
-  doc.setFillColor(99, 102, 241); // Indigo
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  // Header com turquesa TruSmile
+  doc.setFillColor(71, 196, 216);
+  doc.rect(0, 0, pageWidth, 45, 'F');
   
-  // Logo/Título
+  // Logo TruSmile
+  try {
+    const logoUrl = '/trusmile-logo-horizontal.png';
+    const logoWidth = 70;
+    const logoHeight = 17;
+    doc.addImage(logoUrl, 'PNG', (pageWidth / 2) - (logoWidth / 2), 12, logoWidth, logoHeight);
+  } catch (error) {
+    console.warn('Logo não carregada:', error);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('TruSmile AI', pageWidth / 2, 18, { align: 'center' });
+  }
+  
+  // Título
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.text('Facet.AI', pageWidth / 2, 15, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('RELATÓRIO TÉCNICO DE FACETAS DENTÁRIAS', pageWidth / 2, 25, { align: 'center' });
+  doc.text('RELATÓRIO TÉCNICO DE FACETAS DENTÁRIAS', pageWidth / 2, 35, { align: 'center' });
   
   // Reset
   doc.setTextColor(0, 0, 0);
   
   // Informações do Relatório
-  let y = 45;
+  let y = 55;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('INFORMAÇÕES DO RELATÓRIO', margin, y);

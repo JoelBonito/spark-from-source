@@ -73,8 +73,10 @@ export default function AuthPage() {
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
       <Card className="w-full max-w-md shadow-md">
-        <CardHeader className="text-center">
-          
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Logo width={180} />
+          </div>
           <CardTitle>Bem-vindo</CardTitle>
           <CardDescription>Entre na sua conta ou recupere sua senha</CardDescription>
         </CardHeader>
