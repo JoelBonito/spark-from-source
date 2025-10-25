@@ -21,6 +21,7 @@ interface BudgetTableProps {
   onStatusChange: (budget: Budget, status: Budget['status']) => void;
   onEdit: (budget: Budget) => void;
   onArchive: (budget: Budget) => void;
+  onCreateOpportunity: (budget: Budget) => void;
 }
 
 export const BudgetTable: React.FC<BudgetTableProps> = ({

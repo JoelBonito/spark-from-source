@@ -19,7 +19,7 @@ const NewPatientPage = lazy(() => import('@/pages/patients/NewPatientPage'));
 const PatientDetailPage = lazy(() => import('@/pages/patients/PatientDetailPage'));
 const SimulationsHistoryPage = lazy(() => import('@/pages/simulations/SimulationsHistoryPage'));
 const SimulationDetailPage = lazy(() => import('@/pages/simulations/SimulationDetailPage'));
-const BudgetsPage = lazy(() => import('@/pages/budgets/BudgetsPage'));
+const BudgetsPage = lazy(() => import('@/pages/Budgets').then(m => ({ default: m.Budgets })));
 const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage'));
 const CrmPage = lazy(() => import('@/pages/crm/CrmPage'));
 const NewLeadPage = lazy(() => import('@/pages/crm/NewLeadPage'));

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Sparkles, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
@@ -10,13 +11,15 @@ import { StatsCards } from '@/components/StatsCards';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Budget } from '@/services/budgetService';
+import { Budget, createLeadFromBudget } from '@/services/budgetService';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
 import { createManualBudget } from '@/services/budgetService';
+import { CreateOpportunityDialog } from '@/components/CreateOpportunityDialog';
 
 export const Budgets = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +27,9 @@ export const Budgets = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+  const [isOpportunityDialogOpen, setIsOpportunityDialogOpen] = useState(false);
+  const [opportunityBudget, setOpportunityBudget] = useState<Budget | null>(null);
+  const [existingLead, setExistingLead] = useState(false);
 
   const filters = {
     status: activeTab,
@@ -131,6 +137,43 @@ export const Budgets = () => {
     }
   };
 
+  const handleCreateOpportunity = async (budget: Budget) => {
+    // Check if lead already exists
+    const hasLead = !!budget.lead_id;
+    setExistingLead(hasLead);
+    setOpportunityBudget(budget);
+    setIsOpportunityDialogOpen(true);
+  };
+
+  const handleConfirmCreateOpportunity = async () => {
+    if (!opportunityBudget) return;
+
+    try {
+      const { leadId, isNew } = await createLeadFromBudget(opportunityBudget.id);
+      
+      toast({
+        title: 'Sucesso!',
+        description: isNew 
+          ? 'Oportunidade criada no CRM' 
+          : 'Oportunidade atualizada no CRM',
+      });
+
+      setIsOpportunityDialogOpen(false);
+      setOpportunityBudget(null);
+      refresh();
+      
+      // Navigate to CRM
+      navigate('/crm');
+    } catch (error) {
+      console.error('Error creating opportunity:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar oportunidade no CRM',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const filteredBudgets = budgets.filter(budget => {
     if (filters.search) {
       const patientName = budget.patient?.name || '';
@@ -215,6 +258,7 @@ export const Budgets = () => {
             onStatusChange={handleStatusChange}
             onEdit={handleEdit}
             onArchive={handleArchive}
+            onCreateOpportunity={handleCreateOpportunity}
           />
         )}
 
@@ -234,6 +278,18 @@ export const Budgets = () => {
           }}
           budget={selectedBudget}
           onSave={handleSaveBudget}
+        />
+
+        {/* Dialog de criar oportunidade */}
+        <CreateOpportunityDialog
+          open={isOpportunityDialogOpen}
+          onClose={() => {
+            setIsOpportunityDialogOpen(false);
+            setOpportunityBudget(null);
+          }}
+          onConfirm={handleConfirmCreateOpportunity}
+          budget={opportunityBudget}
+          existingLead={existingLead}
         />
       </div>
     </Layout>
