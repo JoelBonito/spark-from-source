@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Layout from '@/components/Layout';
 import { useServices, Service } from '@/hooks/useServices';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,8 +36,7 @@ export const Services = () => {
   const archivedServices = services.filter(s => !s.active);
 
   return (
-    <Layout>
-      <div className="space-y-4 lg:space-y-6 w-full">
+    <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
         <div className="flex items-center justify-end">
           <Button onClick={handleCreate} className="flex items-center gap-2">
@@ -124,8 +122,7 @@ export const Services = () => {
           onCreate={createService}
           onUpdate={updateService}
         />
-      </div>
-    </Layout>
+    </div>
   );
 };
 

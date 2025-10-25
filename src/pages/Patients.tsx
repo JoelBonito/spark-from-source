@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Users, TrendingUp, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
 import { usePatients } from '@/hooks/usePatients';
 import { usePatientForm } from '@/hooks/usePatientForm';
 import { PatientTable } from '@/components/PatientTable';
@@ -338,8 +337,7 @@ export const Patients = () => {
   };
 
   return (
-    <Layout>
-      <div className="space-y-4 lg:space-y-6 w-full">
+    <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
         <div className="flex items-center justify-end">
           <Button onClick={handleNewPatient} className="flex items-center gap-2">
@@ -507,7 +505,6 @@ export const Patients = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
-    </Layout>
+    </div>
   );
 };

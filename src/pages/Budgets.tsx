@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Sparkles, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
 import { BudgetTable } from '@/components/BudgetTable';
@@ -189,8 +188,7 @@ export const Budgets = () => {
   });
 
   return (
-    <Layout>
-      <div className="space-y-4 lg:space-y-6 w-full">
+    <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
         <div className="flex items-center justify-end">
           <Button onClick={handleNewBudget} className="flex items-center gap-2">
@@ -294,7 +292,6 @@ export const Budgets = () => {
           budget={opportunityBudget}
           existingLead={existingLead}
         />
-      </div>
-    </Layout>
+    </div>
   );
 };

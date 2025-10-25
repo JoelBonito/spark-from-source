@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '@/components/Layout';
 import { useKanbanBoard } from '@/hooks/useKanbanBoard';
 import { usePipelineMetrics } from '@/hooks/usePipelineMetrics';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -106,8 +105,7 @@ export default function CRM() {
   ) as typeof leadsByStage;
 
   return (
-    <Layout>
-      <div className="space-y-4 lg:space-y-6 w-full">
+    <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header com Filtros - Responsivo */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -265,7 +263,6 @@ export default function CRM() {
             setSelectedBudgetId(null);
           }}
         />
-      </div>
-    </Layout>
+    </div>
   );
 }
