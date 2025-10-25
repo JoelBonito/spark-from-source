@@ -113,7 +113,7 @@ export type Database = {
           pdf_url: string | null
           price_per_tooth: number | null
           simulation_id: string | null
-          status: string | null
+          status: string
           subtotal: number
           teeth_count: number
           treatment_type: string
@@ -140,7 +140,7 @@ export type Database = {
           pdf_url?: string | null
           price_per_tooth?: number | null
           simulation_id?: string | null
-          status?: string | null
+          status?: string
           subtotal: number
           teeth_count: number
           treatment_type?: string
@@ -167,7 +167,7 @@ export type Database = {
           pdf_url?: string | null
           price_per_tooth?: number | null
           simulation_id?: string | null
-          status?: string | null
+          status?: string
           subtotal?: number
           teeth_count?: number
           treatment_type?: string
