@@ -21,7 +21,7 @@ const SimulationsHistoryPage = lazy(() => import('@/pages/simulations/Simulation
 const SimulationDetailPage = lazy(() => import('@/pages/simulations/SimulationDetailPage'));
 const BudgetsPage = lazy(() => import('@/pages/Budgets').then(m => ({ default: m.Budgets })));
 const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage'));
-const CrmPage = lazy(() => import('@/pages/crm/CrmPage'));
+const CrmPage = lazy(() => import('@/pages/CRM'));
 const NewLeadPage = lazy(() => import('@/pages/crm/NewLeadPage'));
 const LeadDetailPage = lazy(() => import('@/pages/crm/LeadDetailPage'));
 const EditLeadPage = lazy(() => import('@/pages/crm/EditLeadPage'));
