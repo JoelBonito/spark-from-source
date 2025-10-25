@@ -341,13 +341,7 @@ export const Patients = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">Pacientes</h2>
-            <p className="text-muted-foreground mt-1">
-              Gerencie todos os seus pacientes
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <Button onClick={handleNewPatient} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Novo Paciente

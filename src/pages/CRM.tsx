@@ -109,11 +109,7 @@ export default function CRM() {
     <Layout>
       <div className="space-y-6">
         {/* Header com Filtros */}
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
-            Gerencie seus leads desde a simulação até o fechamento
-          </p>
-
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-4">
             {/* Toggle para mostrar arquivados */}
             <div className="flex items-center gap-2">

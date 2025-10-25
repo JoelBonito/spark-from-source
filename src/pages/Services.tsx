@@ -40,13 +40,7 @@ export const Services = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold">Serviços</h2>
-            <p className="text-muted-foreground mt-1">
-              Gerencie os serviços oferecidos pela clínica
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <Button onClick={handleCreate}>
             <Plus className="w-4 h-4 mr-2" />
             Novo Serviço
