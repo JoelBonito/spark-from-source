@@ -16,10 +16,7 @@ export default function NewLeadPage() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/crm')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-display font-bold">Novo Lead</h1>
           <p className="text-muted-foreground mt-1">
