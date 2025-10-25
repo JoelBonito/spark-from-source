@@ -8,31 +8,31 @@ interface StatusBadgeProps {
 const statusConfig = {
   pending: {
     label: 'Pendente',
-    variant: 'warning' as const,
+    className: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20'
   },
   sent: {
     label: 'Enviado',
-    variant: 'info' as const,
+    className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
   },
   viewed: {
     label: 'Visualizado',
-    variant: 'default' as const,
+    className: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20'
   },
   accepted: {
     label: 'Aceito',
-    variant: 'success' as const,
+    className: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20'
   },
   rejected: {
     label: 'Recusado',
-    variant: 'destructive' as const,
+    className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'
   },
   expired: {
     label: 'Expirado',
-    variant: 'outline' as const,
+    className: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20'
   },
   archived: {
     label: 'Arquivado',
-    variant: 'outline' as const,
+    className: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20'
   }
 };
 
@@ -40,7 +40,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const config = statusConfig[status];
   
   return (
-    <Badge variant={config.variant}>
+    <Badge variant="outline" className={config.className}>
       {config.label}
     </Badge>
   );
