@@ -211,7 +211,7 @@ export default function ConfigForm() {
   };
   return <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
       {/* DADOS DO USUÁRIO */}
-      <div className="border bg-card shadow-sm p-6 space-y-4 rounded-none">
+      <div className="border bg-card shadow-sm p-6 space-y-4 rounded-lg">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
           👤 Dados do Usuário
         </h2>
