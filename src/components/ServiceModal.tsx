@@ -35,8 +35,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: 'Opcional' as Service['category'],
+    tipo_servico: 'Serviço opcional' as Service['tipo_servico'],
     price: 0,
+    observacoes: '',
     active: true,
     required: false,
     base: false
@@ -47,8 +48,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
       setFormData({
         name: service.name,
         description: service.description || '',
-        category: service.category,
+        tipo_servico: service.tipo_servico,
         price: service.price,
+        observacoes: service.observacoes || '',
         active: service.active,
         required: service.required,
         base: service.base
@@ -57,8 +59,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
       setFormData({
         name: '',
         description: '',
-        category: 'Opcional',
+        tipo_servico: 'Serviço opcional',
         price: 0,
+        observacoes: '',
         active: true,
         required: false,
         base: false
@@ -120,23 +123,23 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">Categoria *</Label>
+            <Label htmlFor="tipo_servico">Tipo de Serviço *</Label>
             <Select
-              value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value as Service['category'] })}
+              value={formData.tipo_servico}
+              onValueChange={(value) => setFormData({ ...formData, tipo_servico: value as Service['tipo_servico'] })}
               disabled={isReadOnly || service?.required}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Facetas dentárias">Facetas dentárias</SelectItem>
-                <SelectItem value="Clareamento">Clareamento</SelectItem>
-                <SelectItem value="Consulta">Consulta</SelectItem>
-                <SelectItem value="Gengivoplastia">Gengivoplastia</SelectItem>
-                <SelectItem value="Opcional">Opcional</SelectItem>
+                <SelectItem value="Serviço obrigatório">Serviço obrigatório</SelectItem>
+                <SelectItem value="Serviço opcional">Serviço opcional</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Serviços obrigatórios são sempre incluídos em orçamentos
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -150,6 +153,18 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
               onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
               disabled={isReadOnly}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="observacoes">Observações</Label>
+            <Textarea
+              id="observacoes"
+              value={formData.observacoes || ''}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              disabled={isReadOnly}
+              rows={2}
+              placeholder="Informações adicionais sobre o serviço"
             />
           </div>
 

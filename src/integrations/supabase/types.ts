@@ -497,39 +497,42 @@ export type Database = {
         Row: {
           active: boolean
           base: boolean
-          category: string
           created_at: string | null
           description: string | null
           id: string
           name: string
+          observacoes: string | null
           price: number
           required: boolean
+          tipo_servico: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
           active?: boolean
           base?: boolean
-          category: string
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          observacoes?: string | null
           price?: number
           required?: boolean
+          tipo_servico: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
           active?: boolean
           base?: boolean
-          category?: string
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          observacoes?: string | null
           price?: number
           required?: boolean
+          tipo_servico?: string
           updated_at?: string | null
           user_id?: string
         }

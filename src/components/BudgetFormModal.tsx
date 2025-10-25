@@ -221,7 +221,7 @@ export const BudgetFormModal: React.FC<BudgetFormModalProps> = ({
                               <div className="flex-1">
                                 <div className="font-medium">{service.name}</div>
                                 <div className="text-xs text-muted-foreground">
-                                  {service.category} - {formatCurrency(service.price)}
+                                  {service.tipo_servico} - {formatCurrency(service.price)}
                                 </div>
                               </div>
                             </CommandItem>

@@ -423,6 +423,12 @@ export function getBudgetPrompt(
   
   return `Você é um coordenador administrativo de clínica odontológica gerando um orçamento detalhado.
 
+IMPORTANTE: Ao gerar o orçamento, utilize os serviços cadastrados pelo usuário na plataforma.
+- Os serviços obrigatórios devem ser sempre incluídos no orçamento
+- Os serviços opcionais podem ser sugeridos com base na análise do caso específico
+- Os valores devem ser consultados dos serviços cadastrados quando disponíveis
+- Use os preços regionalizados abaixo apenas como referência ou fallback
+
 DADOS DA ANÁLISE:
 \`\`\`json
 ${JSON.stringify(analysisData, null, 2)}

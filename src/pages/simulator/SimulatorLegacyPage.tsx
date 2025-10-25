@@ -389,7 +389,7 @@ export default function Index() {
       
       const servicosParaEdge = servicosAtivos.map(s => ({
         name: s.name,
-        category: s.category || 'outros',
+        category: s.tipo_servico || 'outros',
         price: s.price
       }));
       

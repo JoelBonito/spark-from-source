@@ -154,7 +154,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onView, onEdit, onAr
             )}
           </div>
           <Badge variant={service.active ? 'default' : 'secondary'}>
-            {service.category}
+            {service.tipo_servico}
           </Badge>
         </div>
       </CardHeader>
