@@ -38,8 +38,8 @@ const PAGE_INFO: Record<string, { title: string; description?: string }> = {
     title: 'Serviços',
     description: 'Gerencie os serviços oferecidos pela clínica'
   },
-  '/config': { 
-    title: 'Configurações',
+  '/config': {
+    title: 'Configurações do Sistema',
     description: 'Gerencie suas chaves de API e parâmetros'
   },
   '/settings': { 
