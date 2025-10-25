@@ -19,6 +19,7 @@ export interface Config {
   clinicAddress?: string;
   clinicPhone?: string;
   clinicEmail?: string;
+  clinicLogoUrl?: string;
   
   // Módulos
   crmEnabled: boolean;
@@ -103,6 +104,7 @@ export async function saveConfig(config: Config): Promise<void> {
       clinic_address: config.clinicAddress || null,
       clinic_phone: config.clinicPhone || null,
       clinic_email: config.clinicEmail || null,
+      clinic_logo_url: config.clinicLogoUrl || null,
       
       // Módulos
       crm_enabled: config.crmEnabled,
@@ -145,6 +147,7 @@ export async function getConfig(): Promise<Config | null> {
     clinicAddress: data.clinic_address || undefined,
     clinicPhone: data.clinic_phone || undefined,
     clinicEmail: data.clinic_email || undefined,
+    clinicLogoUrl: data.clinic_logo_url || undefined,
     
     // Módulos
     crmEnabled: data.crm_enabled !== false,

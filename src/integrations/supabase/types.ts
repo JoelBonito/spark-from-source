@@ -634,6 +634,7 @@ export type Database = {
           claude_api_key: string | null
           clinic_address: string | null
           clinic_email: string | null
+          clinic_logo_url: string | null
           clinic_name: string | null
           clinic_phone: string | null
           created_at: string
@@ -660,6 +661,7 @@ export type Database = {
           claude_api_key?: string | null
           clinic_address?: string | null
           clinic_email?: string | null
+          clinic_logo_url?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
           created_at?: string
@@ -686,6 +688,7 @@ export type Database = {
           claude_api_key?: string | null
           clinic_address?: string | null
           clinic_email?: string | null
+          clinic_logo_url?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
           created_at?: string

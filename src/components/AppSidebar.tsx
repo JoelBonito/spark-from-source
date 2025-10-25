@@ -73,6 +73,33 @@ export function AppSidebar() {
           </Link>)}
       </nav>
 
+      {/* Clinic Info */}
+      {(config?.clinicLogoUrl || config?.clinicName || config?.clinicAddress) && (
+        <div className="px-4 py-3 border-t bg-accent/5">
+          <div className="space-y-2">
+            {config?.clinicLogoUrl && (
+              <div className="flex justify-center">
+                <img 
+                  src={config.clinicLogoUrl} 
+                  alt="Logo da clínica" 
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
+            )}
+            {config?.clinicName && (
+              <p className="text-xs font-semibold text-center text-foreground">
+                {config.clinicName}
+              </p>
+            )}
+            {config?.clinicAddress && (
+              <p className="text-xs text-center text-muted-foreground line-clamp-2">
+                {config.clinicAddress}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* User Footer */}
       <div className="p-4 border-t">
         <div className="flex items-center gap-3 mb-2">
