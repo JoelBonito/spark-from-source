@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/contexts/ConfigContext";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 export default function ConfigForm() {
   const navigate = useNavigate();
   const {
@@ -34,6 +35,10 @@ export default function ConfigForm() {
     clinicAddress: "",
     clinicPhone: "",
     clinicEmail: "",
+    clinicLogoUrl: "",
+    clinicZipCode: "",
+    clinicCity: "",
+    clinicState: "",
     crmEnabled: true,
     facetsSimulatorEnabled: true,
     whiteningSimulatorEnabled: true
@@ -98,6 +103,10 @@ export default function ConfigForm() {
       clinicAddress: formData.clinicAddress,
       clinicPhone: formData.clinicPhone,
       clinicEmail: formData.clinicEmail,
+      clinicLogoUrl: formData.clinicLogoUrl,
+      clinicZipCode: formData.clinicZipCode,
+      clinicCity: formData.clinicCity,
+      clinicState: formData.clinicState,
       crmEnabled: formData.crmEnabled,
       facetsSimulatorEnabled: formData.facetsSimulatorEnabled,
       whiteningSimulatorEnabled: formData.whiteningSimulatorEnabled
@@ -332,6 +341,69 @@ export default function ConfigForm() {
               value={formData.clinicEmail || ''} 
               onChange={e => setFormData({...formData, clinicEmail: e.target.value})} 
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicZipCode">CEP</Label>
+            <Input 
+              id="clinicZipCode" 
+              type="text"
+              placeholder="00000-000"
+              value={formData.clinicZipCode || ''} 
+              onChange={e => setFormData({...formData, clinicZipCode: e.target.value})} 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicCity">Cidade</Label>
+            <Input 
+              id="clinicCity" 
+              type="text"
+              placeholder="São Paulo"
+              value={formData.clinicCity || ''} 
+              onChange={e => setFormData({...formData, clinicCity: e.target.value})} 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicState">Estado</Label>
+            <Select
+              value={formData.clinicState || ''}
+              onValueChange={(value) => setFormData({...formData, clinicState: value})}
+            >
+              <SelectTrigger id="clinicState">
+                <SelectValue placeholder="Selecione o estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AC">Acre - AC</SelectItem>
+                <SelectItem value="AL">Alagoas - AL</SelectItem>
+                <SelectItem value="AP">Amapá - AP</SelectItem>
+                <SelectItem value="AM">Amazonas - AM</SelectItem>
+                <SelectItem value="BA">Bahia - BA</SelectItem>
+                <SelectItem value="CE">Ceará - CE</SelectItem>
+                <SelectItem value="DF">Distrito Federal - DF</SelectItem>
+                <SelectItem value="ES">Espírito Santo - ES</SelectItem>
+                <SelectItem value="GO">Goiás - GO</SelectItem>
+                <SelectItem value="MA">Maranhão - MA</SelectItem>
+                <SelectItem value="MT">Mato Grosso - MT</SelectItem>
+                <SelectItem value="MS">Mato Grosso do Sul - MS</SelectItem>
+                <SelectItem value="MG">Minas Gerais - MG</SelectItem>
+                <SelectItem value="PA">Pará - PA</SelectItem>
+                <SelectItem value="PB">Paraíba - PB</SelectItem>
+                <SelectItem value="PR">Paraná - PR</SelectItem>
+                <SelectItem value="PE">Pernambuco - PE</SelectItem>
+                <SelectItem value="PI">Piauí - PI</SelectItem>
+                <SelectItem value="RJ">Rio de Janeiro - RJ</SelectItem>
+                <SelectItem value="RN">Rio Grande do Norte - RN</SelectItem>
+                <SelectItem value="RS">Rio Grande do Sul - RS</SelectItem>
+                <SelectItem value="RO">Rondônia - RO</SelectItem>
+                <SelectItem value="RR">Roraima - RR</SelectItem>
+                <SelectItem value="SC">Santa Catarina - SC</SelectItem>
+                <SelectItem value="SP">São Paulo - SP</SelectItem>
+                <SelectItem value="SE">Sergipe - SE</SelectItem>
+                <SelectItem value="TO">Tocantins - TO</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

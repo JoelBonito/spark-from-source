@@ -657,10 +657,13 @@ export type Database = {
           backend_url: string
           claude_api_key: string | null
           clinic_address: string | null
+          clinic_city: string | null
           clinic_email: string | null
           clinic_logo_url: string | null
           clinic_name: string | null
           clinic_phone: string | null
+          clinic_state: string | null
+          clinic_zip_code: string | null
           created_at: string
           crm_enabled: boolean | null
           facets_simulator_enabled: boolean | null
@@ -684,10 +687,13 @@ export type Database = {
           backend_url: string
           claude_api_key?: string | null
           clinic_address?: string | null
+          clinic_city?: string | null
           clinic_email?: string | null
           clinic_logo_url?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
+          clinic_state?: string | null
+          clinic_zip_code?: string | null
           created_at?: string
           crm_enabled?: boolean | null
           facets_simulator_enabled?: boolean | null
@@ -711,10 +717,13 @@ export type Database = {
           backend_url?: string
           claude_api_key?: string | null
           clinic_address?: string | null
+          clinic_city?: string | null
           clinic_email?: string | null
           clinic_logo_url?: string | null
           clinic_name?: string | null
           clinic_phone?: string | null
+          clinic_state?: string | null
+          clinic_zip_code?: string | null
           created_at?: string
           crm_enabled?: boolean | null
           facets_simulator_enabled?: boolean | null
