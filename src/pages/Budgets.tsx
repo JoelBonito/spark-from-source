@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sparkles, Plus } from 'lucide-react';
+import { Search, Sparkles, Plus, Archive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
@@ -15,6 +15,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
 import { createManualBudget } from '@/services/budgetService';
 import { CreateOpportunityDialog } from '@/components/CreateOpportunityDialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export const Budgets = () => {
   const { toast } = useToast();
@@ -22,6 +24,7 @@ export const Budgets = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [detailBudgetId, setDetailBudgetId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -190,7 +193,21 @@ export const Budgets = () => {
   return (
     <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-4">
+          {/* Toggle para mostrar arquivados */}
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Switch
+              id="show-archived-budgets"
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+            />
+            <Label htmlFor="show-archived-budgets" className="flex items-center gap-2 cursor-pointer text-sm">
+              <Archive className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Mostrar Arquivados</span>
+              <span className="sm:hidden">Arquivados</span>
+            </Label>
+          </div>
+
           <Button onClick={handleNewBudget} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Novo Orçamento</span>

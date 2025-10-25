@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Users, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Search, Users, TrendingUp, Calendar, Archive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePatients } from '@/hooks/usePatients';
 import { usePatientForm } from '@/hooks/usePatientForm';
@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +36,10 @@ export const Patients = () => {
   const { toast } = useToast();
   const { patients, loading, refresh } = usePatients();
   const { saving, createPatient, updatePatient } = usePatientForm();
-  
+
   const [filteredPatients, setFilteredPatients] = useState<PatientWithRelations[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithRelations | null>(null);
   const [detailPatientId, setDetailPatientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -339,7 +342,21 @@ export const Patients = () => {
   return (
     <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-4">
+          {/* Toggle para mostrar arquivados */}
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Switch
+              id="show-archived-patients"
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+            />
+            <Label htmlFor="show-archived-patients" className="flex items-center gap-2 cursor-pointer text-sm">
+              <Archive className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Mostrar Arquivados</span>
+              <span className="sm:hidden">Arquivados</span>
+            </Label>
+          </div>
+
           <Button onClick={handleNewPatient} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Novo Paciente</span>

@@ -10,6 +10,8 @@ import type { Service } from '@/hooks/useServices';
 import { formatCurrency } from '@/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export default function ServicesPage() {
   const { services, loading, createService, updateService, archiveService } = useServices();
@@ -67,35 +69,25 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div className="flex items-center justify-end">
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setShowArchived(!showArchived)}
-                  className={showArchived ? 'bg-primary/10' : ''}
-                >
-                  {showArchived ? (
-                    <ArchiveRestore className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {showArchived ? 'Ocultar arquivados' : 'Mostrar arquivados'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <Button onClick={handleCreate} className="glow-trusmile">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Serviço
-          </Button>
+      <div className="flex items-center justify-end gap-4">
+        {/* Toggle para mostrar arquivados */}
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          <Switch
+            id="show-archived-services"
+            checked={showArchived}
+            onCheckedChange={setShowArchived}
+          />
+          <Label htmlFor="show-archived-services" className="flex items-center gap-2 cursor-pointer text-sm">
+            <Archive className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Mostrar Arquivados</span>
+            <span className="sm:hidden">Arquivados</span>
+          </Label>
         </div>
+
+        <Button onClick={handleCreate} className="glow-trusmile">
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Serviço
+        </Button>
       </div>
 
       {/* Serviços Obrigatórios */}
