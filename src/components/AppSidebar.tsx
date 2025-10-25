@@ -82,7 +82,7 @@ export function AppSidebar() {
                 <img 
                   src={config.clinicLogoUrl} 
                   alt="Logo da clínica" 
-                  className="h-6 w-auto object-contain"
+                  className="h-8 w-auto object-contain"
                 />
               </div>
             )}
