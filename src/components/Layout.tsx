@@ -16,16 +16,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar fixa em desktop */}
-      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 z-40">
+    <div className="flex min-h-screen bg-background w-full overflow-x-hidden">
+      {/* Sidebar fixa apenas em desktop */}
+      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 z-40 border-r border-border">
         <AppSidebar />
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 lg:pl-64">
+      {/* Main content com largura completa */}
+      <div className="flex-1 lg:pl-64 w-full min-w-0">
         <AppHeader />
-        <main className="p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 w-full">
           {children || <Outlet />}
         </main>
       </div>

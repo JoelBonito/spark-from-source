@@ -190,46 +190,53 @@ export const Budgets = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header - Botão de ação */}
         <div className="flex items-center justify-end">
           <Button onClick={handleNewBudget} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Novo Orçamento
+            <span className="hidden sm:inline">Novo Orçamento</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
-        {/* Estatísticas */}
-        <StatsCards stats={stats} />
+        {/* Estatísticas - Grid Responsivo */}
+        <div className="w-full">
+          <StatsCards stats={stats} />
+        </div>
 
-        {/* Filtro por tipo de tratamento */}
-        <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as any)}>
-          <TabsList>
-            <TabsTrigger value="all">
-              Todos
-            </TabsTrigger>
-            <TabsTrigger value="facetas">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Facetas
-            </TabsTrigger>
-            <TabsTrigger value="clareamento">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Clareamento
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Filtros - Tabs Responsivos */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as any)} className="w-full sm:w-auto">
+            <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="facetas" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Facetas</span>
+                <span className="sm:hidden">Fac</span>
+              </TabsTrigger>
+              <TabsTrigger value="clareamento" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Clareamento</span>
+                <span className="sm:hidden">Cla</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-        {/* Filtros */}
+        {/* Busca e Filtros de Status */}
         <div className="space-y-4">
-          <div className="bg-card rounded-lg border p-4">
+          <div className="bg-card rounded-lg border p-3 sm:p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
               <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por número ou paciente..."
-                className="pl-10"
+                placeholder="Buscar..."
+                className="pl-9 sm:pl-10"
               />
             </div>
           </div>
@@ -240,21 +247,23 @@ export const Budgets = () => {
           />
         </div>
 
-        {/* Tabela */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <BudgetTable
-            budgets={filteredBudgets}
-            onView={handleView}
-            onStatusChange={handleStatusChange}
-            onEdit={handleEdit}
-            onArchive={handleArchive}
-            onCreateOpportunity={handleCreateOpportunity}
-          />
-        )}
+        {/* Tabela - Container com overflow responsivo */}
+        <div className="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <BudgetTable
+              budgets={filteredBudgets}
+              onView={handleView}
+              onStatusChange={handleStatusChange}
+              onEdit={handleEdit}
+              onArchive={handleArchive}
+              onCreateOpportunity={handleCreateOpportunity}
+            />
+          )}
+        </div>
 
         {/* Modal de detalhes */}
         <BudgetDetailModal

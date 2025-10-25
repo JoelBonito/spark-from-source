@@ -107,45 +107,49 @@ export default function CRM() {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header com Filtros */}
-        <div className="flex items-center justify-end">
-          <div className="flex items-center gap-4">
+      <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header com Filtros - Responsivo */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             {/* Toggle para mostrar arquivados */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <Switch
                 id="show-archived"
                 checked={showArchived}
                 onCheckedChange={setShowArchived}
               />
-              <Label htmlFor="show-archived" className="flex items-center gap-2 cursor-pointer">
-                <Archive className="h-4 w-4" />
-                Mostrar Arquivados
+              <Label htmlFor="show-archived" className="flex items-center gap-2 cursor-pointer text-sm">
+                <Archive className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Mostrar Arquivados</span>
+                <span className="sm:hidden">Arquivados</span>
               </Label>
             </div>
 
             {/* Filtro por tipo de tratamento */}
-            <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)}>
-              <TabsList>
-                <TabsTrigger value="all" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Todos
+            <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)} className="w-full sm:w-auto">
+              <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+                <TabsTrigger value="all" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Todos</span>
+                  <span className="sm:hidden">All</span>
                 </TabsTrigger>
-                <TabsTrigger value="facetas" className="flex items-center gap-2">
-                  <Smile className="h-4 w-4" />
-                  Facetas
+                <TabsTrigger value="facetas" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                  <Smile className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Facetas</span>
+                  <span className="sm:hidden">Fac</span>
                 </TabsTrigger>
-                <TabsTrigger value="clareamento" className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Clareamento
+                <TabsTrigger value="clareamento" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Clareamento</span>
+                  <span className="sm:hidden">Cla</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
 
-        {/* Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Métricas - Grid Responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">

@@ -339,75 +339,77 @@ export const Patients = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header - Botão de ação */}
         <div className="flex items-center justify-end">
           <Button onClick={handleNewPatient} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Novo Paciente
+            <span className="hidden sm:inline">Novo Paciente</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
+        {/* Estatísticas - Grid Responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="bg-card rounded-lg border p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Pacientes</p>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Com Simulações</p>
-                <p className="text-2xl font-bold text-foreground">{stats.withSimulations}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total de Pacientes</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-primary" />
+          <div className="bg-card rounded-lg border p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Novos Este Mês</p>
-                <p className="text-2xl font-bold text-foreground">{stats.newThisMonth}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Com Simulações</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.withSimulations}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-lg border p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Novos Este Mês</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.newThisMonth}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Busca */}
-        <div className="bg-card rounded-lg border p-4">
+        {/* Busca - Responsivo */}
+        <div className="bg-card rounded-lg border p-3 sm:p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Buscar por nome ou telefone..."
-              className="pl-10"
+              placeholder="Buscar paciente..."
+              className="pl-9 sm:pl-10"
             />
           </div>
         </div>
 
-        {/* Tabela */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <PatientTable
+        {/* Tabela - Container com overflow responsivo */}
+        <div className="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <PatientTable
             patients={filteredPatients}
             onEdit={handleEdit}
             onDelete={(patient) => setDeleteConfirmPatient(patient)}
@@ -419,6 +421,7 @@ export const Patients = () => {
             onViewTechnicalReport={handleViewTechnicalReport}
           />
         )}
+        </div>
 
         {/* Modais */}
         <PatientModal

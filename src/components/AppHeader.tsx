@@ -55,11 +55,11 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/95 backdrop-blur-sm">
-      {/* Top bar com menu e settings */}
-      <div className="h-14 flex items-center justify-between px-4">
+      <div className="h-14 flex items-center justify-between px-4 gap-4">
+        {/* Menu hamburguer apenas no mobile */}
         <Sheet>
           <SheetTrigger asChild className="lg:hidden">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -68,17 +68,26 @@ export function AppHeader() {
           </SheetContent>
         </Sheet>
 
-        <h1 className="text-xl font-display font-bold">{pageInfo.title}</h1>
+        {/* Título centralizado no mobile, à esquerda no desktop */}
+        <h1 className="text-lg lg:text-xl font-display font-bold flex-1 lg:flex-none truncate">
+          {pageInfo.title}
+        </h1>
 
-        <div className="flex items-center gap-2">
+        {/* Ações do header */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <NotificationBell />
-          <Button variant="ghost" size="icon" onClick={() => navigate('/config')}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/config')}
+            aria-label="Configurações"
+          >
             <Settings className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      {/* Description bar (se existir) */}
+      {/* Barra de descrição */}
       {pageInfo.description && (
         <div className="px-4 py-2 border-t border-primary/10 bg-muted/30">
           <p className="text-sm text-muted-foreground">
