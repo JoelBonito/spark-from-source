@@ -11,48 +11,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { Logo } from '@/components/ui/logo';
-
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres')
 });
-
 const resetSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Email inválido')
 });
-
 type LoginData = z.infer<typeof loginSchema>;
 type ResetData = z.infer<typeof resetSchema>;
-
 export default function AuthPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
-    },
+      password: ''
+    }
   });
-
   const resetForm = useForm<ResetData>({
     resolver: zodResolver(resetSchema),
     defaultValues: {
-      email: '',
-    },
+      email: ''
+    }
   });
-
   const onLogin = async (data: LoginData) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email: data.email,
-        password: data.password,
+        password: data.password
       });
-
       if (error) throw error;
-
       toast.success('Login realizado com sucesso!');
       navigate('/');
     } catch (error: any) {
@@ -61,16 +54,15 @@ export default function AuthPage() {
       setIsLoading(false);
     }
   };
-
   const onReset = async (data: ResetData) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const {
+        error
+      } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
       });
-
       if (error) throw error;
-
       toast.success('Email de recuperação enviado!');
       resetForm.reset();
     } catch (error: any) {
@@ -79,12 +71,10 @@ export default function AuthPage() {
       setIsLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
+  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="text-center">
-          <Logo width={220} className="mx-auto mb-4" />
+          
           <CardTitle>Bem-vindo</CardTitle>
           <CardDescription>Entre na sua conta ou recupere sua senha</CardDescription>
         </CardHeader>
@@ -98,33 +88,25 @@ export default function AuthPage() {
             <TabsContent value="login">
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={loginForm.control} name="email" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="seu@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={loginForm.control} name="password" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Senha</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Entrando...' : 'Entrar'}
@@ -136,19 +118,15 @@ export default function AuthPage() {
             <TabsContent value="reset">
               <Form {...resetForm}>
                 <form onSubmit={resetForm.handleSubmit(onReset)} className="space-y-4">
-                  <FormField
-                    control={resetForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={resetForm.control} name="email" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="seu@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Enviando...' : 'Enviar link de recuperação'}
@@ -159,6 +137,5 @@ export default function AuthPage() {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 }
