@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Download, MoreVertical, Pencil, Archive, Sparkles, Sun } from 'lucide-react';
+import { Eye, Download, MoreVertical, Pencil, Archive, Sparkles, Sun, Target } from 'lucide-react';
 import { Budget } from '@/services/budgetService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -7,6 +7,12 @@ import { formatCurrency } from '@/utils/formatters';
 import { StatusBadge } from './StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +35,8 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
   onView,
   onStatusChange,
   onEdit,
-  onArchive
+  onArchive,
+  onCreateOpportunity,
 }) => {
   if (budgets.length === 0) {
     return (
@@ -58,10 +65,16 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                 Dentes
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Simulações
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Valor
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                CRM
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Data
@@ -97,7 +110,36 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-foreground">{budget.teeth_count}</div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        {budget.budget_type === 'manual' ? (
+                          <Badge variant="outline">Manual</Badge>
+                        ) : (
+                          <div className="text-sm text-foreground">{budget.teeth_count}</div>
+                        )}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {budget.budget_type === 'manual' 
+                          ? 'Orçamento criado manualmente' 
+                          : `${budget.teeth_count} dentes analisados`}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="secondary">
+                          {budget.simulation_count || 0}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {budget.simulation_count || 0} simulações associadas
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-semibold text-foreground">
@@ -106,6 +148,17 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <StatusBadge status={budget.status} />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {budget.lead_id ? (
+                    <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                      No CRM
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Sem Lead
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {format(new Date(budget.created_at), 'dd/MM/yyyy', { locale: ptBR })}
@@ -154,6 +207,15 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                           <Pencil className="w-4 h-4 mr-2" />
                           Editar Orçamento
                         </DropdownMenuItem>
+                        
+                        <DropdownMenuItem 
+                          onClick={() => onCreateOpportunity(budget)}
+                          className="cursor-pointer"
+                        >
+                          <Target className="w-4 h-4 mr-2" />
+                          Criar Oportunidade no CRM
+                        </DropdownMenuItem>
+                        
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onStatusChange(budget, 'pending')}>
                           Marcar como Pendente

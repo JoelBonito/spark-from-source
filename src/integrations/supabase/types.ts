@@ -106,6 +106,7 @@ export type Database = {
           final_price: number
           id: string
           items: Json | null
+          lead_id: string | null
           patient_id: string | null
           patient_name: string | null
           payment_conditions: Json | null
@@ -132,6 +133,7 @@ export type Database = {
           final_price: number
           id?: string
           items?: Json | null
+          lead_id?: string | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null
@@ -158,6 +160,7 @@ export type Database = {
           final_price?: number
           id?: string
           items?: Json | null
+          lead_id?: string | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null
@@ -178,6 +181,13 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
