@@ -8,7 +8,21 @@ export interface Config {
   topP: number;
   maxTokens: number;
   promptTemplate: string;
+  
+  // Dados do usuário
+  userName?: string;
+  userPhone?: string;
+  userEmail?: string;
+  
+  // Dados da clínica
+  clinicName?: string;
+  clinicAddress?: string;
+  clinicPhone?: string;
+  clinicEmail?: string;
+  
+  // Módulos
   crmEnabled: boolean;
+  facetsSimulatorEnabled?: boolean;
   whiteningSimulatorEnabled?: boolean;
 }
 
@@ -78,8 +92,22 @@ export async function saveConfig(config: Config): Promise<void> {
       top_p: config.topP,
       max_tokens: config.maxTokens,
       prompt_template: config.promptTemplate,
+      
+      // Dados do usuário
+      user_name: config.userName || null,
+      user_phone: config.userPhone || null,
+      user_email: config.userEmail || null,
+      
+      // Dados da clínica
+      clinic_name: config.clinicName || null,
+      clinic_address: config.clinicAddress || null,
+      clinic_phone: config.clinicPhone || null,
+      clinic_email: config.clinicEmail || null,
+      
+      // Módulos
       crm_enabled: config.crmEnabled,
-      whitening_simulator_enabled: config.whiteningSimulatorEnabled,
+      facets_simulator_enabled: config.facetsSimulatorEnabled ?? true,
+      whitening_simulator_enabled: config.whiteningSimulatorEnabled ?? true,
     }, { onConflict: 'user_id' });
 
   if (error) throw error;
@@ -106,8 +134,22 @@ export async function getConfig(): Promise<Config | null> {
     topP: Number(data.top_p),
     maxTokens: data.max_tokens,
     promptTemplate: data.prompt_template,
+    
+    // Dados do usuário
+    userName: data.user_name || undefined,
+    userPhone: data.user_phone || undefined,
+    userEmail: data.user_email || undefined,
+    
+    // Dados da clínica
+    clinicName: data.clinic_name || undefined,
+    clinicAddress: data.clinic_address || undefined,
+    clinicPhone: data.clinic_phone || undefined,
+    clinicEmail: data.clinic_email || undefined,
+    
+    // Módulos
     crmEnabled: data.crm_enabled !== false,
-    whiteningSimulatorEnabled: data.whitening_simulator_enabled || false,
+    facetsSimulatorEnabled: data.facets_simulator_enabled ?? true,
+    whiteningSimulatorEnabled: data.whitening_simulator_enabled ?? true,
   };
 }
 

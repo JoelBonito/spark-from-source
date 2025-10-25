@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Save, RotateCcw, DollarSign } from "lucide-react";
+import { Eye, EyeOff, Save, RotateCcw, DollarSign, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +9,13 @@ import { toast } from "sonner";
 import { saveConfig, getConfig, DEFAULT_PROMPT, type Config } from "@/utils/storage";
 import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/contexts/ConfigContext";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 export default function ConfigForm() {
   const navigate = useNavigate();
   const {
     refreshConfig
   } = useConfig();
   const [showApiKey, setShowApiKey] = useState(false);
-  const [whiteningEnabled, setWhiteningEnabled] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<Config>({
     apiKey: "",
@@ -25,14 +25,21 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
+    userName: "",
+    userPhone: "",
+    userEmail: "",
+    clinicName: "",
+    clinicAddress: "",
+    clinicPhone: "",
+    clinicEmail: "",
     crmEnabled: true,
-    whiteningSimulatorEnabled: false
+    facetsSimulatorEnabled: true,
+    whiteningSimulatorEnabled: true
   });
   useEffect(() => {
     getConfig().then(config => {
       if (config) {
         setFormData(config);
-        setWhiteningEnabled(config.whiteningSimulatorEnabled || false);
       }
     });
   }, []);
@@ -82,8 +89,16 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
+      userName: formData.userName,
+      userPhone: formData.userPhone,
+      userEmail: formData.userEmail,
+      clinicName: formData.clinicName,
+      clinicAddress: formData.clinicAddress,
+      clinicPhone: formData.clinicPhone,
+      clinicEmail: formData.clinicEmail,
       crmEnabled: formData.crmEnabled,
-      whiteningSimulatorEnabled: whiteningEnabled
+      facetsSimulatorEnabled: formData.facetsSimulatorEnabled,
+      whiteningSimulatorEnabled: formData.whiteningSimulatorEnabled
     };
     try {
       await saveConfig(config);
@@ -102,6 +117,104 @@ export default function ConfigForm() {
     toast.info("Prompt restaurado para o padrão");
   };
   return <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
+      {/* DADOS DO USUÁRIO */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          👤 Dados do Usuário
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="userName">Nome Completo</Label>
+            <Input 
+              id="userName" 
+              type="text"
+              placeholder="Seu nome completo"
+              value={formData.userName || ''} 
+              onChange={e => setFormData({...formData, userName: e.target.value})} 
+            />
+            <p className="text-xs text-muted-foreground">
+              Este nome aparecerá na barra lateral
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="userPhone">Telefone</Label>
+            <Input 
+              id="userPhone" 
+              type="tel"
+              placeholder="(00) 00000-0000"
+              value={formData.userPhone || ''} 
+              onChange={e => setFormData({...formData, userPhone: e.target.value})} 
+            />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="userEmail">E-mail</Label>
+            <Input 
+              id="userEmail" 
+              type="email"
+              placeholder="seu@email.com"
+              value={formData.userEmail || ''} 
+              onChange={e => setFormData({...formData, userEmail: e.target.value})} 
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* DADOS DA CLÍNICA */}
+      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          🏥 Dados da Clínica/Consultório
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="clinicName">Nome da Clínica</Label>
+            <Input 
+              id="clinicName" 
+              type="text"
+              placeholder="Nome do seu consultório ou clínica"
+              value={formData.clinicName || ''} 
+              onChange={e => setFormData({...formData, clinicName: e.target.value})} 
+            />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="clinicAddress">Endereço</Label>
+            <Input 
+              id="clinicAddress" 
+              type="text"
+              placeholder="Rua, número, bairro, cidade - UF"
+              value={formData.clinicAddress || ''} 
+              onChange={e => setFormData({...formData, clinicAddress: e.target.value})} 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="clinicPhone">Telefone</Label>
+            <Input 
+              id="clinicPhone" 
+              type="tel"
+              placeholder="(00) 0000-0000"
+              value={formData.clinicPhone || ''} 
+              onChange={e => setFormData({...formData, clinicPhone: e.target.value})} 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="clinicEmail">E-mail</Label>
+            <Input 
+              id="clinicEmail" 
+              type="email"
+              placeholder="contato@clinica.com"
+              value={formData.clinicEmail || ''} 
+              onChange={e => setFormData({...formData, clinicEmail: e.target.value})} 
+            />
+          </div>
+        </div>
+      </div>
+
       {/* CREDENCIAIS */}
       
 
@@ -159,19 +272,36 @@ export default function ConfigForm() {
         </h2>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="crmEnabled" className="text-base font-semibold">
-                Módulo CRM
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Ativar ou desativar o módulo de gestão de leads
-              </p>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="crmEnabled" className="text-base font-semibold">
+                    Módulo CRM
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Sistema de gestão de relacionamento com clientes. 
+                          Gerencie leads, oportunidades e pipeline de vendas.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ativar ou desativar o módulo de gestão de leads
+                </p>
+              </div>
             </div>
             <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={checked => setFormData(prev => ({
-            ...prev,
-            crmEnabled: checked
-          }))} />
+              ...prev,
+              crmEnabled: checked
+            }))} />
           </div>
         </div>
       </div>
@@ -183,28 +313,78 @@ export default function ConfigForm() {
         </h2>
         
         <div className="space-y-4">
-          {/* Facetas (sempre ativo) */}
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-            <div>
-              <Label className="text-base font-semibold">Simulador de Facetas Dentárias</Label>
-              <p className="text-sm text-muted-foreground">Simulação de facetas (sempre ativo)</p>
+          {/* Facetas (AGORA COM TOGGLE) */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="facetsEnabled" className="text-base font-semibold">
+                    Simulador de Facetas Dentárias
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Módulo principal de simulação de facetas dentárias. 
+                          Recomendamos manter sempre ativo.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Simulação de facetas de cerâmica (ativo por padrão)
+                </p>
+              </div>
             </div>
-            <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium">
-              Ativo
-            </span>
+            <Switch 
+              id="facetsEnabled" 
+              checked={formData.facetsSimulatorEnabled ?? true}
+              onCheckedChange={checked => setFormData(prev => ({
+                ...prev, 
+                facetsSimulatorEnabled: checked
+              }))} 
+            />
           </div>
           
           {/* Clareamento (toggle) */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <Label htmlFor="whiteningEnabled" className="text-base font-semibold">
-                Simulador de Clareamento Dental
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Ative para permitir simulações de clareamento dental
-              </p>
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="whiteningEnabled" className="text-base font-semibold">
+                    Simulador de Clareamento Dental
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Simulação de clareamento dental. Útil para apresentar 
+                          resultados de tratamentos de branqueamento.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ative para permitir simulações de clareamento dental
+                </p>
+              </div>
             </div>
-            <Switch id="whiteningEnabled" checked={whiteningEnabled} onCheckedChange={setWhiteningEnabled} />
+            <Switch 
+              id="whiteningEnabled" 
+              checked={formData.whiteningSimulatorEnabled ?? true}
+              onCheckedChange={checked => setFormData(prev => ({
+                ...prev,
+                whiteningSimulatorEnabled: checked
+              }))} 
+            />
           </div>
         </div>
       </div>

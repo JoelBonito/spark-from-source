@@ -629,8 +629,13 @@ export type Database = {
           api_key: string
           backend_url: string
           claude_api_key: string | null
+          clinic_address: string | null
+          clinic_email: string | null
+          clinic_name: string | null
+          clinic_phone: string | null
           created_at: string
           crm_enabled: boolean | null
+          facets_simulator_enabled: boolean | null
           id: string
           max_tokens: number
           profile_picture_url: string | null
@@ -640,15 +645,23 @@ export type Database = {
           top_p: number
           updated_at: string
           use_claude: boolean | null
+          user_email: string | null
           user_id: string
+          user_name: string | null
+          user_phone: string | null
           whitening_simulator_enabled: boolean | null
         }
         Insert: {
           api_key: string
           backend_url: string
           claude_api_key?: string | null
+          clinic_address?: string | null
+          clinic_email?: string | null
+          clinic_name?: string | null
+          clinic_phone?: string | null
           created_at?: string
           crm_enabled?: boolean | null
+          facets_simulator_enabled?: boolean | null
           id?: string
           max_tokens?: number
           profile_picture_url?: string | null
@@ -658,15 +671,23 @@ export type Database = {
           top_p?: number
           updated_at?: string
           use_claude?: boolean | null
+          user_email?: string | null
           user_id: string
+          user_name?: string | null
+          user_phone?: string | null
           whitening_simulator_enabled?: boolean | null
         }
         Update: {
           api_key?: string
           backend_url?: string
           claude_api_key?: string | null
+          clinic_address?: string | null
+          clinic_email?: string | null
+          clinic_name?: string | null
+          clinic_phone?: string | null
           created_at?: string
           crm_enabled?: boolean | null
+          facets_simulator_enabled?: boolean | null
           id?: string
           max_tokens?: number
           profile_picture_url?: string | null
@@ -676,7 +697,10 @@ export type Database = {
           top_p?: number
           updated_at?: string
           use_claude?: boolean | null
+          user_email?: string | null
           user_id?: string
+          user_name?: string | null
+          user_phone?: string | null
           whitening_simulator_enabled?: boolean | null
         }
         Relationships: []

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Logo } from '@/components/ui/logo';
+import { useConfig } from '@/contexts/ConfigContext';
 const menuItems = [{
   title: 'Dashboard',
   url: '/',
@@ -46,7 +47,14 @@ export function AppSidebar() {
     user,
     signOut
   } = useAuth();
+  const { config } = useConfig();
   const isActive = (path: string) => location.pathname === path;
+  
+  // Determinar nome a exibir
+  const displayName = config?.userName || user?.email?.split('@')[0] || 'Usuário';
+  const displayInitials = config?.userName 
+    ? config.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : user?.email?.[0].toUpperCase() || 'U';
   return <div className="flex flex-col h-full w-64 border-r bg-gradient-to-b from-white to-accent/30 dark:from-sidebar dark:to-accent/10">
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
@@ -70,11 +78,11 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 mb-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {user?.email?.[0].toUpperCase()}
+              {displayInitials}
             </AvatarFallback>
           </Avatar>
-          <span className="text-sm font-medium truncate">
-            {user?.email?.split('@')[0]}
+          <span className="text-sm font-medium truncate" title={displayName}>
+            {displayName}
           </span>
         </div>
         <Button variant="ghost" onClick={signOut} className="w-full justify-start text-destructive hover:bg-destructive/10">
