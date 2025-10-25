@@ -103,33 +103,7 @@ export default function ConfigForm() {
   };
   return <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
       {/* CREDENCIAIS */}
-      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          🔑 Configurações da API Gemini
-        </h2>
-
-        <div className="space-y-2">
-          <Label htmlFor="apiKey">Google Gemini API Key *</Label>
-          <div className="relative">
-            <Input id="apiKey" type={showApiKey ? "text" : "password"} value={formData.apiKey} onChange={e => setFormData({
-            ...formData,
-            apiKey: e.target.value
-          })} placeholder="AIza..." className={errors.apiKey ? "border-destructive" : ""} />
-            <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          {errors.apiKey && <p className="text-sm text-destructive">{errors.apiKey}</p>}
-          <p className="text-xs text-muted-foreground">
-            ℹ️ Obtenha em:{" "}
-            <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              makersuite.google.com/app/apikey
-            </a>
-          </p>
-        </div>
-
-        
-      </div>
+      
 
       {/* PARÂMETROS AVANÇADOS */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
