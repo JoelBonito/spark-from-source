@@ -52,9 +52,24 @@ export function AppSidebar() {
   
   // Determinar nome a exibir
   const displayName = config?.userName || user?.email?.split('@')[0] || 'Usuário';
-  const displayInitials = config?.userName 
+  const displayInitials = config?.userName
     ? config.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : user?.email?.[0].toUpperCase() || 'U';
+
+  // Formatar endereço completo da clínica
+  const getFullAddress = () => {
+    const parts = [];
+    if (config?.clinicAddress) parts.push(config.clinicAddress);
+    if (config?.clinicZipCode) parts.push(`CEP ${config.clinicZipCode}`);
+    if (config?.clinicCity && config?.clinicState) {
+      parts.push(`${config.clinicCity} - ${config.clinicState}`);
+    } else if (config?.clinicCity) {
+      parts.push(config.clinicCity);
+    }
+    return parts.join(' • ');
+  };
+
+  const fullAddress = getFullAddress();
   return <div className="flex flex-col h-full w-64 border-r bg-gradient-to-b from-white to-accent/30 dark:from-sidebar dark:to-accent/10">
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
@@ -74,7 +89,7 @@ export function AppSidebar() {
       </nav>
 
       {/* Clinic Info */}
-      {(config?.clinicLogoUrl || config?.clinicName || config?.clinicAddress) && (
+      {(config?.clinicLogoUrl || config?.clinicName || fullAddress) && (
         <div className="px-4 py-4 border-t bg-accent/5">
           <div className="space-y-3">
             {config?.clinicLogoUrl && (
@@ -91,9 +106,9 @@ export function AppSidebar() {
                 {config.clinicName}
               </p>
             )}
-            {config?.clinicAddress && (
-              <p className="text-xs text-center text-muted-foreground line-clamp-2">
-                {config.clinicAddress}
+            {fullAddress && (
+              <p className="text-xs text-center text-muted-foreground line-clamp-3">
+                {fullAddress}
               </p>
             )}
           </div>
