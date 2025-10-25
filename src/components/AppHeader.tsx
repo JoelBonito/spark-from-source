@@ -26,10 +26,10 @@ export function AppHeader() {
   const title = PAGE_TITLES[location.pathname] || 'Dashboard';
 
   return (
-    <header className="sticky top-0 z-50 h-14 flex items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-50 h-16 flex items-center justify-between border-b border-border/50 bg-background/80 glass-effect px-6 shadow-sm">
       <Sheet>
         <SheetTrigger asChild className="lg:hidden">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="hover:scale-105 transition-transform">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
@@ -38,11 +38,16 @@ export function AppHeader() {
         </SheetContent>
       </Sheet>
 
-      <h1 className="text-xl font-display font-bold">{title}</h1>
+      <h1 className="text-xl font-display font-semibold gradient-text tracking-tight">{title}</h1>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <NotificationBell />
-        <Button variant="ghost" size="icon" onClick={() => navigate('/config')}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigate('/config')}
+          className="hover:scale-105 transition-transform"
+        >
           <Settings className="h-5 w-5" />
         </Button>
       </div>

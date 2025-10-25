@@ -2,6 +2,7 @@ import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useNotifications } from "@/hooks/useNotifications";
+import { AnimatedBackground } from './AnimatedBackground';
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   // Enable real-time notifications
@@ -16,7 +17,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background relative">
+      <AnimatedBackground />
+      
       {/* Sidebar fixa em desktop */}
       <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 z-40">
         <AppSidebar />
