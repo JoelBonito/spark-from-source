@@ -41,7 +41,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 network-effect">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -215,10 +215,10 @@ interface MetricCardProps {
 
 function MetricCard({ icon: Icon, label, value, colorClass }: MetricCardProps) {
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:scale-105">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClass}`}>
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-transform duration-300 hover:rotate-6 ${colorClass}`}>
             <Icon className="w-6 h-6" />
           </div>
         </div>

@@ -98,19 +98,19 @@ All colors MUST be HSL.
     --border: 217 33% 18%;
     --input: 217 33% 18%;
     --ring: 200 89% 53%;
-    --chart-1: 200 89% 53%;
+    --chart-1: 184 68% 65%;
     --chart-2: 158 79% 44%;
     --chart-3: 262 84% 59%;
     --chart-4: 38 92% 50%;
     --chart-5: 340 82% 52%;
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 200 89% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 184 68% 65%;
+    --sidebar-primary-foreground: 220 20% 10%;
     --sidebar-accent: 217 33% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 200 89% 53%;
+    --sidebar-ring: 184 68% 65%;
   }
 }
 
@@ -155,6 +155,15 @@ All colors MUST be HSL.
     background: linear-gradient(135deg, #E8F7FA 0%, #D4F1F7 100%);
   }
 
+  /* Dark mode gradients */
+  .dark .gradient-trusmile {
+    background: linear-gradient(135deg, rgba(71, 196, 216, 0.8) 0%, rgba(107, 184, 212, 0.8) 100%);
+  }
+
+  .dark .gradient-trusmile-soft {
+    background: linear-gradient(135deg, rgba(71, 196, 216, 0.1) 0%, rgba(107, 184, 212, 0.1) 100%);
+  }
+
   /* TruSmile Text Gradient */
   .text-gradient-trusmile {
     background: linear-gradient(135deg, #47C4D8 0%, #4FA6C9 100%);
@@ -166,15 +175,29 @@ All colors MUST be HSL.
   /* TruSmile Glow Effects */
   .glow-trusmile {
     box-shadow: 0 0 20px rgba(71, 196, 216, 0.3);
-    transition: box-shadow 0.3s ease;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
   }
 
   .glow-trusmile:hover {
     box-shadow: 0 0 30px rgba(71, 196, 216, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .glow-trusmile:active {
+    transform: translateY(0);
   }
 
   .text-glow-trusmile {
     text-shadow: 0 0 10px rgba(71, 196, 216, 0.4);
+  }
+
+  /* Dark mode glow */
+  .dark .glow-trusmile {
+    box-shadow: 0 0 20px rgba(71, 196, 216, 0.4);
+  }
+
+  .dark .glow-trusmile:hover {
+    box-shadow: 0 0 35px rgba(71, 196, 216, 0.6);
   }
 
   /* Icon Styles */

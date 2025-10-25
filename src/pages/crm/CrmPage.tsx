@@ -25,7 +25,10 @@ export default function CrmPage() {
             Gerencie seus leads e pipeline de vendas
           </p>
         </div>
-        <Button onClick={() => navigate('/crm/new')}>
+        <Button 
+          onClick={() => navigate('/crm/new')}
+          className="glow-trusmile animate-pulse-trusmile"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Novo Lead
         </Button>

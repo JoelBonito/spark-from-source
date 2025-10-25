@@ -45,8 +45,8 @@ export function QuickActions({ lead }: QuickActionsProps) {
       {lead.patient_id && (
         <Button
           onClick={handleNewSimulation}
-          className="w-full justify-start"
-          variant="outline"
+          className="w-full justify-start glow-trusmile transition-all duration-300"
+          variant="trusmile"
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Nova Simulação
