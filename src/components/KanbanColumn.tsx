@@ -30,7 +30,7 @@ export function KanbanColumn({ stage, leads, onLeadClick, onDeleteLead, onArchiv
   });
 
   return (
-    <div className="flex-1 min-w-[300px]">
+    <div className="w-full">
       <div
         className={cn(
           'border-2 rounded-lg p-4 h-full transition-colors',
