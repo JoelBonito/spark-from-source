@@ -3,19 +3,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { LeadForm } from '@/components/crm/LeadForm';
-import { mockLeads } from '@/lib/mock-data';
 import { toast } from 'sonner';
 
 export default function EditLeadPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const lead = mockLeads.find((l) => l.id === id);
+  // TODO: Buscar lead do Supabase
+  const lead = null;
 
   if (!lead) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Lead não encontrado</p>
+        <Button onClick={() => navigate('/crm')} className="mt-4">
+          Voltar para CRM
+        </Button>
       </div>
     );
   }

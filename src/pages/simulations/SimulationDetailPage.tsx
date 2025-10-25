@@ -3,18 +3,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, Download, Users } from 'lucide-react';
-import { mockSimulations } from '@/lib/mock-data';
 
 export default function SimulationDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const simulation = mockSimulations.find((s) => s.id === id);
+  // TODO: Buscar simulação do Supabase
+  const simulation = null;
 
   if (!simulation) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Simulação não encontrada</p>
+        <Button onClick={() => navigate('/simulator')} className="mt-4">
+          Voltar para Simulador
+        </Button>
       </div>
     );
   }
