@@ -493,10 +493,32 @@ export type Database = {
           },
         ]
       }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           active: boolean
           base: boolean
+          categoria: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -511,6 +533,7 @@ export type Database = {
         Insert: {
           active?: boolean
           base?: boolean
+          categoria?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -525,6 +548,7 @@ export type Database = {
         Update: {
           active?: boolean
           base?: boolean
+          categoria?: string | null
           created_at?: string | null
           description?: string | null
           id?: string

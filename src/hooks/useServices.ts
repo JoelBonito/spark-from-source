@@ -8,6 +8,7 @@ export interface Service {
   name: string;
   description: string | null;
   tipo_servico: 'Serviço obrigatório' | 'Serviço opcional';
+  categoria: string | null;
   price: number;
   observacoes: string | null;
   active: boolean;
