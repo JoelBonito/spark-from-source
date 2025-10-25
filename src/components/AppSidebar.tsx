@@ -16,15 +16,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Simulador', url: '/simulator', icon: Smile },
-  { title: 'Pacientes', url: '/patients', icon: Users },
-  { title: 'Simulações', url: '/simulations', icon: History },
-  { title: 'Orçamentos', url: '/budgets', icon: FileText },
-  { title: 'CRM', url: '/crm', icon: Target },
-  { title: 'Serviços', url: '/services', icon: Briefcase },
-  { title: 'Relatórios', url: '/reports', icon: FileBadge },
-  { title: 'Configurações', url: '/config', icon: Settings },
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, bold: false },
+  { title: 'Simulador', url: '/simulator', icon: Smile, bold: true },
+  { title: 'CRM', url: '/crm', icon: Target, bold: true },
+  { title: 'Pacientes', url: '/patients', icon: Users, bold: false },
+  { title: 'Orçamentos', url: '/budgets', icon: FileText, bold: false },
+  { title: 'Serviços', url: '/services', icon: Briefcase, bold: false },
+  { title: 'Configurações', url: '/config', icon: Settings, bold: false },
 ];
 
 export function AppSidebar() {
@@ -49,11 +47,12 @@ export function AppSidebar() {
             key={item.url}
             to={item.url}
             className={`
-              flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
+              flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
               ${isActive(item.url)
                 ? 'bg-primary/10 text-primary font-semibold'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent'
               }
+              ${item.bold ? 'font-bold' : 'font-medium'}
             `}
           >
             <item.icon className="h-4 w-4" />

@@ -10,12 +10,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/simulator': 'Simulador de Sorriso',
   '/patients': 'Pacientes',
   '/patients/new': 'Novo Paciente',
-  '/simulations': 'Histórico de Simulações',
   '/budgets': 'Orçamentos',
   '/crm': 'CRM',
   '/crm/new': 'Novo Lead',
   '/services': 'Serviços',
-  '/reports': 'Relatórios',
   '/config': 'Configurações',
   '/settings': 'Configurações',
 };
