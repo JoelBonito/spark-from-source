@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import { Logo } from '@/components/ui/logo';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -83,7 +84,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="text-center">
-          <h1 className="text-3xl font-display font-bold text-primary mb-2">TruSmile</h1>
+          <Logo width={220} className="mx-auto mb-4" />
           <CardTitle>Bem-vindo</CardTitle>
           <CardDescription>Entre na sua conta ou recupere sua senha</CardDescription>
         </CardHeader>

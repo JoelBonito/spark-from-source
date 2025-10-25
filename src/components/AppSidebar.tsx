@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Logo } from '@/components/ui/logo';
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, bold: false },
@@ -35,9 +36,7 @@ export function AppSidebar() {
     <div className="flex flex-col h-full w-64 border-r bg-sidebar">
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
-        <h1 className="text-2xl font-display font-bold text-primary">
-          TruSmile
-        </h1>
+        <Logo width={160} className="hover:opacity-90 transition-opacity" />
       </div>
 
       {/* Navigation */}
