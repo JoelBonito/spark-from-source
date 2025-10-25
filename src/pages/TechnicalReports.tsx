@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, Download, Search, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Layout from '@/components/Layout';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -58,8 +57,7 @@ export default function TechnicalReports() {
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <header className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-foreground">Relatórios Técnicos</h1>
         </header>
@@ -134,6 +132,6 @@ export default function TechnicalReports() {
           />
         )}
       </div>
-    </Layout>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Activity, TrendingUp, DollarSign, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -11,22 +10,18 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   if (!stats) {
     return (
-      <Layout>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Erro ao carregar dados do dashboard</AlertDescription>
-        </Alert>
-      </Layout>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Erro ao carregar dados do dashboard</AlertDescription>
+      </Alert>
     );
   }
 
@@ -40,8 +35,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -202,7 +196,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 }
 

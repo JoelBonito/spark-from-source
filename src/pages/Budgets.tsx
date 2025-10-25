@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Search, Sparkles, Plus } from 'lucide-react';
-import Layout from '@/components/Layout';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
 import { BudgetTable } from '@/components/BudgetTable';
@@ -146,8 +145,7 @@ export const Budgets = () => {
   });
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -236,6 +234,6 @@ export const Budgets = () => {
           onSave={handleSaveBudget}
         />
       </div>
-    </Layout>
+    </div>
   );
 };
