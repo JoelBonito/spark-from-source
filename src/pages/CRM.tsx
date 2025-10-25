@@ -107,15 +107,12 @@ export default function CRM() {
 
   return (
     <Layout>
-      <div className="space-y-6 network-effect">
+      <div className="space-y-6">
         {/* Header com Filtros */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">CRM - Funil de Vendas</h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie seus leads desde a simulação até o fechamento
-            </p>
-          </div>
+          <p className="text-muted-foreground">
+            Gerencie seus leads desde a simulação até o fechamento
+          </p>
 
           <div className="flex items-center gap-4">
             {/* Toggle para mostrar arquivados */}
