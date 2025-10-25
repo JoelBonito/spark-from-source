@@ -81,7 +81,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="text-center">
           <Logo width={220} className="mx-auto mb-4" />

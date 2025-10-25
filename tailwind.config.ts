@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Poppins', 'Inter', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        logo: ['"Montserrat"', 'sans-serif'],
       },
       boxShadow: {
         sm: '0px 2px 4px rgba(0, 0, 0, 0.05)',
@@ -106,10 +107,21 @@ export default {
             height: "0",
           },
         },
+        "pulse-trusmile": {
+          "0%, 100%": {
+            opacity: "1",
+            boxShadow: "0 0 0 0 rgba(71, 196, 216, 0.7)"
+          },
+          "50%": {
+            opacity: "0.9",
+            boxShadow: "0 0 0 10px rgba(71, 196, 216, 0)"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-trusmile": "pulse-trusmile 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

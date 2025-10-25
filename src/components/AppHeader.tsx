@@ -24,7 +24,7 @@ export function AppHeader() {
   const title = PAGE_TITLES[location.pathname] || 'Dashboard';
 
   return (
-    <header className="sticky top-0 z-50 h-14 flex items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-50 h-14 flex items-center justify-between border-b border-primary/20 bg-background/95 backdrop-blur-sm px-4">
       <Sheet>
         <SheetTrigger asChild className="lg:hidden">
           <Button variant="ghost" size="icon">

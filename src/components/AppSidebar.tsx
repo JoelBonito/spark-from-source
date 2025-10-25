@@ -33,7 +33,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="flex flex-col h-full w-64 border-r bg-sidebar">
+    <div className="flex flex-col h-full w-64 border-r bg-gradient-to-b from-white to-accent/30 dark:from-sidebar dark:to-accent/10">
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
         <Logo width={160} className="hover:opacity-90 transition-opacity" />
