@@ -2,6 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { addDays } from 'date-fns';
 import { generateBudgetNumber, generateManualBudgetPDF } from './pdfService';
 
+// FASE 3: Definir type union explícito para BudgetStatus
+export type BudgetStatus = 
+  | 'pending' 
+  | 'sent' 
+  | 'viewed' 
+  | 'accepted' 
+  | 'rejected' 
+  | 'expired' 
+  | 'archived';
+
 export interface Budget {
   id: string;
   created_at: string;
@@ -18,7 +28,7 @@ export interface Budget {
   final_price: number;
   payment_conditions: any;
   valid_until: string | null;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'archived';
+  status: BudgetStatus;
   pdf_url: string | null;
   user_id: string;
   budget_type?: 'automatic' | 'manual';

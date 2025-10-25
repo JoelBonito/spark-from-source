@@ -147,7 +147,8 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <StatusBadge status={budget.status} />
+                  {/* FASE 4: Adicionar proteção extra com fallback */}
+                  <StatusBadge status={budget.status || 'pending'} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {budget.lead_id ? (
