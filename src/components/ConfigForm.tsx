@@ -127,7 +127,6 @@ export default function ConfigForm() {
     });
     toast.info("Prompt restaurado para o padrão");
   };
-
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -143,20 +142,20 @@ export default function ConfigForm() {
       toast.error('A imagem deve ter no máximo 2MB');
       return;
     }
-
     setUploadingLogo(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
       // Remover logo anterior se existir
       if (formData.clinicLogoUrl) {
         const oldPath = formData.clinicLogoUrl.split('/').pop();
         if (oldPath) {
-          await supabase.storage
-            .from('clinic-logos')
-            .remove([`${user.id}/${oldPath}`]);
+          await supabase.storage.from('clinic-logos').remove([`${user.id}/${oldPath}`]);
         }
       }
 
@@ -164,19 +163,23 @@ export default function ConfigForm() {
       const fileExt = file.name.split('.').pop();
       const fileName = `logo-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('clinic-logos')
-        .upload(filePath, file, { upsert: true });
-
+      const {
+        error: uploadError
+      } = await supabase.storage.from('clinic-logos').upload(filePath, file, {
+        upsert: true
+      });
       if (uploadError) throw uploadError;
 
       // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('clinic-logos')
-        .getPublicUrl(filePath);
-
-      setFormData({ ...formData, clinicLogoUrl: publicUrl });
+      const {
+        data: {
+          publicUrl
+        }
+      } = supabase.storage.from('clinic-logos').getPublicUrl(filePath);
+      setFormData({
+        ...formData,
+        clinicLogoUrl: publicUrl
+      });
       toast.success('Logomarca carregada com sucesso!');
     } catch (error: any) {
       toast.error(error.message || 'Erro ao fazer upload da logomarca');
@@ -184,22 +187,23 @@ export default function ConfigForm() {
       setUploadingLogo(false);
     }
   };
-
   const handleRemoveLogo = async () => {
     if (!formData.clinicLogoUrl) return;
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
-
       const oldPath = formData.clinicLogoUrl.split('/').pop();
       if (oldPath) {
-        await supabase.storage
-          .from('clinic-logos')
-          .remove([`${user.id}/${oldPath}`]);
+        await supabase.storage.from('clinic-logos').remove([`${user.id}/${oldPath}`]);
       }
-
-      setFormData({ ...formData, clinicLogoUrl: undefined });
+      setFormData({
+        ...formData,
+        clinicLogoUrl: undefined
+      });
       toast.success('Logomarca removida');
     } catch (error: any) {
       toast.error(error.message || 'Erro ao remover logomarca');
@@ -207,7 +211,7 @@ export default function ConfigForm() {
   };
   return <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
       {/* DADOS DO USUÁRIO */}
-      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
+      <div className="border bg-card shadow-sm p-6 space-y-4 rounded-none">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
           👤 Dados do Usuário
         </h2>
@@ -215,13 +219,10 @@ export default function ConfigForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="userName">Nome Completo</Label>
-            <Input 
-              id="userName" 
-              type="text"
-              placeholder="Seu nome completo"
-              value={formData.userName || ''} 
-              onChange={e => setFormData({...formData, userName: e.target.value})} 
-            />
+            <Input id="userName" type="text" placeholder="Seu nome completo" value={formData.userName || ''} onChange={e => setFormData({
+            ...formData,
+            userName: e.target.value
+          })} />
             <p className="text-xs text-muted-foreground">
               Este nome aparecerá na barra lateral
             </p>
@@ -229,24 +230,18 @@ export default function ConfigForm() {
           
           <div className="space-y-2">
             <Label htmlFor="userPhone">Telefone</Label>
-            <Input 
-              id="userPhone" 
-              type="tel"
-              placeholder="(00) 00000-0000"
-              value={formData.userPhone || ''} 
-              onChange={e => setFormData({...formData, userPhone: e.target.value})} 
-            />
+            <Input id="userPhone" type="tel" placeholder="(00) 00000-0000" value={formData.userPhone || ''} onChange={e => setFormData({
+            ...formData,
+            userPhone: e.target.value
+          })} />
           </div>
           
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="userEmail">E-mail</Label>
-            <Input 
-              id="userEmail" 
-              type="email"
-              placeholder="seu@email.com"
-              value={formData.userEmail || ''} 
-              onChange={e => setFormData({...formData, userEmail: e.target.value})} 
-            />
+            <Input id="userEmail" type="email" placeholder="seu@email.com" value={formData.userEmail || ''} onChange={e => setFormData({
+            ...formData,
+            userEmail: e.target.value
+          })} />
           </div>
         </div>
       </div>
@@ -262,36 +257,16 @@ export default function ConfigForm() {
           <div className="space-y-2 md:col-span-2">
             <Label>Logomarca da Clínica</Label>
             <div className="flex items-center gap-4">
-              {formData.clinicLogoUrl ? (
-                <div className="relative">
-                  <img 
-                    src={formData.clinicLogoUrl} 
-                    alt="Logo da clínica" 
-                    className="h-20 w-auto object-contain rounded border p-2"
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6"
-                    onClick={handleRemoveLogo}
-                  >
+              {formData.clinicLogoUrl ? <div className="relative">
+                  <img src={formData.clinicLogoUrl} alt="Logo da clínica" className="h-20 w-auto object-contain rounded border p-2" />
+                  <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6" onClick={handleRemoveLogo}>
                     <X className="h-3 w-3" />
                   </Button>
-                </div>
-              ) : (
-                <div className="h-20 w-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                </div> : <div className="h-20 w-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
                   <Upload className="h-6 w-6" />
-                </div>
-              )}
+                </div>}
               <div className="flex-1">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  disabled={uploadingLogo}
-                  className="cursor-pointer"
-                />
+                <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} className="cursor-pointer" />
                 <p className="text-xs text-muted-foreground mt-1">
                   PNG, JPG ou WEBP (máx. 2MB)
                 </p>
@@ -301,76 +276,58 @@ export default function ConfigForm() {
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="clinicName">Nome da Clínica</Label>
-            <Input 
-              id="clinicName" 
-              type="text"
-              placeholder="Nome do seu consultório ou clínica"
-              value={formData.clinicName || ''} 
-              onChange={e => setFormData({...formData, clinicName: e.target.value})} 
-            />
+            <Input id="clinicName" type="text" placeholder="Nome do seu consultório ou clínica" value={formData.clinicName || ''} onChange={e => setFormData({
+            ...formData,
+            clinicName: e.target.value
+          })} />
           </div>
           
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="clinicAddress">Endereço</Label>
-            <Input 
-              id="clinicAddress" 
-              type="text"
-              placeholder="Rua, número, bairro, cidade - UF"
-              value={formData.clinicAddress || ''} 
-              onChange={e => setFormData({...formData, clinicAddress: e.target.value})} 
-            />
+            <Input id="clinicAddress" type="text" placeholder="Rua, número, bairro, cidade - UF" value={formData.clinicAddress || ''} onChange={e => setFormData({
+            ...formData,
+            clinicAddress: e.target.value
+          })} />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="clinicPhone">Telefone</Label>
-            <Input 
-              id="clinicPhone" 
-              type="tel"
-              placeholder="(00) 0000-0000"
-              value={formData.clinicPhone || ''} 
-              onChange={e => setFormData({...formData, clinicPhone: e.target.value})} 
-            />
+            <Input id="clinicPhone" type="tel" placeholder="(00) 0000-0000" value={formData.clinicPhone || ''} onChange={e => setFormData({
+            ...formData,
+            clinicPhone: e.target.value
+          })} />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="clinicEmail">E-mail</Label>
-            <Input 
-              id="clinicEmail" 
-              type="email"
-              placeholder="contato@clinica.com"
-              value={formData.clinicEmail || ''} 
-              onChange={e => setFormData({...formData, clinicEmail: e.target.value})} 
-            />
+            <Input id="clinicEmail" type="email" placeholder="contato@clinica.com" value={formData.clinicEmail || ''} onChange={e => setFormData({
+            ...formData,
+            clinicEmail: e.target.value
+          })} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="clinicZipCode">CEP</Label>
-            <Input 
-              id="clinicZipCode" 
-              type="text"
-              placeholder="00000-000"
-              value={formData.clinicZipCode || ''} 
-              onChange={e => setFormData({...formData, clinicZipCode: e.target.value})} 
-            />
+            <Input id="clinicZipCode" type="text" placeholder="00000-000" value={formData.clinicZipCode || ''} onChange={e => setFormData({
+            ...formData,
+            clinicZipCode: e.target.value
+          })} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="clinicCity">Cidade</Label>
-            <Input 
-              id="clinicCity" 
-              type="text"
-              placeholder="São Paulo"
-              value={formData.clinicCity || ''} 
-              onChange={e => setFormData({...formData, clinicCity: e.target.value})} 
-            />
+            <Input id="clinicCity" type="text" placeholder="São Paulo" value={formData.clinicCity || ''} onChange={e => setFormData({
+            ...formData,
+            clinicCity: e.target.value
+          })} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="clinicState">Estado</Label>
-            <Select
-              value={formData.clinicState || ''}
-              onValueChange={(value) => setFormData({...formData, clinicState: value})}
-            >
+            <Select value={formData.clinicState || ''} onValueChange={value => setFormData({
+            ...formData,
+            clinicState: value
+          })}>
               <SelectTrigger id="clinicState">
                 <SelectValue placeholder="Selecione o estado" />
               </SelectTrigger>
@@ -492,9 +449,9 @@ export default function ConfigForm() {
               </div>
             </div>
             <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={checked => setFormData(prev => ({
-              ...prev,
-              crmEnabled: checked
-            }))} />
+            ...prev,
+            crmEnabled: checked
+          }))} />
           </div>
         </div>
       </div>
@@ -533,14 +490,10 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch 
-              id="facetsEnabled" 
-              checked={formData.facetsSimulatorEnabled ?? true}
-              onCheckedChange={checked => setFormData(prev => ({
-                ...prev, 
-                facetsSimulatorEnabled: checked
-              }))} 
-            />
+            <Switch id="facetsEnabled" checked={formData.facetsSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
+            ...prev,
+            facetsSimulatorEnabled: checked
+          }))} />
           </div>
           
           {/* Clareamento (toggle) */}
@@ -570,14 +523,10 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch 
-              id="whiteningEnabled" 
-              checked={formData.whiteningSimulatorEnabled ?? true}
-              onCheckedChange={checked => setFormData(prev => ({
-                ...prev,
-                whiteningSimulatorEnabled: checked
-              }))} 
-            />
+            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
+            ...prev,
+            whiteningSimulatorEnabled: checked
+          }))} />
           </div>
         </div>
       </div>
