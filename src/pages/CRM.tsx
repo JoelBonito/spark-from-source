@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Layout from '@/components/Layout';
 import { useKanbanBoard } from '@/hooks/useKanbanBoard';
 import { usePipelineMetrics } from '@/hooks/usePipelineMetrics';
 import { KanbanBoard } from '@/components/KanbanBoard';
@@ -92,8 +91,7 @@ export default function CRM() {
   ) as typeof leadsByStage;
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header com Filtro */}
         <div className="flex items-center justify-between">
           <div>
@@ -239,6 +237,6 @@ export default function CRM() {
           }}
         />
       </div>
-    </Layout>
+    </div>
   );
 }
