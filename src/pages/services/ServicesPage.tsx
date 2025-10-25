@@ -67,13 +67,7 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold">Serviços</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie os serviços oferecidos pela clínica
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>

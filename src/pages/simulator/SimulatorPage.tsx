@@ -222,11 +222,6 @@ export default function SimulatorPage() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div>
-        <h1 className="text-3xl font-display font-bold">Simulador de Sorriso</h1>
-        <p className="text-muted-foreground mt-1">Faça upload de uma foto e veja o resultado</p>
-      </div>
-
       <Tabs value={currentStep} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" disabled={currentStep !== 'upload'}>1. Upload</TabsTrigger>

@@ -24,13 +24,7 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-display font-bold">Pacientes</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie seus pacientes cadastrados
-          </p>
-        </div>
+      <div className="flex justify-end items-center">
         <Button onClick={() => navigate('/patients/new')}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Paciente
