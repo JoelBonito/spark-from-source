@@ -75,14 +75,14 @@ export function AppSidebar() {
 
       {/* Clinic Info */}
       {(config?.clinicLogoUrl || config?.clinicName || config?.clinicAddress) && (
-        <div className="px-4 py-3 border-t bg-accent/5">
-          <div className="space-y-2">
+        <div className="px-4 py-4 border-t bg-accent/5">
+          <div className="space-y-3">
             {config?.clinicLogoUrl && (
               <div className="flex justify-center">
-                <img 
-                  src={config.clinicLogoUrl} 
-                  alt="Logo da clínica" 
-                  className="h-8 w-auto object-contain"
+                <img
+                  src={config.clinicLogoUrl}
+                  alt="Logo da clínica"
+                  className="h-16 w-auto object-contain"
                 />
               </div>
             )}
