@@ -26,17 +26,17 @@ interface LeadDetailModalProps {
 }
 
 const stageNames: Record<string, string> = {
-  novo_lead: 'Novo Lead',
-  qualificacao: 'Qualificação',
-  conversao: 'Conversão',
-  fidelizacao: 'Fidelização'
+  simulacao: 'Simulação',
+  consulta_tecnica: 'Consulta Técnica',
+  fechamento: 'Fechamento',
+  acompanhamento: 'Acompanhamento'
 };
 
 const stageColors: Record<string, string> = {
-  novo_lead: 'secondary',
-  qualificacao: 'default',
-  conversao: 'default',
-  fidelizacao: 'default'
+  simulacao: 'secondary',
+  consulta_tecnica: 'default',
+  fechamento: 'default',
+  acompanhamento: 'default'
 };
 
 export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditBudget }: LeadDetailModalProps) {

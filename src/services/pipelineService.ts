@@ -10,28 +10,28 @@ export interface PipelineStage {
 
 export const PIPELINE_STAGES: PipelineStage[] = [
   {
-    id: 'novo_lead',
-    name: 'Novo Lead',
+    id: 'simulacao',
+    name: 'Simulação',
     color: 'gray',
     description: 'Simulação realizada, aguardando contato'
   },
   {
-    id: 'qualificacao',
-    name: 'Qualificação',
+    id: 'consulta_tecnica',
+    name: 'Consulta Técnica',
     color: 'blue',
-    description: 'Lead qualificado, agendamento em andamento'
+    description: 'Agendamento de consulta técnica'
   },
   {
-    id: 'conversao',
-    name: 'Conversão',
+    id: 'fechamento',
+    name: 'Fechamento',
     color: 'yellow',
-    description: 'Em negociação final'
+    description: 'Negociação e fechamento do tratamento'
   },
   {
-    id: 'fidelizacao',
-    name: 'Fidelização',
+    id: 'acompanhamento',
+    name: 'Acompanhamento',
     color: 'green',
-    description: 'Tratamento realizado, acompanhamento'
+    description: 'Tratamento em andamento ou concluído'
   }
 ];
 
@@ -50,6 +50,7 @@ export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> 
       patient:patients(name, phone, email)
     `)
     .eq('user_id', user.id)
+    .eq('archived', false)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -63,10 +64,10 @@ export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> 
   }
 
   const grouped: Record<string, Lead[]> = {
-    novo_lead: [],
-    qualificacao: [],
-    conversao: [],
-    fidelizacao: []
+    simulacao: [],
+    consulta_tecnica: [],
+    fechamento: [],
+    acompanhamento: []
   };
 
   (data || []).forEach((lead: any) => {
@@ -98,16 +99,16 @@ export async function getPipelineMetrics() {
 
   const totalLeads = leads.length;
   const inNegotiation = leads.filter(l => 
-    l.stage === 'qualificacao' || l.stage === 'conversao'
+    l.stage === 'consulta_tecnica' || l.stage === 'fechamento'
   ).length;
 
   const converted = leads.filter(l => 
-    l.stage === 'conversao' || l.stage === 'fidelizacao'
+    l.stage === 'fechamento' || l.stage === 'acompanhamento'
   ).length;
   const conversionRate = (converted / totalLeads) * 100;
 
   const potentialRevenue = leads
-    .filter(l => l.stage !== 'fidelizacao')
+    .filter(l => l.stage !== 'acompanhamento')
     .reduce((sum, lead) => sum + (lead.opportunity_value || 0), 0);
 
   return {

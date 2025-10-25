@@ -6,26 +6,29 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { LeadDetailModal } from '@/components/LeadDetailModal';
 import { BudgetDetailModal } from '@/components/BudgetDetailModal';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { Budget, updateBudget } from '@/services/budgetService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile } from 'lucide-react';
+import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile, Archive } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 
 export default function CRM() {
   const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard();
   const { totalLeads, inNegotiation, conversionRate, potentialRevenue } = usePipelineMetrics();
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<ExtendedLead | null>(null);
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
+  const [showArchived, setShowArchived] = useState(false);
   
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isBudgetDetailOpen, setIsBudgetDetailOpen] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
 
-  const handleLeadClick = (lead: Lead) => {
+  const handleLeadClick = (lead: ExtendedLead) => {
     setSelectedLead(lead);
   };
 
@@ -81,6 +84,17 @@ export default function CRM() {
     deleteLead(leadId);
   };
 
+  const handleArchiveLead = async (leadId: string) => {
+    try {
+      const { archiveLead } = await import('@/services/leadService');
+      await archiveLead(leadId);
+      toast.success('Lead arquivado com sucesso!');
+      refresh();
+    } catch (error) {
+      toast.error('Erro ao arquivar lead');
+    }
+  };
+
   // FASE 7: Filtrar leads por tipo de tratamento
   const filteredLeadsByStage = Object.fromEntries(
     Object.entries(leadsByStage).map(([stage, leads]) => [
@@ -94,7 +108,7 @@ export default function CRM() {
   return (
     <Layout>
       <div className="space-y-6 network-effect">
-        {/* Header com Filtro */}
+        {/* Header com Filtros */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">CRM - Funil de Vendas</h1>
@@ -103,23 +117,38 @@ export default function CRM() {
             </p>
           </div>
 
-          {/* FASE 7: Filtro por tipo de tratamento */}
-          <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)}>
-            <TabsList>
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Todos
-              </TabsTrigger>
-              <TabsTrigger value="facetas" className="flex items-center gap-2">
-                <Smile className="h-4 w-4" />
-                Facetas
-              </TabsTrigger>
-              <TabsTrigger value="clareamento" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Clareamento
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-4">
+            {/* Toggle para mostrar arquivados */}
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-archived"
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+              />
+              <Label htmlFor="show-archived" className="flex items-center gap-2 cursor-pointer">
+                <Archive className="h-4 w-4" />
+                Mostrar Arquivados
+              </Label>
+            </div>
+
+            {/* Filtro por tipo de tratamento */}
+            <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)}>
+              <TabsList>
+                <TabsTrigger value="all" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Todos
+                </TabsTrigger>
+                <TabsTrigger value="facetas" className="flex items-center gap-2">
+                  <Smile className="h-4 w-4" />
+                  Facetas
+                </TabsTrigger>
+                <TabsTrigger value="clareamento" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Clareamento
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {/* Métricas */}
@@ -208,6 +237,7 @@ export default function CRM() {
             onLeadClick={handleLeadClick}
             onMoveLeadToStage={moveLeadToStage}
             onDeleteLead={handleDeleteLead}
+            onArchiveLead={handleArchiveLead}
           />
         )}
 

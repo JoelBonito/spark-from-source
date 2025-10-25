@@ -1,4 +1,4 @@
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { getPipelineStages } from '@/services/pipelineService';
 import { KanbanColumn } from './KanbanColumn';
 import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -6,13 +6,14 @@ import { LeadCard } from './LeadCard';
 import { useState } from 'react';
 
 interface KanbanBoardProps {
-  leadsByStage: Record<string, Lead[]>;
-  onLeadClick: (lead: Lead) => void;
+  leadsByStage: Record<string, ExtendedLead[]>;
+  onLeadClick: (lead: ExtendedLead) => void;
   onMoveLeadToStage: (leadId: string, newStage: string) => Promise<void>;
   onDeleteLead?: (leadId: string) => void;
+  onArchiveLead?: (leadId: string) => void;
 }
 
-export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead }: KanbanBoardProps) {
+export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead, onArchiveLead }: KanbanBoardProps) {
   const stages = getPipelineStages();
   const [activeId, setActiveId] = useState<string | null>(null);
   
@@ -72,6 +73,7 @@ export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDe
             leads={leadsByStage[stage.id] || []}
             onLeadClick={onLeadClick}
             onDeleteLead={onDeleteLead}
+            onArchiveLead={onArchiveLead}
           />
         ))}
       </div>

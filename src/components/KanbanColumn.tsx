@@ -1,4 +1,4 @@
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { LeadCard } from './LeadCard';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -11,9 +11,10 @@ interface KanbanColumnProps {
     color: string;
     description: string;
   };
-  leads: Lead[];
-  onLeadClick: (lead: Lead) => void;
+  leads: ExtendedLead[];
+  onLeadClick: (lead: ExtendedLead) => void;
   onDeleteLead?: (leadId: string) => void;
+  onArchiveLead?: (leadId: string) => void;
 }
 
 const colorClasses: Record<string, string> = {
@@ -23,7 +24,7 @@ const colorClasses: Record<string, string> = {
   green: 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600'
 };
 
-export function KanbanColumn({ stage, leads, onLeadClick, onDeleteLead }: KanbanColumnProps) {
+export function KanbanColumn({ stage, leads, onLeadClick, onDeleteLead, onArchiveLead }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id,
   });
@@ -67,6 +68,7 @@ export function KanbanColumn({ stage, leads, onLeadClick, onDeleteLead }: Kanban
                 lead={lead}
                 onClick={() => onLeadClick(lead)}
                 onDelete={onDeleteLead}
+                onArchive={onArchiveLead}
               />
             ))}
           </SortableContext>

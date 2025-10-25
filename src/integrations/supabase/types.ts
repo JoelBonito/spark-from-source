@@ -258,6 +258,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          archived: boolean | null
           assigned_to: string | null
           created_at: string | null
           email: string | null
@@ -278,6 +279,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean | null
           assigned_to?: string | null
           created_at?: string | null
           email?: string | null
@@ -298,6 +300,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived?: boolean | null
           assigned_to?: string | null
           created_at?: string | null
           email?: string | null

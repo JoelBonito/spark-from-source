@@ -1,4 +1,4 @@
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Phone, Mail, Tag, Clock, Sparkles, Smile, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Phone, Mail, Tag, Clock, Sparkles, Smile, MoreHorizontal, Trash2, Archive } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -26,12 +26,13 @@ import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 
 interface LeadCardProps {
-  lead: Lead;
+  lead: ExtendedLead;
   onClick: () => void;
   onDelete?: (leadId: string) => void;
+  onArchive?: (leadId: string) => void;
 }
 
-export function LeadCard({ lead, onClick, onDelete }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
     attributes,
@@ -77,6 +78,17 @@ export function LeadCard({ lead, onClick, onDelete }: LeadCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onArchive && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(lead.id);
+                    }}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Arquivar
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -145,12 +157,19 @@ export function LeadCard({ lead, onClick, onDelete }: LeadCardProps) {
             )}
           </div>
 
-          {/* Valor */}
-          {lead.opportunity_value && (
-            <div className="text-lg font-bold text-green-600">
-              {formatCurrency(lead.opportunity_value)}
-            </div>
-          )}
+          {/* Valor e Contagem */}
+          <div className="flex items-center justify-between">
+            {lead.opportunity_value && (
+              <div className="text-lg font-bold text-green-600">
+                {formatCurrency(lead.opportunity_value)}
+              </div>
+            )}
+            {lead.simulationCount && lead.simulationCount > 1 && (
+              <Badge variant="outline" className="text-xs">
+                {lead.simulationCount} simulações
+              </Badge>
+            )}
+          </div>
 
           {/* Tags */}
           {lead.tags && lead.tags.length > 0 && (

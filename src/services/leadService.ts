@@ -18,6 +18,7 @@ export interface Lead {
   next_action_date?: string;
   user_id: string;
   treatment_type?: 'facetas' | 'clareamento';
+  archived?: boolean;
   patient?: {
     name: string;
     phone: string;
@@ -28,6 +29,7 @@ export interface Lead {
 export interface ExtendedLead extends Lead {
   simulationId: string | null;
   simulation?: any;
+  simulationCount?: number;
 }
 
 export interface Activity {
@@ -246,6 +248,24 @@ export async function deleteLead(id: string): Promise<void> {
   const { error } = await supabase
     .from('leads')
     .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function archiveLead(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('leads')
+    .update({ archived: true })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function unarchiveLead(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('leads')
+    .update({ archived: false })
     .eq('id', id);
 
   if (error) throw error;

@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 
 export function useKanbanBoard() {
   const [leadsByStage, setLeadsByStage] = useState<Record<string, ExtendedLead[]>>({
-    novo_lead: [],
-    qualificacao: [],
-    conversao: [],
-    fidelizacao: []
+    simulacao: [],
+    consulta_tecnica: [],
+    fechamento: [],
+    acompanhamento: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -18,36 +18,51 @@ export function useKanbanBoard() {
       setLoading(true);
       const data = await getLeadsGroupedByStage();
       
-      // Expandir leads com simulações
+      // Agrupamento por patient_id + treatment_type
       const expandedData: Record<string, ExtendedLead[]> = {
-        novo_lead: [],
-        qualificacao: [],
-        conversao: [],
-        fidelizacao: []
+        simulacao: [],
+        consulta_tecnica: [],
+        fechamento: [],
+        acompanhamento: []
       };
 
       for (const [stage, leads] of Object.entries(data)) {
-        const expandedLeads: ExtendedLead[] = [];
+        // Agrupar leads por patient_id + treatment_type
+        const grouped = new Map<string, Lead[]>();
         
         for (const lead of leads) {
-          const simulations = lead.patient_id 
-            ? await getPatientSimulations(lead.patient_id)
+          const key = `${lead.patient_id}-${lead.treatment_type}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, []);
+          }
+          grouped.get(key)!.push(lead);
+        }
+
+        // Criar ExtendedLeads agrupados
+        const expandedLeads: ExtendedLead[] = [];
+        
+        for (const [key, groupedLeads] of grouped.entries()) {
+          // Usar o primeiro lead como base
+          const baseLead = groupedLeads[0];
+          
+          // Buscar todas as simulações do tipo de tratamento
+          const simulations = baseLead.patient_id 
+            ? (await getPatientSimulations(baseLead.patient_id)).filter(
+                sim => sim.treatment_type === baseLead.treatment_type
+              )
             : [];
 
-          if (simulations.length === 0) {
-            expandedLeads.push({ ...lead, simulationId: null });
-          } else {
-            simulations.forEach(sim => {
-              expandedLeads.push({
-                ...lead,
-                id: `${lead.id}-sim-${sim.id}`,
-                simulationId: sim.id,
-                simulation: sim,
-                opportunity_value: sim.final_price || lead.opportunity_value,
-                treatment_type: (sim.treatment_type as 'facetas' | 'clareamento') || lead.treatment_type
-              });
-            });
-          }
+          // Calcular valor total das simulações
+          const totalValue = simulations.reduce((sum, sim) => sum + (sim.final_price || 0), 0);
+
+          expandedLeads.push({
+            ...baseLead,
+            id: key, // ID composto: patient_id-treatment_type
+            simulationId: simulations.length > 0 ? simulations[0].id : null,
+            simulation: simulations[0],
+            opportunity_value: totalValue || baseLead.opportunity_value,
+            simulationCount: simulations.length
+          });
         }
         
         expandedData[stage as keyof typeof expandedData] = expandedLeads;
