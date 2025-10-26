@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,19 +53,24 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const pageInfo = PAGE_INFO[location.pathname] || { title: 'Dashboard' };
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const handleNavigate = () => {
+    setIsSheetOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/95 backdrop-blur-sm">
       <div className="h-14 flex items-center justify-between px-4 gap-4">
         {/* Menu hamburguer apenas no mobile */}
-        <Sheet>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild className="lg:hidden">
             <Button variant="ghost" size="icon" aria-label="Menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <AppSidebar />
+            <AppSidebar onNavigate={handleNavigate} />
           </SheetContent>
         </Sheet>
 

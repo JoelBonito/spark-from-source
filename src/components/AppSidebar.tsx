@@ -41,7 +41,11 @@ const menuItems = [{
   icon: Settings,
   bold: false
 }];
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
   const location = useLocation();
   const {
     user,
@@ -78,7 +82,7 @@ export function AppSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
-        {menuItems.map(item => <Link key={item.url} to={item.url} className={`
+        {menuItems.map(item => <Link key={item.url} to={item.url} onClick={onNavigate} className={`
               flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
               ${isActive(item.url) ? 'bg-primary/10 text-primary font-semibold' : 'text-sidebar-foreground hover:bg-sidebar-accent'}
               ${item.bold ? 'font-bold' : 'font-medium'}
