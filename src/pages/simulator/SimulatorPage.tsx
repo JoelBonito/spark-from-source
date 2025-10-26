@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Sparkles, CheckCircle2, XCircle, Plus, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { usePatients } from '@/hooks/usePatients';
+import { usePatientForm } from '@/hooks/usePatientForm';
 import { useTechnicalReport } from '@/hooks/useTechnicalReport';
 import { useServices } from '@/hooks/useServices';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +21,8 @@ import { generateBudgetNumber } from '@/services/pdfService';
 export default function SimulatorPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { patients, loading: loadingPatients } = usePatients();
+  const { patients, loading: loadingPatients, refresh: refreshPatients } = usePatients();
+  const { createPatient, saving: savingPatient } = usePatientForm();
   const { services } = useServices();
   const { generating, generateReport } = useTechnicalReport();
 
@@ -33,6 +36,39 @@ export default function SimulatorPage() {
   const [teethCount, setTeethCount] = useState<number>(4);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<'upload' | 'processing' | 'result'>('upload');
+
+  // Estados para cadastro rápido de paciente
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickPatientName, setQuickPatientName] = useState('');
+  const [quickPatientPhone, setQuickPatientPhone] = useState('');
+
+  const handleQuickAddPatient = async () => {
+    if (!quickPatientName.trim() || !quickPatientPhone.trim()) {
+      toast.error('Nome e telefone são obrigatórios');
+      return;
+    }
+
+    try {
+      const newPatient = await createPatient({
+        name: quickPatientName.trim(),
+        phone: quickPatientPhone.trim(),
+      });
+
+      toast.success('Paciente cadastrado com sucesso!');
+
+      // Atualizar lista de pacientes e selecionar o novo
+      await refreshPatients();
+      setSelectedPatientId(newPatient.id);
+
+      // Limpar e fechar modal
+      setQuickPatientName('');
+      setQuickPatientPhone('');
+      setIsQuickAddOpen(false);
+    } catch (error) {
+      toast.error('Erro ao cadastrar paciente');
+      console.error(error);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,16 +273,27 @@ export default function SimulatorPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Paciente *</Label>
-                <Select value={selectedPatientId} onValueChange={setSelectedPatientId} disabled={loadingPatients}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um paciente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patients.map(patient => (
-                      <SelectItem key={patient.id} value={patient.id}>{patient.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={selectedPatientId} onValueChange={setSelectedPatientId} disabled={loadingPatients}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecione um paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map(patient => (
+                        <SelectItem key={patient.id} value={patient.id}>{patient.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsQuickAddOpen(true)}
+                    title="Adicionar paciente rapidamente"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -327,6 +374,72 @@ export default function SimulatorPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Cadastro Rápido de Paciente */}
+      <Dialog open={isQuickAddOpen} onOpenChange={setIsQuickAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Paciente</DialogTitle>
+            <DialogDescription>
+              Cadastre um novo paciente rapidamente com apenas os dados obrigatórios
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="quick-name">Nome *</Label>
+              <Input
+                id="quick-name"
+                placeholder="Nome completo do paciente"
+                value={quickPatientName}
+                onChange={(e) => setQuickPatientName(e.target.value)}
+                disabled={savingPatient}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quick-phone">Telefone *</Label>
+              <Input
+                id="quick-phone"
+                placeholder="(00) 00000-0000"
+                value={quickPatientPhone}
+                onChange={(e) => setQuickPatientPhone(e.target.value)}
+                disabled={savingPatient}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsQuickAddOpen(false);
+                setQuickPatientName('');
+                setQuickPatientPhone('');
+              }}
+              disabled={savingPatient}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleQuickAddPatient}
+              disabled={savingPatient || !quickPatientName.trim() || !quickPatientPhone.trim()}
+            >
+              {savingPatient ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Adicionar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
