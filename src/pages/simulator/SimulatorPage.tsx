@@ -298,13 +298,24 @@ export default function SimulatorPage() {
 
               <div className="space-y-2">
                 <Label>Tipo de Tratamento</Label>
-                <Select value={treatmentType} onValueChange={(v: any) => setTreatmentType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="facetas">Facetas Dentárias</SelectItem>
-                    <SelectItem value="clareamento">Clareamento Dental</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={treatmentType === 'facetas' ? 'default' : 'outline'}
+                    onClick={() => setTreatmentType('facetas')}
+                    className="w-full"
+                  >
+                    Facetas Dentárias
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={treatmentType === 'clareamento' ? 'default' : 'outline'}
+                    onClick={() => setTreatmentType('clareamento')}
+                    className="w-full"
+                  >
+                    Clareamento Dental
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
