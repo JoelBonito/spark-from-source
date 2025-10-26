@@ -236,7 +236,8 @@ export default function SimulatorPage() {
         discount_amount: discountAmount,
         final_price: finalPrice,
         status: 'draft',
-        budget_type: 'automatic'
+        budget_type: 'automatic',
+        treatment_type: treatmentType
       });
 
       toast.success('Relatório e orçamento gerados!');
