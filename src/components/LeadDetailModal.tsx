@@ -100,9 +100,22 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
   const handleOpenTechnicalReport = (simulation: any) => {
     if (simulation.technical_notes) {
       try {
-        const parsedData = typeof simulation.technical_notes === 'string'
-          ? JSON.parse(simulation.technical_notes)
-          : simulation.technical_notes;
+        let parsedData;
+        
+        if (typeof simulation.technical_notes === 'string') {
+          // Tenta fazer parse como JSON
+          try {
+            parsedData = JSON.parse(simulation.technical_notes);
+          } catch {
+            // Se falhar, é uma string simples (código do relatório)
+            parsedData = {
+              code: simulation.technical_notes
+            };
+          }
+        } else {
+          parsedData = simulation.technical_notes;
+        }
+        
         setTechnicalReportModal({
           isOpen: true,
           data: parsedData

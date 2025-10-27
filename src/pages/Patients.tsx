@@ -232,9 +232,19 @@ export const Patients = () => {
 
     let parsedData;
     try {
-      parsedData = typeof patient.latest_simulation.technical_notes === 'string'
-        ? JSON.parse(patient.latest_simulation.technical_notes)
-        : patient.latest_simulation.technical_notes;
+      if (typeof patient.latest_simulation.technical_notes === 'string') {
+        // Tenta fazer parse como JSON
+        try {
+          parsedData = JSON.parse(patient.latest_simulation.technical_notes);
+        } catch {
+          // Se falhar, é uma string simples (código do relatório)
+          parsedData = {
+            code: patient.latest_simulation.technical_notes
+          };
+        }
+      } else {
+        parsedData = patient.latest_simulation.technical_notes;
+      }
     } catch {
       toast({
         title: 'Erro',
