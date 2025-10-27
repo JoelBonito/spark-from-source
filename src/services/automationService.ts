@@ -79,7 +79,7 @@ export async function autoProcessSimulation(
       }
     });
 
-    // 3. Create budget in draft status
+    // 3. Create budget in pending status
     const budgetNumber = generateBudgetNumber();
     const budget = await createBudget({
       budget_number: budgetNumber,
@@ -89,7 +89,7 @@ export async function autoProcessSimulation(
       price_per_tooth: 600,
       subtotal: finalPrice,
       final_price: finalPrice,
-      status: 'draft',
+      status: 'pending',
       valid_until: addDays(new Date(), 30),
     });
 

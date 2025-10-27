@@ -55,7 +55,7 @@ export interface CreateBudgetData {
   payment_conditions?: any;
   valid_until?: Date;
   pdf_url?: string;
-  status?: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  status?: BudgetStatus;
   budget_type?: 'automatic' | 'manual';
   treatment_type?: 'facetas' | 'clareamento';
   items?: any[];

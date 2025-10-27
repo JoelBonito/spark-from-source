@@ -39,80 +39,132 @@ import { getAnalysisPrompt } from './prompts.ts';
 // ═════════════════════════════════════════════════════════════════════════
 
 const PROMPT_FACETAS = `
-Você é um simulador de tratamento dental fotorrealista.
+Você é um simulador de facetas de resina composta - design de sorriso perfeito.
 
-TAREFA: Gere uma imagem simulada do "DEPOIS" aplicando o padrão técnico da clínica.
+OBJETIVO: Transformar os dentes visíveis em um sorriso harmonioso, branco e simétrico com facetas de resina composta BL2.
 
-PADRÃO TÉCNICO FIXO:
-✓ Facetas em resina composta BL2 em TODOS os dentes visíveis no sorriso
-✓ Bordas incisais translúcidas nos incisivos (12, 11, 21, 22)
-✓ Cor uniforme BL2 (branco brilhante natural - escala Vita)
-✓ Alinhamento corrigido (se necessário)
-✓ Proporções harmoniosas com o rosto
+TRANSFORMAÇÃO DO SORRISO:
 
-PRESERVAR ABSOLUTAMENTE:
-✗ NÃO altere: pele, textura da pele, olhos, cabelo, barba, expressão facial
-✗ NÃO altere: ângulo da câmera, iluminação, fundo
-✗ NÃO altere: lábios (apenas a parte interna - dentes)
+COR E BRILHO:
 
-MODIFICAR APENAS:
-✓ Dentes: cor, forma, alinhamento
-✓ Linha gengival: correção leve se houver assimetria > 2mm
+- Cor uniforme: BL2 (branco brilhante natural)
+- Brilho: aumentar significativamente (resina polida profissionalmente é muito mais brilhante que esmalte)
+- Sem tons acinzentados ou azulados (tom quente-natural)
+- Superfície lisa e reflexiva (característica de resina composta bem polida)
 
-RESULTADO ESPERADO:
-- Imagem fotorrealista indistinguível de uma foto real
-- Transformação natural e harmoniosa
-- Adequado para uso clínico/comercial (prévia de tratamento)
+FORMATO E PROPORÇÕES (DIFERENÇA CHAVE vs CLAREAMENTO):
 
-SAÍDA:
-- Retorne apenas a imagem simulada final (JPEG base64) sem texto ou legendas.
+- Incisivos centrais: simétricos perfeitos (mesma altura, largura e angulação)
+- Incisivos laterais: proporcionados (60-70% da largura dos centrais)
+- Caninos: volume definido, ponta discreta (elegante, não agressiva)
+- Bordas incisais: suavizadas e refinadas (não afiadas ou gastas)
+- Formas: ângulos de transição suaves (linha oclusal harmoniosa)
+
+ALINHAMENTO VISUAL (APARÊNCIA, NÃO MOVIMENTO):
+
+- Corrigir rotações leves (até ~15°)
+- Fechar pequenos diastemas (gaps) mantendo proporções naturais
+- Alinhar linha oclusal horizontal e suave
+- Resultado: sorriso continuado e organizado (não "dentes soltos")
+
+LINHA DO SORRISO E HARMONIA FACIAL:
+
+- Construir linha do sorriso contínua acompanhando curvatura do lábio inferior
+- Manter simetria: dente homólogo esquerdo = direito
+- Preservar corredores bucais (espaço preto aos lados - não fazer "parede")
+- Linha média dental: alinhada
+
+TRANSLUCIDEZ E TEXTURA:
+
+- Bordas incisais: levemente translúcidas com brilho azul-branco sutil (característica de resina polida)
+- Microtextura sutil: não super-polido (parecer artificial)
+- Reflexos especulares naturais conforme iluminação
+
+DIFERENÇAS CLINICAMENTE REAIS (vs CLAREAMENTO):
+✓ Facetas modificam FORMA + COR + BRILHO (clareamento modifica só COR)
+✓ Uniformidade total em cores e proporções (clareamento mantém variações naturais)
+✓ Simetria perfeita (clareamento respeita assimetrias naturais)
+✓ Refinamento de bordas desgastadas (clareamento preserva desgaste)
+✓ Fechamento de gaps pequenos (clareamento não fecha)
+✓ Design customizado do sorriso (clareamento preserva design natural)
+
+NÃO-DENTÁRIO - PRESERVAR INALTERADO:
+✗ Pele, textura, poros, tom, imperfeições
+✗ Olhos, sobrancelhas, cílios
+✗ Cabelo (cor, estilo, textura)
+✗ Expressão facial e posição muscular
+✗ Lábios (forma e cor - apenas dentes visíveis mudam)
+✗ Ângulo de câmera, iluminação, sombras, fundo
+✗ Gengiva (posição e contorno - salvo assimetria >2mm óbvia)
+
+REALISMO CLÍNICO:
+✓ Resultado parece facetas reais bem executadas (não exagerado)
+✓ Dentes visualmente perfeitos mas ainda reconhecíveis como aquela pessoa
+✓ Apropriado para apresentação clínica e expectativa de paciente
+✓ Comunica: "este é o sorriso que facetas de resina criariam"
+✗ Não parece veneers de porcelana ou coroas (resina composta tem brilho diferente)
+✗ Não parecer artificial, "chiclet" ou super-polido (mantém naturalidade em superfície)
+
+SAÍDA: Retorne APENAS a imagem simulada final (JPEG base64) - sem texto, metadados ou anotações.
 `;
 
 const PROMPT_CLAREAMENTO = `
-Você é um simulador de tratamento dental fotorrealista especializado em clareamento dentário.
+Você é um simulador fotorrealista de clareamento dental.
+TRANSFORMAÇÃO DE COR DO CLAREAMENTO
+COLORIMETRIA (COMO O CLAREAMENTO FUNCIONA):
 
-TAREFA: Gere uma imagem simulada do "DEPOIS" aplicando o protocolo de clareamento da clínica.
-
-PROTOCOLO DE CLAREAMENTO FIXO:
-✓ Clareamento dental profissional BL2 em TODOS os dentes visíveis no sorriso
-✓ Cor uniforme BL2 (branco brilhante natural - escala Vita)
-✓ Manutenção da translucidez natural nas bordas incisais dos dentes anteriores (12, 11, 21, 22)
-✓ Preservação das características naturais dos dentes (textura, formato, microdetalhes)
-✓ Brilho saudável e natural do esmalte clareado
-✓ Harmonia com o tom de pele do paciente
-
+- AUMENTAR VALUE (luminosidade) significativamente (+3-4 níveis)
+- DIMINUIR CHROMA (reduzir saturação amarela 40-60%)
+- Mudança de HUE MÍNIMA (permanecer na mesma família de cores)
+- Alvo: BL3 na escala Vita Bleach
+CRÍTICO: GRADIENTE CERVICAL-INCISAL (essencial para naturalidade):
+✓ Terço cervical (próximo às gengivas): levemente mais quente, mais saturado
+✓ Terço médio: cor alvo BL2/BL3
+✓ Terço incisal: mais claro, mais frio, mais translúcido
+✓ NÃO criar cor uniforme da gengiva até a borda
+VARIAÇÃO NATURAL ENTRE OS DENTES:
+✓ Incisivos centrais: tipicamente mais brilhantes
+✓ Caninos: 0,5-1 tom mais saturado (mais amarelado) - CRÍTICO
+✓ Permitir micro-variações sutis (diferença de 0,5-1 tom)
+✓ EVITAR uniformidade robótica
+CRÍTICO: PRESERVAÇÃO DA ANATOMIA (ZERO MODIFICAÇÃO)
+CLAREAMENTO MUDA APENAS A COR - NADA MAIS:
 PRESERVAR ABSOLUTAMENTE:
-✗ NÃO altere: pele, textura da pele, olhos, cabelo, barba, expressão facial
-✗ NÃO altere: ângulo da câmera, iluminação, fundo
-✗ NÃO altere: lábios, formato da boca, contorno dos lábios
-✗ NÃO altere: formato dos dentes, alinhamento dentário, proporções dentárias
-✗ NÃO altere: posição gengival, anatomia gengival
-✗ NÃO altere: textura superficial dos dentes (manter naturalidade)
-
-MODIFICAR APENAS:
-✓ Cor dos dentes: transição suave da cor atual para BL2
-✓ Uniformização da tonalidade: remover manchas, descolorações e variações de cor
-✓ Luminosidade: aumentar o brilho natural do esmalte
-✓ Saturação: reduzir tons amarelados mantendo aspecto natural
-
-DIRETRIZES TÉCNICAS:
-- Respeitar a anatomia dental existente (não remodelar)
-- Manter diferenças sutis de luminosidade entre dentes para naturalidade
-- Preservar sombras e reflexos naturais dos dentes
-- Garantir transição gradual entre dente e gengiva
-- Manter transparência nas bordas incisais (quando presente naturalmente)
-
-RESULTADO ESPERADO:
-- Imagem fotorrealista indistinguível de uma foto real
-- Clareamento natural e harmonioso com o rosto do paciente
-- Dentes visivelmente mais brancos, mas com aparência natural (não artificial)
-- Adequado para uso clínico/comercial (prévia de tratamento)
-- O paciente deve reconhecer seu próprio sorriso, apenas mais branco
-
-IMPORTANTE: O resultado deve parecer um clareamento dental real, não uma edição digital óbvia. A naturalidade é essencial.
-
-SAÍDA:
-- Retorne apenas a imagem simulada final (JPEG base64) sem texto ou legendas.
+✗ Formas, tamanhos, proporções dos dentes (100% idênticos)
+✗ Alinhamento e posicionamento dos dentes (sem endireitamento)
+✗ Padrões de desgaste natural, lascas, irregularidades
+✗ Diastemas (espaços) e espaçamento natural
+✗ Posição da linha gengival
+✗ Características individuais dos dentes
+PRESERVAR IMPERFEIÇÕES:
+✓ Assimetrias leves
+✓ Lascas menores ou bordas desgastadas
+✓ Pequenas irregularidades de espaçamento
+✓ Rotações naturais
+TRANSLUCIDEZ E TEXTURA
+✓ Preservar translucidez da borda incisal (especialmente dentes anteriores)
+✓ Manter textura natural do esmalte (periquimatas, micro-cristas)
+✓ Manter irregularidades de superfície
+✓ NÃO fazer os dentes parecerem calcários ou chapados
+RESTAURAÇÕES DENTÁRIAS:
+⚠️ Coroas, facetas, restaurações: NÃO mudar a cor
+⚠️ Apenas a estrutura dental natural responde ao clareamento
+PRESERVAR COMPLETAMENTE INALTERADO
+✗ Pele, olhos, cabelo, expressão facial
+✗ Lábios (forma, cor, textura)
+✗ Ângulo da câmera, iluminação, fundo
+PRECISÃO CLÍNICA
+O RESULTADO DEVE:
+✓ Parecer um clareamento profissional real (não edição digital)
+✓ Dentes visivelmente mais brancos mas ainda naturais
+✓ Paciente reconhece seu próprio sorriso, apenas mais brilhante
+✓ Adequado para documentação clínica
+EVITAR:
+✗ Fazer os dentes MUITO brancos (irrealista)
+✗ Uniformidade perfeita (parece falso)
+✗ Endireitar ou remodelar dentes
+✗ Suavização excessiva da textura
+SAÍDA: Retornar APENAS a imagem final (JPEG base64) SEM texto ou anotações.
 `;
 
 // ═════════════════════════════════════════════════════════════════════════
