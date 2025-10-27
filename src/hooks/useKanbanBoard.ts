@@ -83,79 +83,152 @@ export function useKanbanBoard() {
 
   const moveLeadToStage = async (leadId: string, newStage: string) => {
     try {
+      console.log('🔄 Movendo lead:', { leadId, newStage });
+
       // Buscar o lead no estado atual
       const stage = Object.keys(leadsByStage).find(s =>
         leadsByStage[s].some(l => l.id === leadId)
       );
 
       if (!stage) {
-        throw new Error('Lead não encontrado');
+        throw new Error('Lead não encontrado no estado local');
       }
 
       const lead = leadsByStage[stage].find(l => l.id === leadId);
       if (!lead || !lead.patient_id) {
-        throw new Error('Lead inválido');
+        throw new Error('Lead inválido ou sem patient_id');
       }
 
-      // Importar getAllLeads para encontrar o lead real
+      console.log('📋 Lead encontrado:', {
+        compositeId: lead.id,
+        patient_id: lead.patient_id,
+        treatment_type: lead.treatment_type,
+        currentStage: stage
+      });
+
+      // Buscar todos os leads do banco
       const { getAllLeads } = await import('@/services/leadService');
       const allLeads = await getAllLeads();
 
-      // Encontrar o lead real pelo patient_id e treatment_type
-      const realLead = allLeads.find(l =>
+      console.log(`🔍 Buscando lead real entre ${allLeads.length} leads...`);
+
+      // Encontrar o lead real pelo patient_id e treatment_type e stage atual
+      let realLead = allLeads.find(l =>
         l.patient_id === lead.patient_id &&
-        l.treatment_type === lead.treatment_type
+        l.treatment_type === lead.treatment_type &&
+        l.stage === stage
       );
 
+      // Fallback: buscar sem filtro de stage (caso o stage esteja desatualizado)
       if (!realLead) {
+        console.warn('⚠️ Lead não encontrado com stage, buscando sem filtro...');
+        realLead = allLeads.find(l =>
+          l.patient_id === lead.patient_id &&
+          l.treatment_type === lead.treatment_type
+        );
+      }
+
+      if (!realLead) {
+        console.error('❌ Lead não encontrado:', {
+          patient_id: lead.patient_id,
+          treatment_type: lead.treatment_type,
+          currentStage: stage,
+          availableLeads: allLeads.filter(l => l.patient_id === lead.patient_id)
+        });
         throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      console.log('✅ Lead real encontrado:', {
+        realId: realLead.id,
+        isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)
+      });
+
+      // Validar UUID antes de atualizar
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)) {
+        throw new Error(`ID inválido: ${realLead.id} não é um UUID válido`);
       }
 
       await updateLeadStage(realLead.id, newStage);
       await loadLeads();
       toast.success('Lead movido com sucesso!');
     } catch (err) {
-      console.error('Error moving lead:', err);
-      toast.error('Erro ao mover lead');
+      console.error('❌ Error moving lead:', err);
+      toast.error(err instanceof Error ? err.message : 'Erro ao mover lead');
     }
   };
 
   const handleDeleteLead = async (leadId: string) => {
     try {
+      console.log('🗑️ Deletando lead:', { leadId });
+
       // Buscar o lead no estado atual
       const stage = Object.keys(leadsByStage).find(s =>
         leadsByStage[s].some(l => l.id === leadId)
       );
 
       if (!stage) {
-        throw new Error('Lead não encontrado');
+        throw new Error('Lead não encontrado no estado local');
       }
 
       const lead = leadsByStage[stage].find(l => l.id === leadId);
       if (!lead || !lead.patient_id) {
-        throw new Error('Lead inválido');
+        throw new Error('Lead inválido ou sem patient_id');
       }
 
-      // Importar getAllLeads para encontrar o lead real
+      console.log('📋 Lead encontrado para deletar:', {
+        compositeId: lead.id,
+        patient_id: lead.patient_id,
+        treatment_type: lead.treatment_type
+      });
+
+      // Buscar todos os leads do banco
       const { getAllLeads } = await import('@/services/leadService');
       const allLeads = await getAllLeads();
 
-      // Encontrar o lead real pelo patient_id e treatment_type
-      const realLead = allLeads.find(l =>
+      console.log(`🔍 Buscando lead real entre ${allLeads.length} leads...`);
+
+      // Encontrar o lead real pelo patient_id e treatment_type e stage atual
+      let realLead = allLeads.find(l =>
         l.patient_id === lead.patient_id &&
-        l.treatment_type === lead.treatment_type
+        l.treatment_type === lead.treatment_type &&
+        l.stage === stage
       );
 
+      // Fallback: buscar sem filtro de stage
       if (!realLead) {
+        console.warn('⚠️ Lead não encontrado com stage, buscando sem filtro...');
+        realLead = allLeads.find(l =>
+          l.patient_id === lead.patient_id &&
+          l.treatment_type === lead.treatment_type
+        );
+      }
+
+      if (!realLead) {
+        console.error('❌ Lead não encontrado:', {
+          patient_id: lead.patient_id,
+          treatment_type: lead.treatment_type,
+          currentStage: stage,
+          availableLeads: allLeads.filter(l => l.patient_id === lead.patient_id)
+        });
         throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      console.log('✅ Lead real encontrado:', {
+        realId: realLead.id,
+        isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)
+      });
+
+      // Validar UUID antes de deletar
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)) {
+        throw new Error(`ID inválido: ${realLead.id} não é um UUID válido`);
       }
 
       await deleteLead(realLead.id);
       await loadLeads();
       toast.success('Lead deletado com sucesso!');
     } catch (err) {
-      console.error('Error deleting lead:', err);
-      toast.error('Erro ao deletar lead');
+      console.error('❌ Error deleting lead:', err);
+      toast.error(err instanceof Error ? err.message : 'Erro ao deletar lead');
     }
   };
 
