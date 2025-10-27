@@ -5,8 +5,6 @@ import { getPatientSimulations } from '@/services/patientService';
 import { toast } from 'sonner';
 
 export function useKanbanBoard() {
-  console.log('🔥 useKanbanBoard inicializado - versão com validação UUID');
-  
   const [leadsByStage, setLeadsByStage] = useState<Record<string, ExtendedLead[]>>({
     simulacao: [],
     consulta_tecnica: [],
@@ -60,6 +58,7 @@ export function useKanbanBoard() {
           expandedLeads.push({
             ...baseLead,
             id: key, // ID composto: patient_id-treatment_type
+            realId: baseLead.id, // Preservar UUID real do banco
             simulationId: simulations.length > 0 ? simulations[0].id : null,
             simulation: simulations[0],
             opportunity_value: totalValue || baseLead.opportunity_value,

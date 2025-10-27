@@ -27,6 +27,7 @@ export interface Lead {
 }
 
 export interface ExtendedLead extends Lead {
+  realId?: string; // UUID real do banco de dados
   simulationId: string | null;
   simulation?: any;
   simulationCount?: number;

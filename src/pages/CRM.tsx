@@ -236,7 +236,7 @@ export default function CRM() {
 
         {/* Modais */}
         <LeadDetailModal
-          leadId={selectedLead?.id || null}
+          leadId={selectedLead?.realId || selectedLead?.id || null}
           isOpen={!!selectedLead}
           onClose={handleCloseModal}
           onViewBudget={handleViewBudget}
