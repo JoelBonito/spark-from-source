@@ -5,6 +5,8 @@ import { getPatientSimulations } from '@/services/patientService';
 import { toast } from 'sonner';
 
 export function useKanbanBoard() {
+  console.log('🔥 useKanbanBoard inicializado - versão com validação UUID');
+  
   const [leadsByStage, setLeadsByStage] = useState<Record<string, ExtendedLead[]>>({
     simulacao: [],
     consulta_tecnica: [],
