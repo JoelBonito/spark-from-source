@@ -83,12 +83,35 @@ export function useKanbanBoard() {
 
   const moveLeadToStage = async (leadId: string, newStage: string) => {
     try {
-      // Extrair o ID real do lead (pode ser composto)
-      const realLeadId = leadId.includes('-sim-') 
-        ? leadId.split('-sim-')[0] 
-        : leadId;
-      
-      await updateLeadStage(realLeadId, newStage);
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido');
+      }
+
+      // Importar getAllLeads para encontrar o lead real
+      const { getAllLeads } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+
+      // Encontrar o lead real pelo patient_id e treatment_type
+      const realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type
+      );
+
+      if (!realLead) {
+        throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      await updateLeadStage(realLead.id, newStage);
       await loadLeads();
       toast.success('Lead movido com sucesso!');
     } catch (err) {
@@ -99,12 +122,35 @@ export function useKanbanBoard() {
 
   const handleDeleteLead = async (leadId: string) => {
     try {
-      // Extrair o ID real do lead
-      const realLeadId = leadId.includes('-sim-') 
-        ? leadId.split('-sim-')[0] 
-        : leadId;
-      
-      await deleteLead(realLeadId);
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido');
+      }
+
+      // Importar getAllLeads para encontrar o lead real
+      const { getAllLeads } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+
+      // Encontrar o lead real pelo patient_id e treatment_type
+      const realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type
+      );
+
+      if (!realLead) {
+        throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      await deleteLead(realLead.id);
       await loadLeads();
       toast.success('Lead deletado com sucesso!');
     } catch (err) {

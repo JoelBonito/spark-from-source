@@ -235,7 +235,7 @@ export default function SimulatorPage() {
         discount_percentage: discount,
         discount_amount: discountAmount,
         final_price: finalPrice,
-        status: 'draft',
+        status: 'pending',
         budget_type: 'automatic',
         treatment_type: treatmentType
       });
