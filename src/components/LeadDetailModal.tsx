@@ -16,6 +16,7 @@ import { ComparisonViewModal } from './ComparisonViewModal';
 import { TechnicalReportDialog } from './TechnicalReportDialog';
 import { StatusBadge } from './StatusBadge';
 import { Budget } from '@/services/budgetService';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeadDetailModalProps {
   leadId: string | null;
@@ -41,6 +42,7 @@ const stageColors: Record<string, string> = {
 
 export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditBudget }: LeadDetailModalProps) {
   const { lead, activities, simulations, budgets, loading, updateLead, addActivity } = useLeadDetail(leadId);
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -107,13 +109,26 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
           try {
             parsedData = JSON.parse(simulation.technical_notes);
           } catch {
-            // Se falhar, é uma string simples (código do relatório)
-            parsedData = {
-              code: simulation.technical_notes
-            };
+            // String simples - não é relatório completo
+            toast({
+              title: 'Relatório não disponível',
+              description: 'Relatório técnico não está disponível para esta simulação',
+              variant: 'destructive'
+            });
+            return;
           }
         } else {
           parsedData = simulation.technical_notes;
+        }
+        
+        // Validar estrutura completa
+        if (!parsedData?.analise_resumo || !parsedData?.valores || !parsedData?.relatorio_tecnico) {
+          toast({
+            title: 'Dados incompletos',
+            description: 'Os dados do relatório técnico estão incompletos',
+            variant: 'destructive'
+          });
+          return;
         }
         
         setTechnicalReportModal({
@@ -122,6 +137,11 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
         });
       } catch (error) {
         console.error('Error parsing technical notes:', error);
+        toast({
+          title: 'Erro',
+          description: 'Erro ao abrir relatório técnico',
+          variant: 'destructive'
+        });
       }
     }
   };

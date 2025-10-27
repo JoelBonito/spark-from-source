@@ -237,18 +237,31 @@ export const Patients = () => {
         try {
           parsedData = JSON.parse(patient.latest_simulation.technical_notes);
         } catch {
-          // Se falhar, é uma string simples (código do relatório)
-          parsedData = {
-            code: patient.latest_simulation.technical_notes
-          };
+          // String simples - não é relatório completo
+          toast({
+            title: 'Relatório não disponível',
+            description: 'Relatório técnico não está disponível para esta simulação',
+            variant: 'destructive'
+          });
+          return;
         }
       } else {
         parsedData = patient.latest_simulation.technical_notes;
       }
+      
+      // Validar estrutura completa
+      if (!parsedData?.analise_resumo || !parsedData?.valores || !parsedData?.relatorio_tecnico) {
+        toast({
+          title: 'Dados incompletos',
+          description: 'Os dados do relatório técnico estão incompletos',
+          variant: 'destructive'
+        });
+        return;
+      }
     } catch {
       toast({
         title: 'Erro',
-        description: 'Erro ao carregar relatório técnico',
+        description: 'Erro ao processar relatório técnico',
         variant: 'destructive'
       });
       return;
