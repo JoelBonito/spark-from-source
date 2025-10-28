@@ -16,7 +16,87 @@ import { useTechnicalReport } from '@/hooks/useTechnicalReport';
 import { useServices } from '@/hooks/useServices';
 import { supabase } from '@/integrations/supabase/client';
 import { createBudget } from '@/services/budgetService';
-import { generateBudgetNumber } from '@/services/pdfService';
+import { generateBudgetNumber, generateBudgetPDF, BudgetPDFData } from '@/services/pdfService';
+
+// Helper para converter URL de imagem para base64
+async function imageUrlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Helper para construir dados do orçamento
+function buildBudgetData(
+  budgetNumber: string,
+  patientName: string,
+  patientPhone: string | undefined,
+  beforeImage: string,
+  afterImage: string,
+  treatmentType: 'facetas' | 'clareamento',
+  teethCount: number
+): BudgetPDFData {
+  const itens = treatmentType === 'clareamento'
+    ? [
+        {
+          servico: 'Clareamento Dental Profissional',
+          quantidade: 1,
+          valor_unitario: 1200,
+          valor_total: 1200
+        },
+        {
+          servico: 'Consulta de Planejamento',
+          quantidade: 1,
+          valor_unitario: 150,
+          valor_total: 150
+        }
+      ]
+    : [
+        {
+          servico: 'Facetas em Resina Composta',
+          quantidade: teethCount,
+          valor_unitario: 600,
+          valor_total: teethCount * 600
+        },
+        {
+          servico: 'Clareamento Complementar',
+          quantidade: 1,
+          valor_unitario: 800,
+          valor_total: 800
+        },
+        {
+          servico: 'Consulta de Planejamento',
+          quantidade: 1,
+          valor_unitario: 150,
+          valor_total: 150
+        }
+      ];
+
+  const subtotal = itens.reduce((sum, item) => sum + item.valor_total, 0);
+  const desconto_percentual = 10;
+  const desconto_valor = subtotal * (desconto_percentual / 100);
+  const total = subtotal - desconto_valor;
+
+  return {
+    budgetNumber,
+    patientName,
+    patientPhone,
+    date: new Date(),
+    itens,
+    opcionais: [],
+    subtotal,
+    desconto_percentual,
+    desconto_valor,
+    total,
+    beforeImage,
+    afterImage,
+    treatment_type: treatmentType
+  };
+}
 
 export default function SimulatorPage() {
   const navigate = useNavigate();
@@ -225,8 +305,28 @@ export default function SimulatorPage() {
       const discountAmount = subtotal * (discount / 100);
       const finalPrice = subtotal - discountAmount;
 
+      // Gerar PDF do orçamento
+      console.log('→ Convertendo imagens para base64...');
+      const beforeImageBase64 = await imageUrlToBase64(originalImageUrl);
+      const afterImageBase64 = await imageUrlToBase64(processedImageUrl);
+
+      console.log('→ Gerando PDF do orçamento...');
+      const budgetNumber = generateBudgetNumber();
+      const budgetData = buildBudgetData(
+        budgetNumber,
+        patient.name,
+        patient.phone,
+        beforeImageBase64,
+        afterImageBase64,
+        treatmentType,
+        teethCount
+      );
+
+      const budgetPdfUrl = await generateBudgetPDF(budgetData);
+      console.log('✓ PDF do orçamento gerado:', budgetPdfUrl);
+
       await createBudget({
-        budget_number: generateBudgetNumber(),
+        budget_number: budgetNumber,
         patient_id: selectedPatientId,
         simulation_id: simulationId,
         teeth_count: teethCount,
@@ -235,6 +335,7 @@ export default function SimulatorPage() {
         discount_percentage: discount,
         discount_amount: discountAmount,
         final_price: finalPrice,
+        pdf_url: budgetPdfUrl,
         status: 'pending',
         budget_type: 'automatic',
         treatment_type: treatmentType
