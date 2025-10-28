@@ -354,21 +354,72 @@ export default function SimulatorPage() {
         }).eq('id', selectedPatientId);
       }
 
-      // Criar lead no CRM automaticamente
-      console.log('→ Criando lead no CRM...');
-      await supabase.from('crm_leads').insert({
-        patient_id: selectedPatientId,
-        simulation_id: simulationId,
+      // Criar/atualizar lead no CRM
+      console.log('→ Processando lead no CRM...');
+
+      // Buscar lead existente para este paciente + tipo de tratamento
+      const { data: existingLead } = await supabase
+        .from('leads')
+        .select('id, opportunity_value')
+        .eq('user_id', user.id)
+        .eq('patient_id', selectedPatientId)
+        .eq('treatment_type', treatmentType)
+        .maybeSingle();
+
+      let leadId: string;
+
+      if (existingLead) {
+        // Atualizar lead existente
+        console.log('✓ Lead existente encontrado, atualizando...');
+        const newOpportunityValue = (existingLead.opportunity_value || 0) + finalPrice;
+        
+        await supabase
+          .from('leads')
+          .update({
+            opportunity_value: newOpportunityValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingLead.id);
+          
+        leadId = existingLead.id;
+        console.log(`✓ Lead atualizado: ${leadId}`);
+      } else {
+        // Criar novo lead
+        console.log('→ Criando novo lead...');
+        const { data: newLead } = await supabase
+          .from('leads')
+          .insert({
+            patient_id: selectedPatientId,
+            user_id: user.id,
+            name: patient.name,
+            phone: patient.phone || '',
+            stage: 'simulacao',
+            opportunity_value: finalPrice,
+            source: 'simulacao',
+            treatment_type: treatmentType
+          })
+          .select('id')
+          .single();
+        
+        leadId = newLead!.id;
+        console.log('✓ Novo lead criado');
+      }
+
+      // Registrar atividade da simulação
+      await supabase.from('activities').insert({
+        lead_id: leadId,
+        type: 'simulation',
+        title: 'Nova simulação realizada',
+        description: `Simulação de ${treatmentType === 'facetas' ? 'facetas' : 'clareamento'} - ${teethCount} dentes - R$ ${finalPrice.toFixed(2)}`,
         user_id: user.id,
-        patient_name: patient.name,
-        patient_phone: patient.phone || null,
-        before_image: originalImageUrl,
-        after_image: processedImageUrl,
-        status: 'new',
-        source: 'simulator',
-        treatment_type: treatmentType
+        metadata: {
+          simulation_id: simulationId,
+          teeth_count: teethCount,
+          final_price: finalPrice,
+          treatment_type: treatmentType
+        }
       });
-      console.log('✓ Lead criado no CRM');
+      console.log('✓ Atividade registrada no lead');
 
       toast.success('Relatório e orçamento gerados!');
       navigate(`/simulations/${simulationId}`);
