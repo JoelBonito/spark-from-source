@@ -17,6 +17,7 @@ import { useServices } from '@/hooks/useServices';
 import { supabase } from '@/integrations/supabase/client';
 import { createBudget } from '@/services/budgetService';
 import { generateBudgetNumber, generateBudgetPDF, BudgetPDFData } from '@/services/pdfService';
+import { formatCurrency } from '@/utils/formatters';
 
 // Helper para converter URL de imagem para base64
 async function imageUrlToBase64(url: string): Promise<string> {
@@ -288,7 +289,7 @@ export default function SimulatorPage() {
     toast.info('Gerando relatório técnico e orçamento...');
 
     try {
-      await generateReport(
+      const reportResult = await generateReport(
         originalImageUrl,
         patient.name,
         patient.phone,
@@ -372,7 +373,7 @@ export default function SimulatorPage() {
         // Atualizar lead existente
         console.log('✓ Lead existente encontrado, atualizando...');
         const newOpportunityValue = (existingLead.opportunity_value || 0) + finalPrice;
-        
+
         await supabase
           .from('leads')
           .update({
@@ -380,43 +381,49 @@ export default function SimulatorPage() {
             updated_at: new Date().toISOString()
           })
           .eq('id', existingLead.id);
-          
+
         leadId = existingLead.id;
         console.log(`✓ Lead atualizado: ${leadId}`);
       } else {
         // Criar novo lead
         console.log('→ Criando novo lead...');
-        const { data: newLead } = await supabase
+        const { data: newLead, error: leadError } = await supabase
           .from('leads')
           .insert({
             patient_id: selectedPatientId,
             user_id: user.id,
             name: patient.name,
             phone: patient.phone || '',
-            stage: 'simulacao',
+            stage: 'novo_lead',
             opportunity_value: finalPrice,
-            source: 'simulacao',
+            source: 'simulator',
             treatment_type: treatmentType
           })
           .select('id')
           .single();
-        
-        leadId = newLead!.id;
-        console.log('✓ Novo lead criado');
+
+        if (leadError) throw leadError;
+        leadId = newLead.id;
+        console.log(`✓ Novo lead criado: ${leadId}`);
       }
 
       // Registrar atividade da simulação
+      console.log('→ Registrando atividade no lead...');
       await supabase.from('activities').insert({
         lead_id: leadId,
         type: 'simulation',
         title: 'Nova simulação realizada',
-        description: `Simulação de ${treatmentType === 'facetas' ? 'facetas' : 'clareamento'} - ${teethCount} dentes - R$ ${finalPrice.toFixed(2)}`,
+        description: `Simulação de ${treatmentType} - ${teethCount} dentes - ${formatCurrency(finalPrice)}`,
         user_id: user.id,
         metadata: {
           simulation_id: simulationId,
           teeth_count: teethCount,
           final_price: finalPrice,
-          treatment_type: treatmentType
+          treatment_type: treatmentType,
+          pdf_urls: {
+            technical_report: reportResult.pdfUrl,
+            budget: budgetPdfUrl
+          }
         }
       });
       console.log('✓ Atividade registrada no lead');
