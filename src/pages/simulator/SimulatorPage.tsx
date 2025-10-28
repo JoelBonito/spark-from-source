@@ -347,6 +347,29 @@ export default function SimulatorPage() {
         .update({ budget_pdf_url: budgetPdfUrl })
         .eq('id', simulationId);
 
+      // Atualizar última data de simulação do paciente
+      if (selectedPatientId) {
+        await supabase.from('patients').update({
+          last_simulation_date: new Date().toISOString()
+        }).eq('id', selectedPatientId);
+      }
+
+      // Criar lead no CRM automaticamente
+      console.log('→ Criando lead no CRM...');
+      await supabase.from('crm_leads').insert({
+        patient_id: selectedPatientId,
+        simulation_id: simulationId,
+        user_id: user.id,
+        patient_name: patient.name,
+        patient_phone: patient.phone || null,
+        before_image: originalImageUrl,
+        after_image: processedImageUrl,
+        status: 'new',
+        source: 'simulator',
+        treatment_type: treatmentType
+      });
+      console.log('✓ Lead criado no CRM');
+
       toast.success('Relatório e orçamento gerados!');
       navigate(`/simulations/${simulationId}`);
     } catch (error: any) {
