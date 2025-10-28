@@ -394,10 +394,11 @@ export default function SimulatorPage() {
             user_id: user.id,
             name: patient.name,
             phone: patient.phone || '',
-            stage: 'novo_lead',
+            stage: 'simulacao',
             opportunity_value: finalPrice,
             source: 'simulator',
-            treatment_type: treatmentType
+            treatment_type: treatmentType,
+            archived: false
           })
           .select('id')
           .single();
