@@ -341,6 +341,12 @@ export default function SimulatorPage() {
         treatment_type: treatmentType
       });
 
+      // Atualizar simulação com o PDF do orçamento
+      await supabase
+        .from('simulations')
+        .update({ budget_pdf_url: budgetPdfUrl })
+        .eq('id', simulationId);
+
       toast.success('Relatório e orçamento gerados!');
       navigate(`/simulations/${simulationId}`);
     } catch (error: any) {
