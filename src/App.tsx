@@ -14,7 +14,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 const Dashboard = lazy(() => import('@/pages/Index'));
 const AuthPage = lazy(() => import('@/pages/auth/AuthPage'));
 const SimulatorPage = lazy(() => import('@/pages/simulator/SimulatorPage'));
-const PatientsPage = lazy(() => import('@/pages/patients/PatientsPage'));
+const PatientsPage = lazy(() => import('@/pages/Patients'));
 const NewPatientPage = lazy(() => import('@/pages/patients/NewPatientPage'));
 const PatientDetailPage = lazy(() => import('@/pages/patients/PatientDetailPage'));
 const SimulationsHistoryPage = lazy(() => import('@/pages/simulations/SimulationsHistoryPage'));
