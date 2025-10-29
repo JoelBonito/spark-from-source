@@ -82,8 +82,14 @@ export default function PatientDetailPage() {
             <CardDescription>Acesso rápido às funcionalidades</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start">
-              <Smile className="h-4 w-4 mr-2" />
+            <Button 
+               variant="outline" 
+               className="w-full justify-start"
+               onClick={() => navigate('/simulador', { 
+               state: { selectedPatient: patient } 
+               })}
+              >  
+            <Smile className="h-4 w-4 mr-2" />
               Nova Simulação
             </Button>
             <Button variant="outline" className="w-full justify-start">
