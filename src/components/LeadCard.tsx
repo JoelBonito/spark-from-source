@@ -108,11 +108,11 @@ export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) 
         <div
           {...attributes}
           {...listeners}
-          className="p-4 cursor-move"
+          className="p-3 cursor-move"
         >
           {/* Header com nome e badge - APENAS VISUAL PARA DRAG */}
           <div className="flex items-start justify-between gap-2 pr-8">
-            <h3 className="font-semibold text-foreground">
+            <h3 className="font-semibold text-sm text-foreground">
               {lead.name}
             </h3>
             {/* Badge de tipo de tratamento */}
@@ -139,66 +139,19 @@ export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) 
 
         {/* ÁREA DE CLICK - SEPARADA DO DRAG */}
         <div 
-          className="px-4 pb-4 space-y-3 cursor-pointer"
+          className="px-3 pb-3 space-y-2 cursor-pointer"
           onClick={onClick}
         >
-
           {/* Contato */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-3 w-3" />
-              <span>{lead.phone}</span>
-            </div>
-            {lead.email && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-3 w-3" />
-                <span className="truncate">{lead.email}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span>{lead.phone}</span>
           </div>
 
-          {/* Valor e Contagem */}
-          <div className="flex items-center justify-between">
-            {lead.opportunity_value && (
-              <div className="text-lg font-bold text-green-600">
-                {formatCurrency(lead.opportunity_value)}
-              </div>
-            )}
-            {lead.simulationCount && lead.simulationCount > 1 && (
-              <Badge variant="outline" className="text-xs">
-                {lead.simulationCount} simulações
-              </Badge>
-            )}
-          </div>
-
-          {/* Tags */}
-          {lead.tags && lead.tags.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              <Tag className="h-3 w-3 text-muted-foreground" />
-              {lead.tags.slice(0, 2).map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-              {lead.tags.length > 2 && (
-                <span className="text-xs text-muted-foreground">
-                  +{lead.tags.length - 2}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Tempo na etapa */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            <span>{timeInStage}</span>
-          </div>
-
-          {/* Fonte */}
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="text-xs">
-              {lead.source === 'simulacao' ? 'Simulação' : lead.source}
-            </Badge>
+          {/* Contagem de simulações */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-3 w-3" />
+            <span>{lead.simulationCount || 0} simulações</span>
           </div>
         </div>
       </div>

@@ -85,11 +85,40 @@ export default function CRM() {
 
   const handleArchiveLead = async (leadId: string) => {
     try {
-      const { archiveLead } = await import('@/services/leadService');
-      await archiveLead(leadId);
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido');
+      }
+
+      // Buscar lead real do banco
+      const { getAllLeads, archiveLead } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+      
+      const realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type
+      );
+
+      if (!realLead) {
+        throw new Error('Lead não encontrado no banco');
+      }
+
+      // Arquivar usando UUID real
+      await archiveLead(realLead.id);
+      
       toast.success('Lead arquivado com sucesso!');
       refresh();
     } catch (error) {
+      console.error('Error archiving lead:', error);
       toast.error('Erro ao arquivar lead');
     }
   };

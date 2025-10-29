@@ -5,15 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { LeadTimeline } from './LeadTimeline';
 import { QuickActions } from './QuickActions';
 import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useState } from 'react';
-import { Loader2, FileText, Image, Eye, Pencil, Download } from 'lucide-react';
+import { Loader2, FileText, Image, Eye, Pencil, Phone, Mail, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ComparisonViewModal } from './ComparisonViewModal';
 import { TechnicalReportDialog } from './TechnicalReportDialog';
+import { PDFViewerModal } from './PDFViewerModal';
 import { StatusBadge } from './StatusBadge';
 import { Budget } from '@/services/budgetService';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +58,11 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
   const [technicalReportModal, setTechnicalReportModal] = useState<{
     isOpen: boolean;
     data: any;
+  } | null>(null);
+  const [pdfModal, setPdfModal] = useState<{
+    isOpen: boolean;
+    url: string;
+    title: string;
   } | null>(null);
 
   // Atualizar form quando lead carregar
@@ -178,12 +183,11 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
               {/* Coluna Principal */}
               <div className="col-span-2 space-y-6">
                 <Tabs defaultValue="info" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="info">Informações</TabsTrigger>
-                    <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                    <TabsTrigger value="simulations">Simulações</TabsTrigger>
-                    <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
-                  </TabsList>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="info">Informações</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="simulations">Simulações</TabsTrigger>
+          </TabsList>
 
                   <TabsContent value="info" className="space-y-4">
                     {isEditing ? (
@@ -210,14 +214,6 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Observações</label>
-                          <Textarea
-                            value={formData.notes}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                            rows={4}
-                          />
-                        </div>
                         <div className="flex gap-2">
                           <Button onClick={handleSave}>Salvar</Button>
                           <Button variant="outline" onClick={() => setIsEditing(false)}>
@@ -228,30 +224,23 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
                     ) : (
                       <>
                         <div className="space-y-3">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Email</p>
-                            <p className="text-sm">{lead.email || 'Não informado'}</p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span>{lead.phone}</span>
                           </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Observações</p>
-                            <p className="text-sm whitespace-pre-wrap">
-                              {lead.notes || 'Nenhuma observação'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Fonte</p>
-                            <p className="text-sm capitalize">{lead.source}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Data de criação</p>
-                            <p className="text-sm">
-                              {format(new Date(lead.created_at), "dd 'de' MMMM 'de' yyyy", {
-                                locale: ptBR
-                              })}
-                            </p>
+                          {lead.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              <span>{lead.email}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Criado em {new Date(lead.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
                         <Button onClick={() => setIsEditing(true)} variant="outline">
+                          <Pencil className="h-4 w-4 mr-2" />
                           Editar Informações
                         </Button>
                       </>
@@ -306,7 +295,30 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleOpenTechnicalReport(simulation)}
+                                onClick={() => {
+                                  if (simulation.technical_notes) {
+                                    try {
+                                      let parsedData;
+                                      if (typeof simulation.technical_notes === 'string') {
+                                        try {
+                                          parsedData = JSON.parse(simulation.technical_notes);
+                                        } catch {
+                                          toast({ title: 'Relatório não disponível', variant: 'destructive' });
+                                          return;
+                                        }
+                                      } else {
+                                        parsedData = simulation.technical_notes;
+                                      }
+                                      if (!parsedData?.analise_resumo || !parsedData?.valores || !parsedData?.relatorio_tecnico) {
+                                        toast({ title: 'Dados incompletos', variant: 'destructive' });
+                                        return;
+                                      }
+                                      setTechnicalReportModal({ isOpen: true, data: parsedData });
+                                    } catch (error) {
+                                      toast({ title: 'Erro ao abrir relatório', variant: 'destructive' });
+                                    }
+                                  }
+                                }}
                                 disabled={!simulation.technical_notes}
                               >
                                 <FileText className="h-4 w-4 mr-1" />
@@ -317,10 +329,14 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => window.open(simulation.budget_pdf_url, '_blank')}
+                                  onClick={() => setPdfModal({
+                                    isOpen: true,
+                                    url: simulation.budget_pdf_url,
+                                    title: `Orçamento - ${lead.name}`
+                                  })}
                                 >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  PDF
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  Orçamento
                                 </Button>
                               )}
                             </div>
@@ -330,60 +346,7 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
                     )}
                   </TabsContent>
 
-                  <TabsContent value="budgets" className="space-y-4">
-                    {budgets.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        Nenhum orçamento gerado
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {budgets.map((budget) => (
-                          <div
-                            key={budget.id}
-                            className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <p className="font-medium">{budget.budget_number}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {format(new Date(budget.created_at), "dd/MM/yyyy 'às' HH:mm")}
-                                </p>
-                                <p className="text-lg font-semibold text-green-600 mt-1">
-                                  {formatCurrency(budget.final_price)}
-                                </p>
-                              </div>
-                              <StatusBadge status={budget.status} />
-                            </div>
-
-                            <div className="flex gap-2">
-                              {onViewBudget && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => onViewBudget(budget.id)}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  Visualizar
-                                </Button>
-                              )}
-                              
-                              {onEditBudget && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => onEditBudget(budget)}
-                                >
-                                  <Pencil className="h-4 w-4 mr-1" />
-                                  Editar
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+        </Tabs>
               </div>
 
               {/* Sidebar */}
@@ -429,6 +392,15 @@ export function LeadDetailModal({ leadId, isOpen, onClose, onViewBudget, onEditB
             data={technicalReportModal.data}
             patientName={lead?.name || ''}
             onDownloadPDF={() => {}}
+          />
+        )}
+
+        {pdfModal && (
+          <PDFViewerModal
+            isOpen={pdfModal.isOpen}
+            onClose={() => setPdfModal(null)}
+            pdfUrl={pdfModal.url}
+            title={pdfModal.title}
           />
         )}
       </DialogContent>
