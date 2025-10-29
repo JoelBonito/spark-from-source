@@ -92,10 +92,20 @@ export default function PatientDetailPage() {
             <Smile className="h-4 w-4 mr-2" />
               Nova Simulação
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => navigate('/budgets', { 
+                state: { 
+                  createNew: true,
+                  patientId: patient.id,
+                  patientName: patient.name
+                }   
+              })}
+            >
               <FileText className="h-4 w-4 mr-2" />
-              Gerar Orçamento
-            </Button>
+               Gerar Orçamento
+            </Button> 
             <Button variant="outline" className="w-full justify-start">
               <Calendar className="h-4 w-4 mr-2" />
               Agendar Consulta
