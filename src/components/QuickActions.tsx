@@ -11,7 +11,7 @@ export function QuickActions({ lead }: QuickActionsProps) {
   const navigate = useNavigate();
 
   const handleNewSimulation = () => {
-    navigate('/simulador', { state: { patientId: lead.patient_id } });
+    navigate('/simulator', { state: { patientId: lead.patient_id } });
   };
 
   return (
