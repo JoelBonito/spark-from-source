@@ -32,7 +32,7 @@ export function QuickActions({ lead }: QuickActionsProps) {
       )}
 
       <Button
-        onClick={() => navigate('/bugdets', { 
+        onClick={() => navigate('/budgets', { 
           state: { 
             createNew: true, 
             patientId: lead.patient_id,
@@ -47,7 +47,7 @@ export function QuickActions({ lead }: QuickActionsProps) {
       </Button>
 
       <Button
-        onClick={() => navigate('/bugdets', { 
+        onClick={() => navigate('/budgets', { 
           state: { 
             filterPatientId: lead.patient_id 
           } 
