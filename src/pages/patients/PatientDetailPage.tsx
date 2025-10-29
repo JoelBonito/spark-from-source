@@ -85,7 +85,7 @@ export default function PatientDetailPage() {
             <Button 
                variant="outline" 
                className="w-full justify-start"
-               onClick={() => navigate('/simulador', { 
+               onClick={() => navigate('/simulator', { 
                state: { selectedPatient: patient } 
                })}
               >  
