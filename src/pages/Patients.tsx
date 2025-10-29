@@ -135,7 +135,7 @@ export const Patients = () => {
   const handleNewSimulationFromDetail = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (patient) {
-      navigate('/', { state: { selectedPatient: patient } });
+      navigate('/simulator', { state: { selectedPatient: patient } });
     }
   };
 
