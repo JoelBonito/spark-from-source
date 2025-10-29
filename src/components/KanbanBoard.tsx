@@ -11,9 +11,10 @@ interface KanbanBoardProps {
   onMoveLeadToStage: (leadId: string, newStage: string) => Promise<void>;
   onDeleteLead?: (leadId: string) => void;
   onArchiveLead?: (leadId: string) => void;
+  onEditLead?: (leadId: string) => void;
 }
 
-export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead, onArchiveLead }: KanbanBoardProps) {
+export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead, onArchiveLead, onEditLead }: KanbanBoardProps) {
   const stages = getPipelineStages();
   const [activeId, setActiveId] = useState<string | null>(null);
   
@@ -74,6 +75,7 @@ export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDe
             onLeadClick={onLeadClick}
             onDeleteLead={onDeleteLead}
             onArchiveLead={onArchiveLead}
+            onEditLead={onEditLead}
           />
         ))}
       </div>

@@ -123,6 +123,20 @@ export default function CRM() {
     }
   };
 
+  const handleEditLead = (leadId: string) => {
+    // Encontrar lead pelo ID composto
+    const stage = Object.keys(leadsByStage).find(s =>
+      leadsByStage[s].some(l => l.id === leadId)
+    );
+    
+    if (stage) {
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (lead) {
+        setSelectedLead(lead);
+      }
+    }
+  };
+
   // FASE 7: Filtrar leads por tipo de tratamento
   const filteredLeadsByStage = Object.fromEntries(
     Object.entries(leadsByStage).map(([stage, leads]) => [
@@ -260,6 +274,7 @@ export default function CRM() {
             onMoveLeadToStage={moveLeadToStage}
             onDeleteLead={handleDeleteLead}
             onArchiveLead={handleArchiveLead}
+            onEditLead={handleEditLead}
           />
         )}
 

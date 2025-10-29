@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPatientsWithRelations, PatientWithRelations } from '@/services/patientService';
 
-export function usePatients() {
+export function usePatients(showArchived: boolean = false) {
   const [patients, setPatients] = useState<PatientWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -10,7 +10,7 @@ export function usePatients() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getPatientsWithRelations();
+      const data = await getPatientsWithRelations(showArchived);
       setPatients(data);
     } catch (err) {
       setError(err as Error);
@@ -22,7 +22,7 @@ export function usePatients() {
 
   useEffect(() => {
     loadPatients();
-  }, []);
+  }, [showArchived]);
 
   return {
     patients,

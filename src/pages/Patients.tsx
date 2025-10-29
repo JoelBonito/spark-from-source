@@ -10,7 +10,7 @@ import { ComparisonViewModal } from '@/components/ComparisonViewModal';
 import { TechnicalReportDialog } from '@/components/TechnicalReportDialog';
 import { BudgetDetailModal } from '@/components/BudgetDetailModal';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
-import { PatientWithRelations, deletePatient, searchPatients, getPatientStats } from '@/services/patientService';
+import { PatientWithRelations, deletePatient, searchPatients, getPatientStats, archivePatient } from '@/services/patientService';
 import { updateBudget } from '@/services/budgetService';
 import type { Budget } from '@/services/budgetService';
 import { PatientFormData } from '@/utils/patientValidation';
@@ -34,12 +34,12 @@ import {
 export const Patients = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { patients, loading, refresh } = usePatients();
+  const [showArchived, setShowArchived] = useState(false);
+  const { patients, loading, refresh } = usePatients(showArchived);
   const { saving, createPatient, updatePatient } = usePatientForm();
 
   const [filteredPatients, setFilteredPatients] = useState<PatientWithRelations[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithRelations | null>(null);
   const [detailPatientId, setDetailPatientId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -323,6 +323,23 @@ export const Patients = () => {
     }
   };
 
+  const handleArchivePatient = async (patient: PatientWithRelations) => {
+    try {
+      await archivePatient(patient.id);
+      toast({
+        title: 'Sucesso',
+        description: 'Paciente arquivado com sucesso',
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao arquivar paciente',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSaveBudget = async (data: any) => {
     if (!budgetFormModal) return;
 
@@ -457,6 +474,7 @@ export const Patients = () => {
             onViewBudget={handleViewBudget}
             onEditBudget={handleEditBudget}
             onViewTechnicalReport={handleViewTechnicalReport}
+            onArchive={handleArchivePatient}
           />
         )}
         </div>

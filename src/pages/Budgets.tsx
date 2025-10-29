@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Sparkles, Plus, Archive } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useBudgetStatus } from '@/hooks/useBudgetStatus';
 import { BudgetTable } from '@/components/BudgetTable';
@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 export const Budgets = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('all');
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +41,24 @@ export const Budgets = () => {
 
   const { budgets, stats, loading, refresh, updateBudget, archiveBudget } = useBudgets(filters);
   const { updateStatus } = useBudgetStatus();
+
+  // Detectar navegação com states para ações automáticas
+  useEffect(() => {
+    if (location.state?.createNew) {
+      setSelectedBudget(null);
+      setIsFormModalOpen(true);
+      // Limpar state após uso
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (location.state?.filterPatientId) {
+      setSearchQuery(location.state.filterPatientId);
+      // Limpar state após uso
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleView = (budget: Budget) => {
     setDetailBudgetId(budget.id);

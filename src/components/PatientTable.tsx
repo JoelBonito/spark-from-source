@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit, Image, Trash2, MoreHorizontal, FileText, Images, ClipboardList } from 'lucide-react';
+import { Eye, Edit, Image, Trash2, MoreHorizontal, FileText, Images, ClipboardList, Archive } from 'lucide-react';
 import { PatientWithRelations } from '@/services/patientService';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,7 @@ interface PatientTableProps {
   onViewBudget: (patient: PatientWithRelations) => void;
   onEditBudget: (patient: PatientWithRelations) => void;
   onViewTechnicalReport: (patient: PatientWithRelations) => void;
+  onArchive: (patient: PatientWithRelations) => void;
 }
 
 export const PatientTable: React.FC<PatientTableProps> = ({
@@ -35,7 +36,8 @@ export const PatientTable: React.FC<PatientTableProps> = ({
   onViewComparison,
   onViewBudget,
   onEditBudget,
-  onViewTechnicalReport
+  onViewTechnicalReport,
+  onArchive
 }) => {
   if (patients.length === 0) {
     return (
@@ -162,6 +164,11 @@ export const PatientTable: React.FC<PatientTableProps> = ({
                       </DropdownMenuItem>
                       
                       <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem onClick={() => onArchive(patient)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Arquivar Paciente
+                      </DropdownMenuItem>
                       
                       <DropdownMenuItem 
                         onClick={() => onDelete(patient)}

@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Phone, Mail, Tag, Clock, Sparkles, Smile, MoreHorizontal, Trash2, Archive } from 'lucide-react';
+import { Phone, Mail, Tag, Clock, Sparkles, Smile, MoreHorizontal, Trash2, Archive, Edit } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,9 +30,10 @@ interface LeadCardProps {
   onClick: () => void;
   onDelete?: (leadId: string) => void;
   onArchive?: (leadId: string) => void;
+  onEdit?: (leadId: string) => void;
 }
 
-export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onDelete, onArchive, onEdit }: LeadCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
     attributes,
@@ -78,6 +79,17 @@ export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) 
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onEdit && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(lead.id);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
                 {onArchive && (
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -108,33 +120,32 @@ export function LeadCard({ lead, onClick, onDelete, onArchive }: LeadCardProps) 
         <div
           {...attributes}
           {...listeners}
-          className="p-3 cursor-move"
+          className="p-3 cursor-move space-y-2"
         >
-          {/* Header com nome e badge - APENAS VISUAL PARA DRAG */}
-          <div className="flex items-start justify-between gap-2 pr-8">
-            <h3 className="font-semibold text-sm text-foreground">
-              {lead.name}
-            </h3>
-            {/* Badge de tipo de tratamento */}
-            {lead.treatment_type && (
-              <Badge 
-                variant={lead.treatment_type === 'clareamento' ? 'secondary' : 'default'}
-                className="text-xs flex items-center gap-1 shrink-0"
-              >
-                {lead.treatment_type === 'clareamento' ? (
-                  <>
-                    <Sparkles className="h-3 w-3" />
-                    Clareamento
-                  </>
-                ) : (
-                  <>
-                    <Smile className="h-3 w-3" />
-                    Facetas
-                  </>
-                )}
-              </Badge>
-            )}
-          </div>
+          {/* Badge de tipo de tratamento ACIMA do nome */}
+          {lead.treatment_type && (
+            <Badge 
+              variant={lead.treatment_type === 'clareamento' ? 'secondary' : 'default'}
+              className="text-xs flex items-center gap-1 w-fit"
+            >
+              {lead.treatment_type === 'clareamento' ? (
+                <>
+                  <Sparkles className="h-3 w-3" />
+                  Clareamento
+                </>
+              ) : (
+                <>
+                  <Smile className="h-3 w-3" />
+                  Facetas
+                </>
+              )}
+            </Badge>
+          )}
+          
+          {/* Nome do paciente ABAIXO do badge */}
+          <h3 className="font-semibold text-sm text-foreground pr-8">
+            {lead.name}
+          </h3>
         </div>
 
         {/* ÁREA DE CLICK - SEPARADA DO DRAG */}
