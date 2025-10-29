@@ -49,7 +49,7 @@ export function QuickActions({ lead }: QuickActionsProps) {
       <Button
         onClick={() => navigate('/budgets', { 
           state: { 
-            filterPatientId: lead.patient_name 
+            filterPatientId: lead.patient.name
           } 
         })}
         className="w-full justify-start"
