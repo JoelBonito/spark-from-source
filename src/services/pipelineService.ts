@@ -39,7 +39,7 @@ export function getPipelineStages(): PipelineStage[] {
   return PIPELINE_STAGES;
 }
 
-export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> {
+export async function getLeadsGroupedByStage(showArchived: boolean = false): Promise<Record<string, Lead[]>> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -50,7 +50,7 @@ export async function getLeadsGroupedByStage(): Promise<Record<string, Lead[]>> 
       patient:patients(name, phone, email)
     `)
     .eq('user_id', user.id)
-    .eq('archived', false)
+    .eq('archived', showArchived)
     .order('created_at', { ascending: false });
 
   if (error) {

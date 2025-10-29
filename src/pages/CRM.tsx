@@ -16,11 +16,11 @@ import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 
 export default function CRM() {
-  const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard();
+  const [showArchived, setShowArchived] = useState(false);
+  const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard(showArchived);
   const { totalLeads, inNegotiation, conversionRate, potentialRevenue } = usePipelineMetrics();
   const [selectedLead, setSelectedLead] = useState<ExtendedLead | null>(null);
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
-  const [showArchived, setShowArchived] = useState(false);
   
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);

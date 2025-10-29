@@ -4,7 +4,7 @@ import { updateLeadStage, Lead, ExtendedLead, deleteLead } from '@/services/lead
 import { getPatientSimulations } from '@/services/patientService';
 import { toast } from 'sonner';
 
-export function useKanbanBoard() {
+export function useKanbanBoard(showArchived: boolean = false) {
   const [leadsByStage, setLeadsByStage] = useState<Record<string, ExtendedLead[]>>({
     simulacao: [],
     consulta_tecnica: [],
@@ -16,7 +16,7 @@ export function useKanbanBoard() {
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const data = await getLeadsGroupedByStage();
+      const data = await getLeadsGroupedByStage(showArchived);
       
       // Agrupamento por patient_id + treatment_type
       const expandedData: Record<string, ExtendedLead[]> = {
@@ -80,7 +80,7 @@ export function useKanbanBoard() {
 
   useEffect(() => {
     loadLeads();
-  }, []);
+  }, [showArchived]);
 
   const moveLeadToStage = async (leadId: string, newStage: string) => {
     try {
