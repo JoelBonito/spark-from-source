@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { usePatients } from '@/hooks/usePatients';
 import { usePatientForm } from '@/hooks/usePatientForm';
 import { useTechnicalReport } from '@/hooks/useTechnicalReport';
 import { useServices } from '@/hooks/useServices';
+import { useConfig } from '@/contexts/ConfigContext';
 import { supabase } from '@/integrations/supabase/client';
 import { createBudget } from '@/services/budgetService';
 import { generateBudgetNumber, generateBudgetPDF, BudgetPDFData } from '@/services/pdfService';
@@ -106,6 +107,7 @@ export default function SimulatorPage() {
   const { createPatient, saving: savingPatient } = usePatientForm();
   const { services } = useServices();
   const { generating, generateReport } = useTechnicalReport();
+  const { config } = useConfig();
 
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [treatmentType, setTreatmentType] = useState<'facetas' | 'clareamento'>('facetas');
@@ -122,6 +124,20 @@ export default function SimulatorPage() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickPatientName, setQuickPatientName] = useState('');
   const [quickPatientPhone, setQuickPatientPhone] = useState('');
+
+  // Ajustar tipo de tratamento padrão baseado nas configurações
+  useEffect(() => {
+    if (config) {
+      // Se Facetas estiver desabilitado, usar Clareamento
+      if (config.facetsSimulatorEnabled === false && config.whiteningSimulatorEnabled !== false) {
+        setTreatmentType('clareamento');
+      }
+      // Se Clareamento estiver desabilitado, usar Facetas
+      else if (config.whiteningSimulatorEnabled === false && config.facetsSimulatorEnabled !== false) {
+        setTreatmentType('facetas');
+      }
+    }
+  }, [config]);
 
   const handleQuickAddPatient = async () => {
     if (!quickPatientName.trim() || !quickPatientPhone.trim()) {
@@ -488,23 +504,31 @@ export default function SimulatorPage() {
 
               <div className="space-y-2">
                 <Label>Tipo de Tratamento</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant={treatmentType === 'facetas' ? 'default' : 'outline'}
-                    onClick={() => setTreatmentType('facetas')}
-                    className="w-full"
-                  >
-                    Facetas Dentárias
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={treatmentType === 'clareamento' ? 'default' : 'outline'}
-                    onClick={() => setTreatmentType('clareamento')}
-                    className="w-full"
-                  >
-                    Clareamento Dental
-                  </Button>
+                <div className={`grid ${
+                  config?.facetsSimulatorEnabled !== false && config?.whiteningSimulatorEnabled !== false
+                    ? 'grid-cols-2'
+                    : 'grid-cols-1'
+                } gap-3`}>
+                  {config?.facetsSimulatorEnabled !== false && (
+                    <Button
+                      type="button"
+                      variant={treatmentType === 'facetas' ? 'default' : 'outline'}
+                      onClick={() => setTreatmentType('facetas')}
+                      className="w-full"
+                    >
+                      Facetas Dentárias
+                    </Button>
+                  )}
+                  {config?.whiteningSimulatorEnabled !== false && (
+                    <Button
+                      type="button"
+                      variant={treatmentType === 'clareamento' ? 'default' : 'outline'}
+                      onClick={() => setTreatmentType('clareamento')}
+                      className="w-full"
+                    >
+                      Clareamento Dental
+                    </Button>
+                  )}
                 </div>
               </div>
 

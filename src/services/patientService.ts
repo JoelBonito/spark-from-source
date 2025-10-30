@@ -77,7 +77,7 @@ export async function getPatientsWithRelations(showArchived: boolean = false): P
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('patients')
     .select(`
       *,
@@ -98,20 +98,104 @@ export async function getPatientsWithRelations(showArchived: boolean = false): P
       )
     `)
     .eq('user_id', user.id)
-    .eq('archived', showArchived)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  // Tentar filtrar por archived, mas se falhar, continuar sem o filtro
+  try {
+    const { data, error } = await query.eq('archived', showArchived);
 
-  return (data || []).map(patient => {
-    const simulationsArray = patient.simulations || [];
-    return {
-      ...patient,
-      simulations_count: simulationsArray.length,
-      latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
-      latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
-    };
-  });
+    if (error) {
+      // Se o erro for relacionado à coluna archived não existir, buscar sem o filtro
+      if (error.message?.includes('archived') || error.code === '42703') {
+        console.warn('Coluna archived não encontrada, buscando todos os pacientes');
+        const fallbackResult = await supabase
+          .from('patients')
+          .select(`
+            *,
+            simulations!simulations_patient_id_fkey (
+              id,
+              original_image_url,
+              processed_image_url,
+              technical_notes,
+              treatment_type,
+              created_at
+            ),
+            budgets (
+              id,
+              budget_number,
+              final_price,
+              status,
+              created_at
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (fallbackResult.error) throw fallbackResult.error;
+
+        return (fallbackResult.data || []).map(patient => {
+          const simulationsArray = patient.simulations || [];
+          return {
+            ...patient,
+            simulations_count: simulationsArray.length,
+            latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
+            latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
+          };
+        });
+      }
+      throw error;
+    }
+
+    return (data || []).map(patient => {
+      const simulationsArray = patient.simulations || [];
+      return {
+        ...patient,
+        simulations_count: simulationsArray.length,
+        latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
+        latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
+      };
+    });
+  } catch (error: any) {
+    // Se houver erro relacionado à coluna archived, buscar sem o filtro
+    if (error.message?.includes('archived') || error.code === '42703') {
+      console.warn('Coluna archived não encontrada, buscando todos os pacientes');
+      const { data, error: fallbackError } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          simulations!simulations_patient_id_fkey (
+            id,
+            original_image_url,
+            processed_image_url,
+            technical_notes,
+            treatment_type,
+            created_at
+          ),
+          budgets (
+            id,
+            budget_number,
+            final_price,
+            status,
+            created_at
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (fallbackError) throw fallbackError;
+
+      return (data || []).map(patient => {
+        const simulationsArray = patient.simulations || [];
+        return {
+          ...patient,
+          simulations_count: simulationsArray.length,
+          latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
+          latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
+        };
+      });
+    }
+    throw error;
+  }
 }
 
 export async function getPatientById(id: string): Promise<Patient> {

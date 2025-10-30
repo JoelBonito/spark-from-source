@@ -448,10 +448,18 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={checked => setFormData(prev => ({
-            ...prev,
-            crmEnabled: checked
-          }))} />
+            <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={async (checked) => {
+            const updatedData = { ...formData, crmEnabled: checked };
+            setFormData(updatedData);
+            try {
+              await saveConfig(updatedData);
+              await refreshConfig();
+              toast.success(checked ? "Módulo CRM ativado" : "Módulo CRM desativado");
+            } catch (error: any) {
+              toast.error("Erro ao salvar configuração");
+              setFormData(formData); // Reverter em caso de erro
+            }
+          }} />
           </div>
         </div>
       </div>
@@ -478,8 +486,8 @@ export default function ConfigForm() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
-                          Módulo principal de simulação de facetas dentárias. 
-                          Recomendamos manter sempre ativo.
+                          Módulo principal de simulação de facetas dentárias.
+                          {!formData.whiteningSimulatorEnabled && " Não pode ser desativado quando Clareamento está desativado."}
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -487,13 +495,27 @@ export default function ConfigForm() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Simulação de facetas de cerâmica (ativo por padrão)
+                  {!formData.whiteningSimulatorEnabled && " - Bloqueado: Clareamento desativado"}
                 </p>
               </div>
             </div>
-            <Switch id="facetsEnabled" checked={formData.facetsSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
-            ...prev,
-            facetsSimulatorEnabled: checked
-          }))} />
+            <Switch
+              id="facetsEnabled"
+              checked={formData.facetsSimulatorEnabled ?? true}
+              disabled={!formData.whiteningSimulatorEnabled}
+              onCheckedChange={async (checked) => {
+                const updatedData = { ...formData, facetsSimulatorEnabled: checked };
+                setFormData(updatedData);
+                try {
+                  await saveConfig(updatedData);
+                  await refreshConfig();
+                  toast.success(checked ? "Simulador de Facetas ativado" : "Simulador de Facetas desativado");
+                } catch (error: any) {
+                  toast.error("Erro ao salvar configuração");
+                  setFormData(formData);
+                }
+              }}
+            />
           </div>
           
           {/* Clareamento (toggle) */}
@@ -523,10 +545,27 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
-            ...prev,
-            whiteningSimulatorEnabled: checked
-          }))} />
+            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={async (checked) => {
+              // Se desativar Clareamento, Facetas deve ser ativado automaticamente
+              const updatedData = {
+                ...formData,
+                whiteningSimulatorEnabled: checked,
+                facetsSimulatorEnabled: checked ? formData.facetsSimulatorEnabled : true
+              };
+              setFormData(updatedData);
+              try {
+                await saveConfig(updatedData);
+                await refreshConfig();
+                if (!checked && !formData.facetsSimulatorEnabled) {
+                  toast.success("Simulador de Clareamento desativado. Facetas foi ativado automaticamente.");
+                } else {
+                  toast.success(checked ? "Simulador de Clareamento ativado" : "Simulador de Clareamento desativado");
+                }
+              } catch (error: any) {
+                toast.error("Erro ao salvar configuração");
+                setFormData(formData);
+              }
+            }} />
           </div>
         </div>
       </div>
