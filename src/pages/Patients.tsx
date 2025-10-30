@@ -120,7 +120,7 @@ export const Patients = () => {
   };
 
   const handleNewSimulation = (patient: PatientWithRelations) => {
-    navigate('/', { state: { selectedPatient: patient } });
+    navigate('/simulator', { state: { selectedPatient: patient } });
   };
 
   const handleEditFromDetail = (patientId: string) => {

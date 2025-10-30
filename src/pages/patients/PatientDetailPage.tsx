@@ -106,9 +106,9 @@ export default function PatientDetailPage() {
               <FileText className="h-4 w-4 mr-2" />
                Gerar Orçamento
             </Button> 
-            <Button variant="outline" className="w-full justify-start">
+            <Button variant="outline" className="w-full justify-start" disabled>
               <Calendar className="h-4 w-4 mr-2" />
-              Agendar Consulta (Brevemente)
+              Agendar Consulta (brevemente)
             </Button>
           </CardContent>
         </Card>
