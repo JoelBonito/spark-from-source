@@ -70,9 +70,6 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Data
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Validade
-              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Ações
               </th>
@@ -111,12 +108,6 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {format(new Date(budget.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                  {budget.valid_until 
-                    ? format(new Date(budget.valid_until), 'dd/MM/yyyy', { locale: ptBR })
-                    : '-'
-                  }
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
