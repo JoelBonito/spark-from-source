@@ -43,40 +43,119 @@ export async function getLeadsGroupedByStage(showArchived: boolean = false): Pro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('leads')
-    .select(`
-      *,
-      patient:patients(name, phone, email)
-    `)
-    .eq('user_id', user.id)
-    .eq('archived', showArchived)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        patient:patients(name, phone, email)
+      `)
+      .eq('user_id', user.id)
+      .eq('archived', showArchived)
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('❌ Erro ao buscar leads agrupados:', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint
+    if (error) {
+      // Se o erro for relacionado à coluna archived não existir, buscar sem o filtro
+      if (error.message?.includes('archived') || error.code === '42703') {
+        console.warn('Coluna archived não encontrada em leads, buscando todos os leads');
+        const fallbackResult = await supabase
+          .from('leads')
+          .select(`
+            *,
+            patient:patients(name, phone, email)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (fallbackResult.error) {
+          console.error('❌ Erro ao buscar leads agrupados:', {
+            code: fallbackResult.error.code,
+            message: fallbackResult.error.message,
+            details: fallbackResult.error.details,
+            hint: fallbackResult.error.hint
+          });
+          throw fallbackResult.error;
+        }
+
+        const grouped: Record<string, Lead[]> = {
+          simulacao: [],
+          consulta_tecnica: [],
+          fechamento: [],
+          acompanhamento: []
+        };
+
+        (fallbackResult.data || []).forEach((lead: any) => {
+          if (grouped[lead.stage]) {
+            grouped[lead.stage].push(lead as Lead);
+          }
+        });
+
+        return grouped;
+      }
+
+      console.error('❌ Erro ao buscar leads agrupados:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+
+    const grouped: Record<string, Lead[]> = {
+      simulacao: [],
+      consulta_tecnica: [],
+      fechamento: [],
+      acompanhamento: []
+    };
+
+    (data || []).forEach((lead: any) => {
+      if (grouped[lead.stage]) {
+        grouped[lead.stage].push(lead as Lead);
+      }
     });
+
+    return grouped;
+  } catch (error: any) {
+    // Se houver erro relacionado à coluna archived, buscar sem o filtro
+    if (error.message?.includes('archived') || error.code === '42703') {
+      console.warn('Coluna archived não encontrada em leads, buscando todos os leads');
+      const { data, error: fallbackError } = await supabase
+        .from('leads')
+        .select(`
+          *,
+          patient:patients(name, phone, email)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (fallbackError) {
+        console.error('❌ Erro ao buscar leads agrupados:', {
+          code: fallbackError.code,
+          message: fallbackError.message,
+          details: fallbackError.details,
+          hint: fallbackError.hint
+        });
+        throw fallbackError;
+      }
+
+      const grouped: Record<string, Lead[]> = {
+        simulacao: [],
+        consulta_tecnica: [],
+        fechamento: [],
+        acompanhamento: []
+      };
+
+      (data || []).forEach((lead: any) => {
+        if (grouped[lead.stage]) {
+          grouped[lead.stage].push(lead as Lead);
+        }
+      });
+
+      return grouped;
+    }
     throw error;
   }
-
-  const grouped: Record<string, Lead[]> = {
-    simulacao: [],
-    consulta_tecnica: [],
-    fechamento: [],
-    acompanhamento: []
-  };
-
-  (data || []).forEach((lead: any) => {
-    if (grouped[lead.stage]) {
-      grouped[lead.stage].push(lead as Lead);
-    }
-  });
-
-  return grouped;
 }
 
 export async function getPipelineMetrics() {
