@@ -62,25 +62,13 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                 Tipo
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Dentes
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Simulações
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Valor
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                CRM
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Data
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Validade
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Ações
@@ -110,38 +98,6 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        {budget.budget_type === 'manual' ? (
-                          <Badge variant="outline">Manual</Badge>
-                        ) : (
-                          <div className="text-sm text-foreground">{budget.teeth_count}</div>
-                        )}
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {budget.budget_type === 'manual' 
-                          ? 'Orçamento criado manualmente' 
-                          : `${budget.teeth_count} dentes analisados`}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Badge variant="secondary">
-                          {budget.simulation_count || 0}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {budget.simulation_count || 0} simulações associadas
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-semibold text-foreground">
                     {formatCurrency(budget.final_price)}
                   </div>
@@ -150,25 +106,8 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                   {/* FASE 4: Adicionar proteção extra com fallback */}
                   <StatusBadge status={budget.status || 'pending'} />
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {budget.lead_id ? (
-                    <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                      No CRM
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Sem Lead
-                    </Badge>
-                  )}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {format(new Date(budget.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                  {budget.valid_until 
-                    ? format(new Date(budget.valid_until), 'dd/MM/yyyy', { locale: ptBR })
-                    : '-'
-                  }
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
@@ -180,15 +119,13 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                       <Eye className="w-4 h-4" />
                     </button>
                     {budget.pdf_url && (
-                      <a
-                        href={budget.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => onView(budget)}
                         className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Download PDF"
+                        title="Visualizar e Download PDF"
                       >
                         <Download className="w-4 h-4" />
-                      </a>
+                      </button>
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
