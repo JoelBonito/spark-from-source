@@ -119,15 +119,13 @@ export const BudgetTable: React.FC<BudgetTableProps> = ({
                       <Eye className="w-4 h-4" />
                     </button>
                     {budget.pdf_url && (
-                      <a
-                        href={budget.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => onView(budget)}
                         className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Download PDF"
+                        title="Visualizar e Download PDF"
                       >
                         <Download className="w-4 h-4" />
-                      </a>
+                      </button>
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
