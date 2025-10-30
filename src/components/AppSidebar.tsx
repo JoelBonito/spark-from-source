@@ -5,7 +5,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Logo } from '@/components/ui/logo';
 import { useConfig } from '@/contexts/ConfigContext';
-const menuItems = [{
+
+const allMenuItems = [{
   title: 'Dashboard',
   url: '/',
   icon: LayoutDashboard,
@@ -19,7 +20,8 @@ const menuItems = [{
   title: 'CRM',
   url: '/crm',
   icon: Target,
-  bold: true
+  bold: true,
+  configKey: 'crmEnabled' // Adiciona chave de configuração
 }, {
   title: 'Pacientes',
   url: '/patients',
@@ -41,6 +43,7 @@ const menuItems = [{
   icon: Settings,
   bold: false
 }];
+
 interface AppSidebarProps {
   onNavigate?: () => void;
 }
@@ -52,6 +55,14 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     signOut
   } = useAuth();
   const { config } = useConfig();
+
+  // Filtrar menu items baseado nas configurações
+  const menuItems = allMenuItems.filter(item => {
+    if (item.configKey === 'crmEnabled') {
+      return config?.crmEnabled !== false;
+    }
+    return true;
+  });
   const isActive = (path: string) => location.pathname === path;
   
   // Determinar nome a exibir
