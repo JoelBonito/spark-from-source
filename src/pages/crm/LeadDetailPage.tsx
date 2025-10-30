@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Phone, Mail } from 'lucide-react';
-import { mockLeads } from '@/lib/mock-data';
 
 const STAGE_LABELS: Record<string, string> = {
   novo_lead: 'Novo Lead',
@@ -16,12 +15,16 @@ export default function LeadDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const lead = mockLeads.find((l) => l.id === id);
+  // TODO: Buscar lead do Supabase
+  const lead = null;
 
   if (!lead) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Lead não encontrado</p>
+        <Button onClick={() => navigate('/crm')} className="mt-4">
+          Voltar para CRM
+        </Button>
       </div>
     );
   }

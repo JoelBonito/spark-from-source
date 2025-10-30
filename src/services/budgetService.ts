@@ -2,6 +2,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { addDays } from 'date-fns';
 import { generateBudgetNumber, generateManualBudgetPDF } from './pdfService';
 
+// FASE 3: Definir type union explícito para BudgetStatus
+export type BudgetStatus = 
+  | 'pending' 
+  | 'sent' 
+  | 'viewed' 
+  | 'accepted' 
+  | 'rejected' 
+  | 'expired' 
+  | 'archived';
+
 export interface Budget {
   id: string;
   created_at: string;
@@ -9,6 +19,7 @@ export interface Budget {
   budget_number: string;
   patient_id: string | null;
   simulation_id: string | null;
+  lead_id?: string | null;
   teeth_count: number;
   price_per_tooth: number;
   subtotal: number;
@@ -17,12 +28,13 @@ export interface Budget {
   final_price: number;
   payment_conditions: any;
   valid_until: string | null;
-  status: 'pending' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'archived';
+  status: BudgetStatus;
   pdf_url: string | null;
   user_id: string;
   budget_type?: 'automatic' | 'manual';
   treatment_type: 'facetas' | 'clareamento';
   items?: any[];
+  simulation_count?: number;
   patient?: {
     name: string;
     phone: string;
@@ -43,8 +55,9 @@ export interface CreateBudgetData {
   payment_conditions?: any;
   valid_until?: Date;
   pdf_url?: string;
-  status?: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+  status?: BudgetStatus;
   budget_type?: 'automatic' | 'manual';
+  treatment_type?: 'facetas' | 'clareamento';
   items?: any[];
 }
 
@@ -99,14 +112,40 @@ export async function getAllBudgets(filters?: BudgetFilters): Promise<Budget[]> 
     throw error;
   }
 
-  return (data || []).map(budget => ({
-    ...budget,
-    patient: (budget.patient as any) || null,
-    status: budget.status as Budget['status'],
-    budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
-    treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
-    items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
-  }));
+  // Count simulations for each budget
+  const budgetsWithCounts = await Promise.all(
+    (data || []).map(async (budget) => {
+      if (budget.patient_id && budget.treatment_type) {
+        const { count } = await supabase
+          .from('simulations')
+          .select('*', { count: 'exact', head: true })
+          .eq('patient_id', budget.patient_id)
+          .eq('treatment_type', budget.treatment_type)
+          .eq('status', 'completed');
+        
+        return { 
+          ...budget,
+          simulation_count: count || 0,
+          patient: (budget.patient as any) || null,
+          status: budget.status as Budget['status'],
+          budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+          treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
+          items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
+        };
+      }
+      return { 
+        ...budget,
+        simulation_count: 0,
+        patient: (budget.patient as any) || null,
+        status: budget.status as Budget['status'],
+        budget_type: (budget.budget_type as 'automatic' | 'manual') || 'automatic',
+        treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
+        items: Array.isArray(budget.items) ? budget.items : (budget.items ? [budget.items] : [])
+      };
+    })
+  );
+
+  return budgetsWithCounts;
 }
 
 export async function getBudgetById(id: string): Promise<Budget | null> {
@@ -478,4 +517,108 @@ export async function getPatientBudgets(patientId: string): Promise<Budget[]> {
     treatment_type: (budget.treatment_type as 'facetas' | 'clareamento') || 'facetas',
     items: Array.isArray(budget.items) ? budget.items : []
   }));
+}
+
+/**
+ * Creates or updates a lead in CRM from a budget
+ */
+export async function createLeadFromBudget(budgetId: string): Promise<{ leadId: string; isNew: boolean }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  // Get budget with patient data
+  const { data: budget, error: budgetError } = await supabase
+    .from('budgets')
+    .select(`
+      *,
+      patient:patients(id, name, phone, email)
+    `)
+    .eq('id', budgetId)
+    .single();
+
+  if (budgetError || !budget) {
+    throw new Error('Budget not found');
+  }
+
+  if (!budget.patient_id) {
+    throw new Error('Budget has no associated patient');
+  }
+
+  const patientData = budget.patient as any;
+
+  // Check if a lead already exists for this patient + treatment
+  const { data: existingLeads } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('patient_id', budget.patient_id)
+    .eq('treatment_type', budget.treatment_type)
+    .eq('user_id', user.id);
+
+  const existingLead = existingLeads && existingLeads.length > 0 ? existingLeads[0] : null;
+
+  let leadId: string;
+  let isNew = false;
+
+  if (existingLead) {
+    // Update existing lead
+    const { data: updatedLead, error: updateError } = await supabase
+      .from('leads')
+      .update({
+        stage: 'fechamento',
+        opportunity_value: budget.final_price,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingLead.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    leadId = updatedLead.id;
+  } else {
+    // Create new lead
+    const { data: newLead, error: createError } = await supabase
+      .from('leads')
+      .insert({
+        user_id: user.id,
+        patient_id: budget.patient_id,
+        name: patientData?.name || 'Paciente',
+        phone: patientData?.phone || '',
+        email: patientData?.email,
+        stage: 'fechamento',
+        treatment_type: budget.treatment_type,
+        opportunity_value: budget.final_price,
+        source: 'orcamento',
+        status: 'fechamento',
+      })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+    leadId = newLead.id;
+    isNew = true;
+  }
+
+  // Update budget with lead_id
+  await supabase
+    .from('budgets')
+    .update({ lead_id: leadId })
+    .eq('id', budgetId);
+
+  // Create activity in the lead
+  await supabase
+    .from('activities')
+    .insert({
+      user_id: user.id,
+      lead_id: leadId,
+      type: 'budget',
+      title: 'Orçamento enviado',
+      description: `Orçamento ${budget.budget_number} no valor de R$ ${budget.final_price.toFixed(2)} foi associado ao lead`,
+      metadata: {
+        budget_id: budgetId,
+        budget_number: budget.budget_number,
+        value: budget.final_price,
+      },
+    });
+
+  return { leadId, isNew };
 }

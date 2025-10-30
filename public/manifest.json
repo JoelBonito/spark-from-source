@@ -1,7 +1,7 @@
 {
-  "name": "TruSmile AI - Simulador de Facetas Dentárias",
-  "short_name": "TruSmile AI",
-  "description": "Simulador de facetas dentárias com IA",
+  "name": "TruSmile - Análise Inteligente do Sorriso",
+  "short_name": "TruSmile",
+  "description": "Análise inteligente de sorriso com IA (Facetas, Clareamento, Orçamento)",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

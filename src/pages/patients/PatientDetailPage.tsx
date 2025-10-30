@@ -82,17 +82,33 @@ export default function PatientDetailPage() {
             <CardDescription>Acesso rápido às funcionalidades</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start">
-              <Smile className="h-4 w-4 mr-2" />
+            <Button 
+               variant="outline" 
+               className="w-full justify-start"
+               onClick={() => navigate('/simulator', { 
+               state: { selectedPatient: patient } 
+               })}
+              >  
+            <Smile className="h-4 w-4 mr-2" />
               Nova Simulação
             </Button>
-            <Button variant="outline" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => navigate('/budgets', { 
+                state: { 
+                  createNew: true,
+                  patientId: patient.id,
+                  patientName: patient.name
+                }   
+              })}
+            >
               <FileText className="h-4 w-4 mr-2" />
-              Gerar Orçamento
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
+               Gerar Orçamento
+            </Button> 
+            <Button variant="outline" className="w-full justify-start" disabled>
               <Calendar className="h-4 w-4 mr-2" />
-              Agendar Consulta
+              Agendar Consulta (brevemente)
             </Button>
           </CardContent>
         </Card>

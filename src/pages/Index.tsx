@@ -12,10 +12,6 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Visão geral do seu consultório</p>
-        </div>
         <Alert variant="destructive">
           <AlertDescription>
             Erro ao carregar dados do dashboard. Tente novamente.
@@ -28,10 +24,6 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-5 w-96 mt-2" />
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
@@ -45,11 +37,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-display font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Visão geral do seu consultório</p>
-      </div>
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

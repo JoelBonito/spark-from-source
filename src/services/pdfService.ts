@@ -42,25 +42,36 @@ export async function generateBudgetPDF(data: BudgetPDFData): Promise<string> {
   // Configurar fonte
   doc.setFont('helvetica');
   
-  // Header com cor
-  doc.setFillColor(37, 99, 235); // Azul
-  doc.rect(0, 0, 210, 40, 'F');
+  // Header com gradiente turquesa
+  doc.setFillColor(71, 196, 216); // Turquesa TruSmile
+  doc.rect(0, 0, 210, 45, 'F');
   
-  // Logo/Título
+  // Logo TruSmile
+  try {
+    const logoUrl = '/trusmile-logo-horizontal.png';
+    const logoWidth = 60;
+    const logoHeight = 15;
+    doc.addImage(logoUrl, 'PNG', 105 - (logoWidth / 2), 12, logoWidth, logoHeight);
+  } catch (error) {
+    console.warn('Logo não carregada, usando texto:', error);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text('TruSmile AI', 105, 20, { align: 'center' });
+  }
+  
+  // Título
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text('Facet.AI', 105, 20, { align: 'center' });
   doc.setFontSize(14);
   const titulo = data.treatment_type === 'clareamento'
     ? 'ORÇAMENTO - CLAREAMENTO DENTAL'
     : 'ORÇAMENTO DE FACETAS DENTÁRIAS';
-  doc.text(titulo, 105, 30, { align: 'center' });
+  doc.text(titulo, 105, 35, { align: 'center' });
   
   // Reset cor
   doc.setTextColor(0, 0, 0);
   
   // Informações do Orçamento
-  let y = 50;
+  let y = 55;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('Informações do Orçamento', 20, y);
@@ -262,20 +273,31 @@ export interface ManualBudgetPDFData {
 export async function generateManualBudgetPDF(data: ManualBudgetPDFData): Promise<string> {
   const doc = new jsPDF();
   
-  // Header
-  doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, 210, 40, 'F');
+  // Header com turquesa TruSmile
+  doc.setFillColor(71, 196, 216);
+  doc.rect(0, 0, 210, 45, 'F');
+  
+  // Logo TruSmile
+  try {
+    const logoUrl = '/trusmile-logo-horizontal.png';
+    const logoWidth = 60;
+    const logoHeight = 15;
+    doc.addImage(logoUrl, 'PNG', 105 - (logoWidth / 2), 12, logoWidth, logoHeight);
+  } catch (error) {
+    console.warn('Logo não carregada:', error);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text('TruSmile AI', 105, 20, { align: 'center' });
+  }
   
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text('Facet.AI', 105, 20, { align: 'center' });
   doc.setFontSize(14);
-  doc.text('ORÇAMENTO PERSONALIZADO', 105, 30, { align: 'center' });
+  doc.text('ORÇAMENTO PERSONALIZADO', 105, 35, { align: 'center' });
   
   doc.setTextColor(0, 0, 0);
   
   // Info do orçamento
-  let y = 50;
+  let y = 55;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('Informações do Orçamento', 20, y);

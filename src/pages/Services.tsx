@@ -36,18 +36,13 @@ export const Services = () => {
   const archivedServices = services.filter(s => !s.active);
 
   return (
-    <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold">Serviços</h2>
-            <p className="text-muted-foreground mt-1">
-              Gerencie os serviços oferecidos pela clínica
-            </p>
-          </div>
-          <Button onClick={handleCreate}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Serviço
+    <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header - Botão de ação */}
+        <div className="flex items-center justify-end">
+          <Button onClick={handleCreate} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo Serviço</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
@@ -59,9 +54,9 @@ export const Services = () => {
           <>
             {/* Serviços Obrigatórios */}
             {requiredServices.length > 0 && (
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Serviços Obrigatórios</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="w-full">
+                <h3 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4">Serviços Obrigatórios</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                   {requiredServices.map((service) => (
                     <ServiceCard
                       key={service.id}
@@ -76,9 +71,9 @@ export const Services = () => {
             )}
 
             {/* Serviços Opcionais */}
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Serviços Opcionais</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="w-full">
+              <h3 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4">Serviços Opcionais</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
                 {optionalServices.map((service) => (
                   <ServiceCard
                     key={service.id}
@@ -127,7 +122,6 @@ export const Services = () => {
           onCreate={createService}
           onUpdate={updateService}
         />
-      </div>
     </div>
   );
 };
@@ -152,7 +146,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onView, onEdit, onAr
             )}
           </div>
           <Badge variant={service.active ? 'default' : 'secondary'}>
-            {service.category}
+            {service.tipo_servico}
           </Badge>
         </div>
       </CardHeader>

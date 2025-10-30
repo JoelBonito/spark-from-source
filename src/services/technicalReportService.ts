@@ -22,93 +22,8 @@ export function generateReportNumber(): string {
   return `REL-${year}${month}-${random}`;
 }
 
-export async function generateTechnicalReportWithGemini(
-  imageBase64: string,
-  treatmentType: 'facetas' | 'clareamento' = 'facetas'
-): Promise<string> {
-  console.log('Gerando relatório técnico via Edge Function...');
-
-  // Chamar Edge Function em vez de API diretamente
-  const { data, error } = await supabase.functions.invoke('process-dental-facets', {
-    body: {
-      imageBase64,
-      action: 'report',
-      treatment_type: treatmentType
-    }
-  });
-
-  if (error) {
-    console.error('Erro ao gerar relatório via Edge Function:', error);
-    throw new Error(`Falha ao gerar relatório: ${error.message}`);
-  }
-
-  if (!data?.reportContent) {
-    console.error('Edge Function não retornou conteúdo do relatório');
-    throw new Error('Relatório não foi gerado');
-  }
-
-  console.log('Relatório técnico gerado com sucesso via Edge Function');
-  return data.reportContent;
-}
-
-export async function generateTechnicalReportWithClaude(
-  imageBase64: string,
-  claudeApiKey: string,
-  treatmentType: 'facetas' | 'clareamento' = 'facetas'
-): Promise<string> {
-  try {
-    console.log('Gerando relatório técnico com Claude...');
-    
-    const prompt = treatmentType === 'clareamento' 
-      ? CLAREAMENTO_REPORT_PROMPT 
-      : FACETAS_REPORT_PROMPT;
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${claudeApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-20250514',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { 
-                type: 'text', 
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageBase64 }
-              }
-            ]
-          }
-        ],
-        max_tokens: 4000,
-        temperature: 0.3
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Claude API error: ${error}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('Claude não retornou conteúdo');
-    }
-
-    return content;
-  } catch (error) {
-    console.error('Erro ao gerar relatório com Claude:', error);
-    throw error;
-  }
-}
+// DEPRECATED: Report generation moved to Edge Function for security
+// Use process-dental-facets Edge Function with action: 'generate-report' instead
 
 export async function generateTechnicalReportPDF(data: TechnicalReportData): Promise<string> {
   const doc = new jsPDF();
@@ -117,22 +32,33 @@ export async function generateTechnicalReportPDF(data: TechnicalReportData): Pro
   const margin = 20;
   const contentWidth = pageWidth - (2 * margin);
   
-  // Header colorido
-  doc.setFillColor(99, 102, 241); // Indigo
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  // Header com turquesa TruSmile
+  doc.setFillColor(71, 196, 216);
+  doc.rect(0, 0, pageWidth, 45, 'F');
   
-  // Logo/Título
+  // Logo TruSmile
+  try {
+    const logoUrl = '/trusmile-logo-horizontal.png';
+    const logoWidth = 70;
+    const logoHeight = 17;
+    doc.addImage(logoUrl, 'PNG', (pageWidth / 2) - (logoWidth / 2), 12, logoWidth, logoHeight);
+  } catch (error) {
+    console.warn('Logo não carregada:', error);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text('TruSmile AI', pageWidth / 2, 18, { align: 'center' });
+  }
+  
+  // Título
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.text('Facet.AI', pageWidth / 2, 15, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('RELATÓRIO TÉCNICO DE FACETAS DENTÁRIAS', pageWidth / 2, 25, { align: 'center' });
+  doc.text('RELATÓRIO TÉCNICO DE FACETAS DENTÁRIAS', pageWidth / 2, 35, { align: 'center' });
   
   // Reset
   doc.setTextColor(0, 0, 0);
   
   // Informações do Relatório
-  let y = 45;
+  let y = 55;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('INFORMAÇÕES DO RELATÓRIO', margin, y);

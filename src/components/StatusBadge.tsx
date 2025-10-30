@@ -37,7 +37,15 @@ const statusConfig = {
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const config = statusConfig[status];
+  // FASE 1: Validar se o status existe no config
+  const validStatus = status && statusConfig[status] ? status : 'pending';
+  
+  // Log de warning em desenvolvimento para identificar status inválidos
+  if (process.env.NODE_ENV === 'development' && status && !statusConfig[status]) {
+    console.warn(`⚠️ Status inválido detectado: "${status}". Usando "pending" como fallback.`);
+  }
+  
+  const config = statusConfig[validStatus];
   
   return (
     <Badge variant="outline" className={config.className}>

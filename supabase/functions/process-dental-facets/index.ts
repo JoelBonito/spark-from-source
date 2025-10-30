@@ -444,82 +444,92 @@ Deno.serve(async (req) => {
     }
 
     // ========================================
-    // AÇÃO: GERAÇÃO DE RELATÓRIO TÉCNICO
+    // AÇÃO: GERAR RELATÓRIO TÉCNICO
     // ========================================
-    if (action === 'report') {
+    if (action === 'generate-report') {
       log.info('═══════════════════════════════════════');
       log.info(`RELATÓRIO TÉCNICO - Tipo: ${treatment_type || 'facetas'}`);
       log.info(`Modelo: ${MODEL_NAME_ANALYSIS}`);
       log.info('═══════════════════════════════════════');
 
-      // Importar o prompt de relatório
-      const { FACETAS_REPORT_PROMPT, CLAREAMENTO_REPORT_PROMPT } = await import('./reportPrompts.ts');
-
-      const reportPrompt = treatment_type === 'clareamento'
-        ? CLAREAMENTO_REPORT_PROMPT
-        : FACETAS_REPORT_PROMPT;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-      try {
-        const reportResponse = await fetch(
+      const { getReportPrompt } = await import('./prompts.ts');
+      
+      // Se analysisData não foi fornecido, gerar análise primeiro
+      let finalAnalysisData = analysisData;
+      
+      if (!finalAnalysisData) {
+        log.info('Gerando análise antes do relatório...');
+        const analysisPrompt = getAnalysisPrompt(treatment_type || 'facetas');
+        
+        const parts = [
+          { text: analysisPrompt },
+          prepareImageForGemini(imageBase64)
+        ];
+        
+        if (body.processedImageBase64) {
+          parts.push(prepareImageForGemini(body.processedImageBase64));
+        }
+        
+        const analysisResponse = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME_ANALYSIS}:generateContent?key=${geminiApiKey}`,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: reportPrompt },
-                  prepareImageForGemini(imageBase64)
-                ]
-              }],
+              contents: [{ parts }],
               generationConfig: {
                 temperature: 0.3,
-                maxOutputTokens: 4000
+                maxOutputTokens: 10000,
+                responseMimeType: 'application/json'
               }
-            }),
-            signal: controller.signal,
+            })
           }
         );
-
-        clearTimeout(timeoutId);
-
-        if (!reportResponse.ok) {
-          const errorText = await reportResponse.text();
-          throw new Error(`Erro ao gerar relatório: ${reportResponse.status} - ${errorText}`);
+        
+        if (!analysisResponse.ok) {
+          throw new Error(`Erro na análise: ${analysisResponse.status}`);
         }
-
-        const reportResult = await reportResponse.json();
-        const reportContent = reportResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-        if (!reportContent) {
-          throw new Error('Gemini não retornou conteúdo do relatório');
+        
+        const analysisResult = await analysisResponse.json();
+        const responseText = analysisResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        
+        if (!responseText) throw new Error('Gemini não retornou análise');
+        
+        let cleanJsonText = responseText.trim();
+        if (cleanJsonText.startsWith('```')) {
+          cleanJsonText = cleanJsonText.replace(/```(json)?\s*/i, '').trim().replace(/```$/, '').trim();
         }
+        finalAnalysisData = JSON.parse(cleanJsonText);
+      }
 
-        log.success('Relatório técnico gerado');
+      // Gerar prompt do relatório
+      const reportPrompt = getReportPrompt(finalAnalysisData, treatment_type || 'facetas');
+      log.info(`Prompt selecionado: ${treatment_type === 'clareamento' ? 'CLAREAMENTO' : 'FACETAS'}`);
+
+      const genAI = await import('https://esm.sh/@google/generative-ai@0.24.1');
+      const GoogleGenerativeAI = genAI.GoogleGenerativeAI;
+      const ai = new GoogleGenerativeAI(geminiApiKey);
+      const model = ai.getGenerativeModel({ model: MODEL_NAME_ANALYSIS });
+
+      try {
+        const result = await model.generateContent([reportPrompt]);
+        const response = await result.response;
+        const reportText = response.text();
+
+        log.success('Relatório técnico gerado com sucesso');
 
         return new Response(
           JSON.stringify({
-            success: true,
-            reportContent,
-            metadata: {
-              model: MODEL_NAME_ANALYSIS,
-              timestamp: new Date().toISOString(),
-              run_id: runId
-            }
+            reportContent: reportText,
+            success: true
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
         );
-
-      } catch (error) {
-        clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-          throw new Error('Geração de relatório cancelada por timeout (90s)');
-        }
+      } catch (error: any) {
+        log.error('Erro ao gerar relatório:', error.message);
         throw error;
       }
     }

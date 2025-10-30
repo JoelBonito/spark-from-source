@@ -4,50 +4,66 @@ import { updateLeadStage, Lead, ExtendedLead, deleteLead } from '@/services/lead
 import { getPatientSimulations } from '@/services/patientService';
 import { toast } from 'sonner';
 
-export function useKanbanBoard() {
+export function useKanbanBoard(showArchived: boolean = false) {
   const [leadsByStage, setLeadsByStage] = useState<Record<string, ExtendedLead[]>>({
-    novo_lead: [],
-    qualificacao: [],
-    conversao: [],
-    fidelizacao: []
+    simulacao: [],
+    consulta_tecnica: [],
+    fechamento: [],
+    acompanhamento: []
   });
   const [loading, setLoading] = useState(true);
 
   const loadLeads = async () => {
     try {
       setLoading(true);
-      const data = await getLeadsGroupedByStage();
+      const data = await getLeadsGroupedByStage(showArchived);
       
-      // Expandir leads com simulações
+      // Agrupamento por patient_id + treatment_type
       const expandedData: Record<string, ExtendedLead[]> = {
-        novo_lead: [],
-        qualificacao: [],
-        conversao: [],
-        fidelizacao: []
+        simulacao: [],
+        consulta_tecnica: [],
+        fechamento: [],
+        acompanhamento: []
       };
 
       for (const [stage, leads] of Object.entries(data)) {
-        const expandedLeads: ExtendedLead[] = [];
+        // Agrupar leads por patient_id + treatment_type
+        const grouped = new Map<string, Lead[]>();
         
         for (const lead of leads) {
-          const simulations = lead.patient_id 
-            ? await getPatientSimulations(lead.patient_id)
+          const key = `${lead.patient_id}-${lead.treatment_type}`;
+          if (!grouped.has(key)) {
+            grouped.set(key, []);
+          }
+          grouped.get(key)!.push(lead);
+        }
+
+        // Criar ExtendedLeads agrupados
+        const expandedLeads: ExtendedLead[] = [];
+        
+        for (const [key, groupedLeads] of grouped.entries()) {
+          // Usar o primeiro lead como base
+          const baseLead = groupedLeads[0];
+          
+          // Buscar todas as simulações do tipo de tratamento
+          const simulations = baseLead.patient_id 
+            ? (await getPatientSimulations(baseLead.patient_id)).filter(
+                sim => sim.treatment_type === baseLead.treatment_type
+              )
             : [];
 
-          if (simulations.length === 0) {
-            expandedLeads.push({ ...lead, simulationId: null });
-          } else {
-            simulations.forEach(sim => {
-              expandedLeads.push({
-                ...lead,
-                id: `${lead.id}-sim-${sim.id}`,
-                simulationId: sim.id,
-                simulation: sim,
-                opportunity_value: sim.final_price || lead.opportunity_value,
-                treatment_type: (sim.treatment_type as 'facetas' | 'clareamento') || lead.treatment_type
-              });
-            });
-          }
+          // Calcular valor total das simulações
+          const totalValue = simulations.reduce((sum, sim) => sum + (sim.final_price || 0), 0);
+
+          expandedLeads.push({
+            ...baseLead,
+            id: key, // ID composto: patient_id-treatment_type
+            realId: baseLead.id, // Preservar UUID real do banco
+            simulationId: simulations.length > 0 ? simulations[0].id : null,
+            simulation: simulations[0],
+            opportunity_value: totalValue || baseLead.opportunity_value,
+            simulationCount: simulations.length
+          });
         }
         
         expandedData[stage as keyof typeof expandedData] = expandedLeads;
@@ -64,37 +80,156 @@ export function useKanbanBoard() {
 
   useEffect(() => {
     loadLeads();
-  }, []);
+  }, [showArchived]);
 
   const moveLeadToStage = async (leadId: string, newStage: string) => {
     try {
-      // Extrair o ID real do lead (pode ser composto)
-      const realLeadId = leadId.includes('-sim-') 
-        ? leadId.split('-sim-')[0] 
-        : leadId;
-      
-      await updateLeadStage(realLeadId, newStage);
+      console.log('🔄 Movendo lead:', { leadId, newStage });
+
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado no estado local');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido ou sem patient_id');
+      }
+
+      console.log('📋 Lead encontrado:', {
+        compositeId: lead.id,
+        patient_id: lead.patient_id,
+        treatment_type: lead.treatment_type,
+        currentStage: stage
+      });
+
+      // Buscar todos os leads do banco
+      const { getAllLeads } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+
+      console.log(`🔍 Buscando lead real entre ${allLeads.length} leads...`);
+
+      // Encontrar o lead real pelo patient_id e treatment_type e stage atual
+      let realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type &&
+        l.stage === stage
+      );
+
+      // Fallback: buscar sem filtro de stage (caso o stage esteja desatualizado)
+      if (!realLead) {
+        console.warn('⚠️ Lead não encontrado com stage, buscando sem filtro...');
+        realLead = allLeads.find(l =>
+          l.patient_id === lead.patient_id &&
+          l.treatment_type === lead.treatment_type
+        );
+      }
+
+      if (!realLead) {
+        console.error('❌ Lead não encontrado:', {
+          patient_id: lead.patient_id,
+          treatment_type: lead.treatment_type,
+          currentStage: stage,
+          availableLeads: allLeads.filter(l => l.patient_id === lead.patient_id)
+        });
+        throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      console.log('✅ Lead real encontrado:', {
+        realId: realLead.id,
+        isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)
+      });
+
+      // Validar UUID antes de atualizar
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)) {
+        throw new Error(`ID inválido: ${realLead.id} não é um UUID válido`);
+      }
+
+      await updateLeadStage(realLead.id, newStage);
       await loadLeads();
       toast.success('Lead movido com sucesso!');
     } catch (err) {
-      console.error('Error moving lead:', err);
-      toast.error('Erro ao mover lead');
+      console.error('❌ Error moving lead:', err);
+      toast.error(err instanceof Error ? err.message : 'Erro ao mover lead');
     }
   };
 
   const handleDeleteLead = async (leadId: string) => {
     try {
-      // Extrair o ID real do lead
-      const realLeadId = leadId.includes('-sim-') 
-        ? leadId.split('-sim-')[0] 
-        : leadId;
-      
-      await deleteLead(realLeadId);
+      console.log('🗑️ Deletando lead:', { leadId });
+
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado no estado local');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido ou sem patient_id');
+      }
+
+      console.log('📋 Lead encontrado para deletar:', {
+        compositeId: lead.id,
+        patient_id: lead.patient_id,
+        treatment_type: lead.treatment_type
+      });
+
+      // Buscar todos os leads do banco
+      const { getAllLeads } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+
+      console.log(`🔍 Buscando lead real entre ${allLeads.length} leads...`);
+
+      // Encontrar o lead real pelo patient_id e treatment_type e stage atual
+      let realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type &&
+        l.stage === stage
+      );
+
+      // Fallback: buscar sem filtro de stage
+      if (!realLead) {
+        console.warn('⚠️ Lead não encontrado com stage, buscando sem filtro...');
+        realLead = allLeads.find(l =>
+          l.patient_id === lead.patient_id &&
+          l.treatment_type === lead.treatment_type
+        );
+      }
+
+      if (!realLead) {
+        console.error('❌ Lead não encontrado:', {
+          patient_id: lead.patient_id,
+          treatment_type: lead.treatment_type,
+          currentStage: stage,
+          availableLeads: allLeads.filter(l => l.patient_id === lead.patient_id)
+        });
+        throw new Error('Lead real não encontrado no banco de dados');
+      }
+
+      console.log('✅ Lead real encontrado:', {
+        realId: realLead.id,
+        isValidUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)
+      });
+
+      // Validar UUID antes de deletar
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realLead.id)) {
+        throw new Error(`ID inválido: ${realLead.id} não é um UUID válido`);
+      }
+
+      await deleteLead(realLead.id);
       await loadLeads();
       toast.success('Lead deletado com sucesso!');
     } catch (err) {
-      console.error('Error deleting lead:', err);
-      toast.error('Erro ao deletar lead');
+      console.error('❌ Error deleting lead:', err);
+      toast.error(err instanceof Error ? err.message : 'Erro ao deletar lead');
     }
   };
 

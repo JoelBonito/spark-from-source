@@ -5,12 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
-import { mockSimulations } from '@/lib/mock-data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SimulationsHistoryPage() {
   const navigate = useNavigate();
   const [loading] = useState(false);
+  const simulations: any[] = []; // TODO: Buscar do Supabase
 
   if (loading) {
     return (
@@ -43,22 +43,30 @@ export default function SimulationsHistoryPage() {
         <CardHeader>
           <CardTitle className="font-display">Simulações Realizadas</CardTitle>
           <CardDescription>
-            Total de {mockSimulations.length} simulações
+            Total de {simulations.length} simulações
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Tratamento</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockSimulations.map((sim) => (
+          {simulations.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhuma simulação encontrada</p>
+              <Button onClick={() => navigate('/simulator')} className="mt-4">
+                Criar Nova Simulação
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Paciente</TableHead>
+                  <TableHead>Tratamento</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {simulations.map((sim) => (
                 <TableRow key={sim.id}>
                   <TableCell className="font-medium">{sim.patient_name}</TableCell>
                   <TableCell className="capitalize">{sim.treatment_type}</TableCell>
@@ -78,9 +86,10 @@ export default function SimulationsHistoryPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

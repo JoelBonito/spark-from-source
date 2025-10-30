@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Save, RotateCcw, DollarSign } from "lucide-react";
+import { Eye, EyeOff, Save, RotateCcw, DollarSign, Info, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,14 +9,17 @@ import { toast } from "sonner";
 import { saveConfig, getConfig, DEFAULT_PROMPT, type Config } from "@/utils/storage";
 import { Switch } from "@/components/ui/switch";
 import { useConfig } from "@/contexts/ConfigContext";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 export default function ConfigForm() {
   const navigate = useNavigate();
   const {
     refreshConfig
   } = useConfig();
   const [showApiKey, setShowApiKey] = useState(false);
-  const [whiteningEnabled, setWhiteningEnabled] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [formData, setFormData] = useState<Config>({
     apiKey: "",
     backendUrl: import.meta.env.VITE_SUPABASE_URL || "",
@@ -25,14 +28,25 @@ export default function ConfigForm() {
     topP: 1.0,
     maxTokens: 8192,
     promptTemplate: DEFAULT_PROMPT,
+    userName: "",
+    userPhone: "",
+    userEmail: "",
+    clinicName: "",
+    clinicAddress: "",
+    clinicPhone: "",
+    clinicEmail: "",
+    clinicLogoUrl: "",
+    clinicZipCode: "",
+    clinicCity: "",
+    clinicState: "",
     crmEnabled: true,
-    whiteningSimulatorEnabled: false
+    facetsSimulatorEnabled: true,
+    whiteningSimulatorEnabled: true
   });
   useEffect(() => {
     getConfig().then(config => {
       if (config) {
         setFormData(config);
-        setWhiteningEnabled(config.whiteningSimulatorEnabled || false);
       }
     });
   }, []);
@@ -82,8 +96,20 @@ export default function ConfigForm() {
       topP: formData.topP,
       maxTokens: formData.maxTokens,
       promptTemplate: formData.promptTemplate,
+      userName: formData.userName,
+      userPhone: formData.userPhone,
+      userEmail: formData.userEmail,
+      clinicName: formData.clinicName,
+      clinicAddress: formData.clinicAddress,
+      clinicPhone: formData.clinicPhone,
+      clinicEmail: formData.clinicEmail,
+      clinicLogoUrl: formData.clinicLogoUrl,
+      clinicZipCode: formData.clinicZipCode,
+      clinicCity: formData.clinicCity,
+      clinicState: formData.clinicState,
       crmEnabled: formData.crmEnabled,
-      whiteningSimulatorEnabled: whiteningEnabled
+      facetsSimulatorEnabled: formData.facetsSimulatorEnabled,
+      whiteningSimulatorEnabled: formData.whiteningSimulatorEnabled
     };
     try {
       await saveConfig(config);
@@ -101,35 +127,246 @@ export default function ConfigForm() {
     });
     toast.info("Prompt restaurado para o padrão");
   };
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    // Validar tamanho (máx 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 2MB');
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Remover logo anterior se existir
+      if (formData.clinicLogoUrl) {
+        const oldPath = formData.clinicLogoUrl.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('clinic-logos').remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload da nova logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      const {
+        error: uploadError
+      } = await supabase.storage.from('clinic-logos').upload(filePath, file, {
+        upsert: true
+      });
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const {
+        data: {
+          publicUrl
+        }
+      } = supabase.storage.from('clinic-logos').getPublicUrl(filePath);
+      setFormData({
+        ...formData,
+        clinicLogoUrl: publicUrl
+      });
+      toast.success('Logomarca carregada com sucesso!');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao fazer upload da logomarca');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+  const handleRemoveLogo = async () => {
+    if (!formData.clinicLogoUrl) return;
+    try {
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      const oldPath = formData.clinicLogoUrl.split('/').pop();
+      if (oldPath) {
+        await supabase.storage.from('clinic-logos').remove([`${user.id}/${oldPath}`]);
+      }
+      setFormData({
+        ...formData,
+        clinicLogoUrl: undefined
+      });
+      toast.success('Logomarca removida');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao remover logomarca');
+    }
+  };
   return <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
-      {/* CREDENCIAIS */}
+      {/* DADOS DO USUÁRIO */}
+      <div className="border bg-card shadow-sm p-6 space-y-4 rounded-lg">
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          👤 Dados do Usuário
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="userName">Nome Completo</Label>
+            <Input id="userName" type="text" placeholder="Seu nome completo" value={formData.userName || ''} onChange={e => setFormData({
+            ...formData,
+            userName: e.target.value
+          })} />
+            <p className="text-xs text-muted-foreground">
+              Este nome aparecerá na barra lateral
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="userPhone">Telefone</Label>
+            <Input id="userPhone" type="tel" placeholder="(00) 00000-0000" value={formData.userPhone || ''} onChange={e => setFormData({
+            ...formData,
+            userPhone: e.target.value
+          })} />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="userEmail">E-mail</Label>
+            <Input id="userEmail" type="email" placeholder="seu@email.com" value={formData.userEmail || ''} onChange={e => setFormData({
+            ...formData,
+            userEmail: e.target.value
+          })} />
+          </div>
+        </div>
+      </div>
+
+      {/* DADOS DA CLÍNICA */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          🔑 Configurações da API Gemini
+          🏥 Dados da Clínica/Consultório
         </h2>
-
-        <div className="space-y-2">
-          <Label htmlFor="apiKey">Google Gemini API Key *</Label>
-          <div className="relative">
-            <Input id="apiKey" type={showApiKey ? "text" : "password"} value={formData.apiKey} onChange={e => setFormData({
-            ...formData,
-            apiKey: e.target.value
-          })} placeholder="AIza..." className={errors.apiKey ? "border-destructive" : ""} />
-            <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          {errors.apiKey && <p className="text-sm text-destructive">{errors.apiKey}</p>}
-          <p className="text-xs text-muted-foreground">
-            ℹ️ Obtenha em:{" "}
-            <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              makersuite.google.com/app/apikey
-            </a>
-          </p>
-        </div>
-
         
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Logomarca */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Logomarca da Clínica</Label>
+            <div className="flex items-center gap-4">
+              {formData.clinicLogoUrl ? <div className="relative">
+                  <img src={formData.clinicLogoUrl} alt="Logo da clínica" className="h-20 w-auto object-contain rounded border p-2" />
+                  <Button type="button" size="icon" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6" onClick={handleRemoveLogo}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div> : <div className="h-20 w-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                  <Upload className="h-6 w-6" />
+                </div>}
+              <div className="flex-1">
+                <Input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} className="cursor-pointer" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG ou WEBP (máx. 2MB)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="clinicName">Nome da Clínica</Label>
+            <Input id="clinicName" type="text" placeholder="Nome do seu consultório ou clínica" value={formData.clinicName || ''} onChange={e => setFormData({
+            ...formData,
+            clinicName: e.target.value
+          })} />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="clinicAddress">Endereço</Label>
+            <Input id="clinicAddress" type="text" placeholder="Rua, número, bairro, cidade - UF" value={formData.clinicAddress || ''} onChange={e => setFormData({
+            ...formData,
+            clinicAddress: e.target.value
+          })} />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="clinicPhone">Telefone</Label>
+            <Input id="clinicPhone" type="tel" placeholder="(00) 0000-0000" value={formData.clinicPhone || ''} onChange={e => setFormData({
+            ...formData,
+            clinicPhone: e.target.value
+          })} />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="clinicEmail">E-mail</Label>
+            <Input id="clinicEmail" type="email" placeholder="contato@clinica.com" value={formData.clinicEmail || ''} onChange={e => setFormData({
+            ...formData,
+            clinicEmail: e.target.value
+          })} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicZipCode">CEP</Label>
+            <Input id="clinicZipCode" type="text" placeholder="00000-000" value={formData.clinicZipCode || ''} onChange={e => setFormData({
+            ...formData,
+            clinicZipCode: e.target.value
+          })} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicCity">Cidade</Label>
+            <Input id="clinicCity" type="text" placeholder="São Paulo" value={formData.clinicCity || ''} onChange={e => setFormData({
+            ...formData,
+            clinicCity: e.target.value
+          })} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clinicState">Estado</Label>
+            <Select value={formData.clinicState || ''} onValueChange={value => setFormData({
+            ...formData,
+            clinicState: value
+          })}>
+              <SelectTrigger id="clinicState">
+                <SelectValue placeholder="Selecione o estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AC">Acre - AC</SelectItem>
+                <SelectItem value="AL">Alagoas - AL</SelectItem>
+                <SelectItem value="AP">Amapá - AP</SelectItem>
+                <SelectItem value="AM">Amazonas - AM</SelectItem>
+                <SelectItem value="BA">Bahia - BA</SelectItem>
+                <SelectItem value="CE">Ceará - CE</SelectItem>
+                <SelectItem value="DF">Distrito Federal - DF</SelectItem>
+                <SelectItem value="ES">Espírito Santo - ES</SelectItem>
+                <SelectItem value="GO">Goiás - GO</SelectItem>
+                <SelectItem value="MA">Maranhão - MA</SelectItem>
+                <SelectItem value="MT">Mato Grosso - MT</SelectItem>
+                <SelectItem value="MS">Mato Grosso do Sul - MS</SelectItem>
+                <SelectItem value="MG">Minas Gerais - MG</SelectItem>
+                <SelectItem value="PA">Pará - PA</SelectItem>
+                <SelectItem value="PB">Paraíba - PB</SelectItem>
+                <SelectItem value="PR">Paraná - PR</SelectItem>
+                <SelectItem value="PE">Pernambuco - PE</SelectItem>
+                <SelectItem value="PI">Piauí - PI</SelectItem>
+                <SelectItem value="RJ">Rio de Janeiro - RJ</SelectItem>
+                <SelectItem value="RN">Rio Grande do Norte - RN</SelectItem>
+                <SelectItem value="RS">Rio Grande do Sul - RS</SelectItem>
+                <SelectItem value="RO">Rondônia - RO</SelectItem>
+                <SelectItem value="RR">Roraima - RR</SelectItem>
+                <SelectItem value="SC">Santa Catarina - SC</SelectItem>
+                <SelectItem value="SP">São Paulo - SP</SelectItem>
+                <SelectItem value="SE">Sergipe - SE</SelectItem>
+                <SelectItem value="TO">Tocantins - TO</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
+
+      {/* CREDENCIAIS */}
+      
 
       {/* PARÂMETROS AVANÇADOS */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
@@ -185,14 +422,31 @@ export default function ConfigForm() {
         </h2>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="crmEnabled" className="text-base font-semibold">
-                Módulo CRM
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Ativar ou desativar o módulo de gestão de leads
-              </p>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="crmEnabled" className="text-base font-semibold">
+                    Módulo CRM
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Sistema de gestão de relacionamento com clientes. 
+                          Gerencie leads, oportunidades e pipeline de vendas.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ativar ou desativar o módulo de gestão de leads
+                </p>
+              </div>
             </div>
             <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={checked => setFormData(prev => ({
             ...prev,
@@ -209,28 +463,70 @@ export default function ConfigForm() {
         </h2>
         
         <div className="space-y-4">
-          {/* Facetas (sempre ativo) */}
-          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-            <div>
-              <Label className="text-base font-semibold">Simulador de Facetas Dentárias</Label>
-              <p className="text-sm text-muted-foreground">Simulação de facetas (sempre ativo)</p>
+          {/* Facetas (AGORA COM TOGGLE) */}
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="facetsEnabled" className="text-base font-semibold">
+                    Simulador de Facetas Dentárias
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Módulo principal de simulação de facetas dentárias. 
+                          Recomendamos manter sempre ativo.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Simulação de facetas de cerâmica (ativo por padrão)
+                </p>
+              </div>
             </div>
-            <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm font-medium">
-              Ativo
-            </span>
+            <Switch id="facetsEnabled" checked={formData.facetsSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
+            ...prev,
+            facetsSimulatorEnabled: checked
+          }))} />
           </div>
           
           {/* Clareamento (toggle) */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <Label htmlFor="whiteningEnabled" className="text-base font-semibold">
-                Simulador de Clareamento Dental
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Ative para permitir simulações de clareamento dental
-              </p>
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="whiteningEnabled" className="text-base font-semibold">
+                    Simulador de Clareamento Dental
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Simulação de clareamento dental. Útil para apresentar 
+                          resultados de tratamentos de branqueamento.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Ative para permitir simulações de clareamento dental
+                </p>
+              </div>
             </div>
-            <Switch id="whiteningEnabled" checked={whiteningEnabled} onCheckedChange={setWhiteningEnabled} />
+            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={checked => setFormData(prev => ({
+            ...prev,
+            whiteningSimulatorEnabled: checked
+          }))} />
           </div>
         </div>
       </div>

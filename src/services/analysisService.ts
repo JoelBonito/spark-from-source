@@ -68,6 +68,49 @@ export function calculateBudget(
   };
 }
 
+// Função para calcular orçamento usando serviços do banco de dados
+export async function calculateBudgetFromServices(
+  teethCount: number,
+  needsClareamento: boolean,
+  complexidade: 'baixa' | 'média' | 'alta'
+) {
+  // Importar função de busca de serviços
+  const { getServiceByName } = await import('@/hooks/useServices');
+  
+  // Buscar preços dos serviços do banco
+  const facetasService = await getServiceByName('Facetas');
+  const clareamentoService = await getServiceByName('Clareamento');
+
+  const pricePerTooth = facetasService?.price || 2500; // Fallback
+  const PRECO_CLAREAMENTO = clareamentoService?.price || 800; // Fallback
+
+  const subtotalFacetas = teethCount * pricePerTooth;
+  const valorClareamento = needsClareamento ? PRECO_CLAREAMENTO : 0;
+  const subtotal = subtotalFacetas + valorClareamento;
+  const finalPrice = subtotal;
+
+  const paymentOptions = [
+    { name: 'À vista', installments: 1, discount: 10, value: finalPrice * 0.9, installmentValue: finalPrice * 0.9, description: '10% de desconto' },
+    { name: '3x sem juros', installments: 3, discount: 5, value: finalPrice * 0.95, installmentValue: (finalPrice * 0.95) / 3, description: '5% de desconto' },
+    { name: '6x sem juros', installments: 6, discount: 0, value: finalPrice, installmentValue: finalPrice / 6, description: 'Sem desconto' },
+    { name: '12x sem juros', installments: 12, discount: 0, value: finalPrice, installmentValue: finalPrice / 12, description: 'Sem desconto' }
+  ];
+
+  return {
+    teethCount,
+    pricePerTooth,
+    subtotal: subtotalFacetas,
+    totalWithClareamento: subtotal,
+    finalPrice,
+    paymentOptions,
+    needsClareamento,
+    valorClareamento,
+    complexidade,
+    servicoFacetas: facetasService?.name || 'Facetas Dentárias',
+    servicoClareamento: clareamentoService?.name || 'Clareamento Dental'
+  };
+}
+
 
 // Função auxiliar para upload de Base64 para Storage
 async function uploadBase64ToSupabase(base64Data: string, bucketName: string, fileName: string): Promise<string> {

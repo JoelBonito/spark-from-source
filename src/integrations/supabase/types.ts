@@ -106,13 +106,14 @@ export type Database = {
           final_price: number
           id: string
           items: Json | null
+          lead_id: string | null
           patient_id: string | null
           patient_name: string | null
           payment_conditions: Json | null
           pdf_url: string | null
           price_per_tooth: number | null
           simulation_id: string | null
-          status: string | null
+          status: string
           subtotal: number
           teeth_count: number
           treatment_type: string
@@ -132,13 +133,14 @@ export type Database = {
           final_price: number
           id?: string
           items?: Json | null
+          lead_id?: string | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null
           pdf_url?: string | null
           price_per_tooth?: number | null
           simulation_id?: string | null
-          status?: string | null
+          status?: string
           subtotal: number
           teeth_count: number
           treatment_type?: string
@@ -158,13 +160,14 @@ export type Database = {
           final_price?: number
           id?: string
           items?: Json | null
+          lead_id?: string | null
           patient_id?: string | null
           patient_name?: string | null
           payment_conditions?: Json | null
           pdf_url?: string | null
           price_per_tooth?: number | null
           simulation_id?: string | null
-          status?: string | null
+          status?: string
           subtotal?: number
           teeth_count?: number
           treatment_type?: string
@@ -178,6 +181,13 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -258,6 +268,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          archived: boolean | null
           assigned_to: string | null
           created_at: string | null
           email: string | null
@@ -278,6 +289,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean | null
           assigned_to?: string | null
           created_at?: string | null
           email?: string | null
@@ -298,6 +310,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived?: boolean | null
           assigned_to?: string | null
           created_at?: string | null
           email?: string | null
@@ -363,6 +376,7 @@ export type Database = {
       patients: {
         Row: {
           address: string | null
+          archived: boolean | null
           birth_date: string | null
           city: string | null
           cpf: string | null
@@ -381,6 +395,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived?: boolean | null
           birth_date?: string | null
           city?: string | null
           cpf?: string | null
@@ -399,6 +414,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived?: boolean | null
           birth_date?: string | null
           city?: string | null
           cpf?: string | null
@@ -493,43 +509,70 @@ export type Database = {
           },
         ]
       }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           active: boolean
           base: boolean
-          category: string
+          categoria: string | null
           created_at: string | null
           description: string | null
           id: string
           name: string
+          observacoes: string | null
           price: number
           required: boolean
+          tipo_servico: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
           active?: boolean
           base?: boolean
-          category: string
+          categoria?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
+          observacoes?: string | null
           price?: number
           required?: boolean
+          tipo_servico: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
           active?: boolean
           base?: boolean
-          category?: string
+          categoria?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
+          observacoes?: string | null
           price?: number
           required?: boolean
+          tipo_servico?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -629,8 +672,17 @@ export type Database = {
           api_key: string
           backend_url: string
           claude_api_key: string | null
+          clinic_address: string | null
+          clinic_city: string | null
+          clinic_email: string | null
+          clinic_logo_url: string | null
+          clinic_name: string | null
+          clinic_phone: string | null
+          clinic_state: string | null
+          clinic_zip_code: string | null
           created_at: string
           crm_enabled: boolean | null
+          facets_simulator_enabled: boolean | null
           id: string
           max_tokens: number
           profile_picture_url: string | null
@@ -640,15 +692,27 @@ export type Database = {
           top_p: number
           updated_at: string
           use_claude: boolean | null
+          user_email: string | null
           user_id: string
+          user_name: string | null
+          user_phone: string | null
           whitening_simulator_enabled: boolean | null
         }
         Insert: {
           api_key: string
           backend_url: string
           claude_api_key?: string | null
+          clinic_address?: string | null
+          clinic_city?: string | null
+          clinic_email?: string | null
+          clinic_logo_url?: string | null
+          clinic_name?: string | null
+          clinic_phone?: string | null
+          clinic_state?: string | null
+          clinic_zip_code?: string | null
           created_at?: string
           crm_enabled?: boolean | null
+          facets_simulator_enabled?: boolean | null
           id?: string
           max_tokens?: number
           profile_picture_url?: string | null
@@ -658,15 +722,27 @@ export type Database = {
           top_p?: number
           updated_at?: string
           use_claude?: boolean | null
+          user_email?: string | null
           user_id: string
+          user_name?: string | null
+          user_phone?: string | null
           whitening_simulator_enabled?: boolean | null
         }
         Update: {
           api_key?: string
           backend_url?: string
           claude_api_key?: string | null
+          clinic_address?: string | null
+          clinic_city?: string | null
+          clinic_email?: string | null
+          clinic_logo_url?: string | null
+          clinic_name?: string | null
+          clinic_phone?: string | null
+          clinic_state?: string | null
+          clinic_zip_code?: string | null
           created_at?: string
           crm_enabled?: boolean | null
+          facets_simulator_enabled?: boolean | null
           id?: string
           max_tokens?: number
           profile_picture_url?: string | null
@@ -676,7 +752,10 @@ export type Database = {
           top_p?: number
           updated_at?: string
           use_claude?: boolean | null
+          user_email?: string | null
           user_id?: string
+          user_name?: string | null
+          user_phone?: string | null
           whitening_simulator_enabled?: boolean | null
         }
         Relationships: []

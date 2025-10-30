@@ -9,7 +9,7 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Backgrounds */
-    --background: 210 40% 98%; /* #F8FAFC - Slate 50 */
+    --background: 200 30% 98%; /* #F7FAFB - Light icy blue */
     --foreground: 222 84% 15%; /* #1F2937 - Gray 800 */
     
     /* Cards */
@@ -20,21 +20,21 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 84% 15%;
     
-    /* Primary (Sky Blue) */
-    --primary: 200 89% 53%; /* #0EA5E9 - Sky 500 */
+    /* Primary (TruSmile Turquoise) */
+    --primary: 184 68% 58%; /* #47C4D8 - TruSmile Turquoise */
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary (Emerald) */
-    --secondary: 158 79% 44%; /* #10B981 - Emerald 500 */
+    /* Secondary (Muted Turquoise) */
+    --secondary: 184 45% 48%; /* #4AA6BF - Turquoise medium */
     --secondary-foreground: 0 0% 100%;
     
     /* Muted */
     --muted: 220 14% 91%; /* #E5E7EB - Gray 200 */
     --muted-foreground: 215 16% 47%;
     
-    /* Accent */
-    --accent: 220 14% 96%; /* #F3F4F6 - Gray 100 */
-    --accent-foreground: 222 84% 15%;
+    /* Accent (Turquoise very light) */
+    --accent: 184 68% 95%; /* #E8F7FA - Turquoise very light */
+    --accent-foreground: 184 68% 30%; /* Dark turquoise */
     
     /* Destructive */
     --destructive: 0 84% 60%; /* #EF4444 - Red 500 */
@@ -57,7 +57,7 @@ All colors MUST be HSL.
     --radius: 0.75rem; /* 12px */
     
     /* Charts */
-    --chart-1: 200 89% 53%; /* Sky Blue */
+    --chart-1: 184 68% 58%; /* TruSmile Turquoise */
     --chart-2: 158 79% 44%; /* Emerald */
     --chart-3: 262 84% 59%; /* Purple */
     --chart-4: 38 92% 50%;  /* Amber */
@@ -75,20 +75,20 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 224 71% 4%; /* #020817 */
+    --background: 220 20% 8%; /* #0F1419 - Dark blue almost black */
     --foreground: 210 40% 98%;
     --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
-    --primary: 200 89% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 158 79% 44%;
+    --primary: 184 68% 65%; /* Lighter turquoise for dark mode contrast */
+    --primary-foreground: 220 20% 10%;
+    --secondary: 184 45% 55%;
     --secondary-foreground: 0 0% 100%;
     --muted: 217 33% 18%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 184 30% 15%; /* Dark turquoise for backgrounds */
+    --accent-foreground: 184 68% 85%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     --warning: 38 92% 50%;
@@ -98,19 +98,19 @@ All colors MUST be HSL.
     --border: 217 33% 18%;
     --input: 217 33% 18%;
     --ring: 200 89% 53%;
-    --chart-1: 200 89% 53%;
+    --chart-1: 184 68% 65%;
     --chart-2: 158 79% 44%;
     --chart-3: 262 84% 59%;
     --chart-4: 38 92% 50%;
     --chart-5: 340 82% 52%;
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 200 89% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 184 68% 65%;
+    --sidebar-primary-foreground: 220 20% 10%;
     --sidebar-accent: 217 33% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 200 89% 53%;
+    --sidebar-ring: 184 68% 65%;
   }
 }
 
@@ -144,5 +144,100 @@ All colors MUST be HSL.
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Prevent horizontal scroll */
+  .prevent-scroll {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Responsive table container */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* TruSmile Gradients */
+  .gradient-trusmile {
+    background: linear-gradient(135deg, #47C4D8 0%, #6BB8D4 100%);
+  }
+
+  .gradient-trusmile-soft {
+    background: linear-gradient(135deg, #E8F7FA 0%, #D4F1F7 100%);
+  }
+
+  /* Dark mode gradients */
+  .dark .gradient-trusmile {
+    background: linear-gradient(135deg, rgba(71, 196, 216, 0.8) 0%, rgba(107, 184, 212, 0.8) 100%);
+  }
+
+  .dark .gradient-trusmile-soft {
+    background: linear-gradient(135deg, rgba(71, 196, 216, 0.1) 0%, rgba(107, 184, 212, 0.1) 100%);
+  }
+
+  /* TruSmile Text Gradient */
+  .text-gradient-trusmile {
+    background: linear-gradient(135deg, #47C4D8 0%, #4FA6C9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* TruSmile Glow Effects */
+  .glow-trusmile {
+    box-shadow: 0 0 20px rgba(71, 196, 216, 0.3);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .glow-trusmile:hover {
+    box-shadow: 0 0 30px rgba(71, 196, 216, 0.5);
+    transform: translateY(-2px);
+  }
+
+  .glow-trusmile:active {
+    transform: translateY(0);
+  }
+
+  .text-glow-trusmile {
+    text-shadow: 0 0 10px rgba(71, 196, 216, 0.4);
+  }
+
+  /* Dark mode glow */
+  .dark .glow-trusmile {
+    box-shadow: 0 0 20px rgba(71, 196, 216, 0.4);
+  }
+
+  .dark .glow-trusmile:hover {
+    box-shadow: 0 0 35px rgba(71, 196, 216, 0.6);
+  }
+
+  /* Icon Styles */
+  .icon-trusmile {
+    color: #47C4D8;
+    stroke-width: 2;
+  }
+
+  .icon-trusmile-light {
+    color: #6BB8D4;
+    stroke-width: 1.5;
+  }
+
+  /* Network Effect (subtle background pattern) */
+  .network-effect {
+    position: relative;
+  }
+
+  .network-effect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(71, 196, 216, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.5;
+    pointer-events: none;
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Users, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Search, Users, TrendingUp, Calendar, Archive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePatients } from '@/hooks/usePatients';
 import { usePatientForm } from '@/hooks/usePatientForm';
@@ -10,7 +10,7 @@ import { ComparisonViewModal } from '@/components/ComparisonViewModal';
 import { TechnicalReportDialog } from '@/components/TechnicalReportDialog';
 import { BudgetDetailModal } from '@/components/BudgetDetailModal';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
-import { PatientWithRelations, deletePatient, searchPatients, getPatientStats } from '@/services/patientService';
+import { PatientWithRelations, deletePatient, searchPatients, getPatientStats, archivePatient } from '@/services/patientService';
 import { updateBudget } from '@/services/budgetService';
 import type { Budget } from '@/services/budgetService';
 import { PatientFormData } from '@/utils/patientValidation';
@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,9 +34,10 @@ import {
 export const Patients = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { patients, loading, refresh } = usePatients();
+  const [showArchived, setShowArchived] = useState(false);
+  const { patients, loading, refresh } = usePatients(showArchived);
   const { saving, createPatient, updatePatient } = usePatientForm();
-  
+
   const [filteredPatients, setFilteredPatients] = useState<PatientWithRelations[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<PatientWithRelations | null>(null);
@@ -117,7 +120,7 @@ export const Patients = () => {
   };
 
   const handleNewSimulation = (patient: PatientWithRelations) => {
-    navigate('/', { state: { selectedPatient: patient } });
+    navigate('/simulator', { state: { selectedPatient: patient } });
   };
 
   const handleEditFromDetail = (patientId: string) => {
@@ -132,7 +135,7 @@ export const Patients = () => {
   const handleNewSimulationFromDetail = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (patient) {
-      navigate('/', { state: { selectedPatient: patient } });
+      navigate('/simulator', { state: { selectedPatient: patient } });
     }
   };
 
@@ -229,13 +232,36 @@ export const Patients = () => {
 
     let parsedData;
     try {
-      parsedData = typeof patient.latest_simulation.technical_notes === 'string'
-        ? JSON.parse(patient.latest_simulation.technical_notes)
-        : patient.latest_simulation.technical_notes;
+      if (typeof patient.latest_simulation.technical_notes === 'string') {
+        // Tenta fazer parse como JSON
+        try {
+          parsedData = JSON.parse(patient.latest_simulation.technical_notes);
+        } catch {
+          // String simples - não é relatório completo
+          toast({
+            title: 'Relatório não disponível',
+            description: 'Relatório técnico não está disponível para esta simulação',
+            variant: 'destructive'
+          });
+          return;
+        }
+      } else {
+        parsedData = patient.latest_simulation.technical_notes;
+      }
+      
+      // Validar estrutura completa
+      if (!parsedData?.analise_resumo || !parsedData?.valores || !parsedData?.relatorio_tecnico) {
+        toast({
+          title: 'Dados incompletos',
+          description: 'Os dados do relatório técnico estão incompletos',
+          variant: 'destructive'
+        });
+        return;
+      }
     } catch {
       toast({
         title: 'Erro',
-        description: 'Erro ao carregar relatório técnico',
+        description: 'Erro ao processar relatório técnico',
         variant: 'destructive'
       });
       return;
@@ -297,6 +323,23 @@ export const Patients = () => {
     }
   };
 
+  const handleArchivePatient = async (patient: PatientWithRelations) => {
+    try {
+      await archivePatient(patient.id);
+      toast({
+        title: 'Sucesso',
+        description: 'Paciente arquivado com sucesso',
+      });
+      refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao arquivar paciente',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSaveBudget = async (data: any) => {
     if (!budgetFormModal) return;
 
@@ -337,81 +380,91 @@ export const Patients = () => {
   };
 
   return (
-    <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">Pacientes</h2>
-            <p className="text-muted-foreground mt-1">
-              Gerencie todos os seus pacientes
-            </p>
-          </div>
+    <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header - Botão de ação */}
+        <div className="flex items-center justify-between gap-4">
           <Button onClick={handleNewPatient} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            Novo Paciente
+            <span className="hidden sm:inline">Novo Paciente</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
-        </div>
 
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Pacientes</p>
-                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Com Simulações</p>
-                <p className="text-2xl font-bold text-foreground">{stats.withSimulations}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card rounded-lg border p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Novos Este Mês</p>
-                <p className="text-2xl font-bold text-foreground">{stats.newThisMonth}</p>
-              </div>
-            </div>
+          {/* Toggle para mostrar arquivados */}
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Switch
+              id="show-archived-patients"
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+            />
+            <Label htmlFor="show-archived-patients" className="flex items-center gap-2 cursor-pointer text-sm">
+              <Archive className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Mostrar Arquivados</span>
+              <span className="sm:hidden">Arquivados</span>
+            </Label>
           </div>
         </div>
 
-        {/* Busca */}
-        <div className="bg-card rounded-lg border p-4">
+        {/* Estatísticas - Grid Responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="bg-card rounded-lg border p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total de Pacientes</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-lg border p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Com Simulações</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.withSimulations}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-lg border p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Novos Este Mês</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.newThisMonth}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Busca - Responsivo */}
+        <div className="bg-card rounded-lg border p-3 sm:p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
             <Input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Buscar por nome ou telefone..."
-              className="pl-10"
+              placeholder="Buscar paciente..."
+              className="pl-9 sm:pl-10"
             />
           </div>
         </div>
 
-        {/* Tabela */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <PatientTable
+        {/* Tabela - Container com overflow responsivo */}
+        <div className="w-full overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <PatientTable
             patients={filteredPatients}
             onEdit={handleEdit}
             onDelete={(patient) => setDeleteConfirmPatient(patient)}
@@ -421,8 +474,10 @@ export const Patients = () => {
             onViewBudget={handleViewBudget}
             onEditBudget={handleEditBudget}
             onViewTechnicalReport={handleViewTechnicalReport}
+            onArchive={handleArchivePatient}
           />
         )}
+        </div>
 
         {/* Modais */}
         <PatientModal
@@ -508,7 +563,6 @@ export const Patients = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
     </div>
   );
 };

@@ -14,15 +14,24 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Poppins', 'Inter', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        logo: ['"Montserrat"', 'sans-serif'],
       },
       boxShadow: {
-        sm: '0px 2px 4px rgba(0, 0, 0, 0.05)',
-        DEFAULT: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-        md: '0px 8px 12px rgba(0, 0, 0, 0.1)',
-        lg: '0px 12px 20px rgba(0, 0, 0, 0.1)',
-        xl: '0px 16px 24px rgba(0, 0, 0, 0.1)',
+        sm: '0px 2px 4px rgba(71, 196, 216, 0.08)',
+        DEFAULT: '0px 4px 6px rgba(71, 196, 216, 0.12)',
+        md: '0px 8px 12px rgba(71, 196, 216, 0.15)',
+        lg: '0px 12px 20px rgba(71, 196, 216, 0.18)',
+        xl: '0px 16px 24px rgba(71, 196, 216, 0.2)',
+        'trusmile': '0 0 20px rgba(71, 196, 216, 0.3)',
+        'trusmile-lg': '0 0 30px rgba(71, 196, 216, 0.4)',
+      },
+      transitionDuration: {
+        '300': '300ms',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -106,10 +115,21 @@ export default {
             height: "0",
           },
         },
+        "pulse-trusmile": {
+          "0%, 100%": {
+            opacity: "1",
+            boxShadow: "0 0 0 0 rgba(71, 196, 216, 0.7)"
+          },
+          "50%": {
+            opacity: "0.9",
+            boxShadow: "0 0 0 10px rgba(71, 196, 216, 0)"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-trusmile": "pulse-trusmile 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },

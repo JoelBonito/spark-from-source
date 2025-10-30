@@ -20,6 +20,11 @@ export function TechnicalReportDialog({
   onDownloadPDF 
 }: TechnicalReportDialogProps) {
   const { relatorio_tecnico, analise_resumo, valores } = data;
+  
+  // Validação de segurança - retorna null se dados estiverem incompletos
+  if (!analise_resumo || !valores || !relatorio_tecnico) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -73,7 +73,7 @@ export async function getAllPatients(): Promise<Patient[]> {
   }));
 }
 
-export async function getPatientsWithRelations(): Promise<PatientWithRelations[]> {
+export async function getPatientsWithRelations(showArchived: boolean = false): Promise<PatientWithRelations[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -81,8 +81,7 @@ export async function getPatientsWithRelations(): Promise<PatientWithRelations[]
     .from('patients')
     .select(`
       *,
-      simulations_count:simulations(count),
-      latest_simulation:simulations(
+      simulations!simulations_patient_id_fkey (
         id,
         original_image_url,
         processed_image_url,
@@ -90,7 +89,7 @@ export async function getPatientsWithRelations(): Promise<PatientWithRelations[]
         treatment_type,
         created_at
       ),
-      latest_budget:budgets(
+      budgets (
         id,
         budget_number,
         final_price,
@@ -99,27 +98,26 @@ export async function getPatientsWithRelations(): Promise<PatientWithRelations[]
       )
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .order('created_at', { foreignTable: 'latest_simulation', ascending: false })
-    .order('created_at', { foreignTable: 'latest_budget', ascending: false })
-    .limit(1, { foreignTable: 'latest_simulation' })
-    .limit(1, { foreignTable: 'latest_budget' });
+    .eq('archived', showArchived)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  return (data || []).map(patient => ({
-    ...patient,
-    simulations_count: patient.simulations_count?.[0]?.count || 0,
-    latest_simulation: Array.isArray(patient.latest_simulation) && patient.latest_simulation.length > 0 
-      ? patient.latest_simulation[0] 
-      : null,
-    latest_budget: Array.isArray(patient.latest_budget) && patient.latest_budget.length > 0 
-      ? patient.latest_budget[0] 
-      : null
-  }));
+  return (data || []).map(patient => {
+    const simulationsArray = patient.simulations || [];
+    return {
+      ...patient,
+      simulations_count: simulationsArray.length,
+      latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
+      latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
+    };
+  });
 }
 
-export async function getPatientById(id: string): Promise<Patient | null> {
+export async function getPatientById(id: string): Promise<Patient> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('patients')
     .select(`
@@ -127,19 +125,10 @@ export async function getPatientById(id: string): Promise<Patient | null> {
       simulations:simulations(count)
     `)
     .eq('id', id)
-    .maybeSingle();
+    .eq('user_id', user.id)
+    .single();
 
-  if (error) {
-    console.error('❌ Erro ao buscar paciente por ID:', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      patientId: id
-    });
-    throw error;
-  }
-  if (!data) return null;
+  if (error) throw error;
 
   return {
     ...data,
@@ -153,60 +142,47 @@ export async function createPatient(patientData: CreatePatientData): Promise<Pat
 
   const { data, error } = await supabase
     .from('patients')
-    .insert([
-      {
-        ...patientData,
-        user_id: user.id
-      }
-    ])
+    .insert({
+      ...patientData,
+      user_id: user.id
+    })
     .select()
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    console.error('❌ Erro ao criar paciente:', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint
-    });
-    throw error;
-  }
-  if (!data) throw new Error('Falha ao criar paciente');
+  if (error) throw error;
   return data;
 }
 
 export async function updatePatient(id: string, patientData: UpdatePatientData): Promise<Patient> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('patients')
     .update(patientData)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    console.error('❌ Erro ao atualizar paciente:', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      patientId: id
-    });
-    throw error;
-  }
-  if (!data) throw new Error('Paciente não encontrado');
+  if (error) throw error;
   return data;
 }
 
 export async function deletePatient(id: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase
     .from('patients')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) throw error;
 }
 
-export async function searchPatients(query: string): Promise<Patient[]> {
+export async function searchPatients(query: string): Promise<PatientWithRelations[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -214,7 +190,21 @@ export async function searchPatients(query: string): Promise<Patient[]> {
     .from('patients')
     .select(`
       *,
-      simulations:simulations(count)
+      simulations!simulations_patient_id_fkey (
+        id,
+        original_image_url,
+        processed_image_url,
+        technical_notes,
+        treatment_type,
+        created_at
+      ),
+      budgets (
+        id,
+        budget_number,
+        final_price,
+        status,
+        created_at
+      )
     `)
     .eq('user_id', user.id)
     .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
@@ -222,10 +212,15 @@ export async function searchPatients(query: string): Promise<Patient[]> {
 
   if (error) throw error;
 
-  return (data || []).map(patient => ({
-    ...patient,
-    simulations_count: patient.simulations?.[0]?.count || 0
-  }));
+  return (data || []).map(patient => {
+    const simulationsArray = patient.simulations || [];
+    return {
+      ...patient,
+      simulations_count: simulationsArray.length,
+      latest_simulation: simulationsArray.length > 0 ? simulationsArray[0] : null,
+      latest_budget: patient.budgets && patient.budgets.length > 0 ? patient.budgets[0] : null
+    };
+  });
 }
 
 export async function getPatientSimulations(patientId: string) {
@@ -237,6 +232,24 @@ export async function getPatientSimulations(patientId: string) {
 
   if (error) throw error;
   return data || [];
+}
+
+export async function archivePatient(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('patients')
+    .update({ archived: true })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function unarchivePatient(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('patients')
+    .update({ archived: false })
+    .eq('id', id);
+
+  if (error) throw error;
 }
 
 export async function getPatientStats() {

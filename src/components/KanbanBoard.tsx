@@ -1,4 +1,4 @@
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { getPipelineStages } from '@/services/pipelineService';
 import { KanbanColumn } from './KanbanColumn';
 import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -6,13 +6,15 @@ import { LeadCard } from './LeadCard';
 import { useState } from 'react';
 
 interface KanbanBoardProps {
-  leadsByStage: Record<string, Lead[]>;
-  onLeadClick: (lead: Lead) => void;
+  leadsByStage: Record<string, ExtendedLead[]>;
+  onLeadClick: (lead: ExtendedLead) => void;
   onMoveLeadToStage: (leadId: string, newStage: string) => Promise<void>;
   onDeleteLead?: (leadId: string) => void;
+  onArchiveLead?: (leadId: string) => void;
+  onEditLead?: (leadId: string) => void;
 }
 
-export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead }: KanbanBoardProps) {
+export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDeleteLead, onArchiveLead, onEditLead }: KanbanBoardProps) {
   const stages = getPipelineStages();
   const [activeId, setActiveId] = useState<string | null>(null);
   
@@ -64,7 +66,7 @@ export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDe
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stages.map(stage => (
           <KanbanColumn
             key={stage.id}
@@ -72,6 +74,8 @@ export function KanbanBoard({ leadsByStage, onLeadClick, onMoveLeadToStage, onDe
             leads={leadsByStage[stage.id] || []}
             onLeadClick={onLeadClick}
             onDeleteLead={onDeleteLead}
+            onArchiveLead={onArchiveLead}
+            onEditLead={onEditLead}
           />
         ))}
       </div>

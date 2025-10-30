@@ -5,18 +5,21 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { LeadDetailModal } from '@/components/LeadDetailModal';
 import { BudgetDetailModal } from '@/components/BudgetDetailModal';
 import { BudgetFormModal } from '@/components/BudgetFormModal';
-import { Lead } from '@/services/leadService';
+import { Lead, ExtendedLead } from '@/services/leadService';
 import { Budget, updateBudget } from '@/services/budgetService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile } from 'lucide-react';
+import { Loader2, Users, TrendingUp, DollarSign, Target, Sparkles, Smile, Archive } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/utils/formatters';
 import { toast } from 'sonner';
 
 export default function CRM() {
-  const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard();
+  const [showArchived, setShowArchived] = useState(false);
+  const { leadsByStage, loading, moveLeadToStage, refresh, deleteLead } = useKanbanBoard(showArchived);
   const { totalLeads, inNegotiation, conversionRate, potentialRevenue } = usePipelineMetrics();
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<ExtendedLead | null>(null);
   const [treatmentFilter, setTreatmentFilter] = useState<'all' | 'facetas' | 'clareamento'>('all');
   
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
@@ -24,7 +27,7 @@ export default function CRM() {
   const [isBudgetDetailOpen, setIsBudgetDetailOpen] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
 
-  const handleLeadClick = (lead: Lead) => {
+  const handleLeadClick = (lead: ExtendedLead) => {
     setSelectedLead(lead);
   };
 
@@ -80,6 +83,60 @@ export default function CRM() {
     deleteLead(leadId);
   };
 
+  const handleArchiveLead = async (leadId: string) => {
+    try {
+      // Buscar o lead no estado atual
+      const stage = Object.keys(leadsByStage).find(s =>
+        leadsByStage[s].some(l => l.id === leadId)
+      );
+
+      if (!stage) {
+        throw new Error('Lead não encontrado');
+      }
+
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (!lead || !lead.patient_id) {
+        throw new Error('Lead inválido');
+      }
+
+      // Buscar lead real do banco
+      const { getAllLeads, archiveLead } = await import('@/services/leadService');
+      const allLeads = await getAllLeads();
+      
+      const realLead = allLeads.find(l =>
+        l.patient_id === lead.patient_id &&
+        l.treatment_type === lead.treatment_type
+      );
+
+      if (!realLead) {
+        throw new Error('Lead não encontrado no banco');
+      }
+
+      // Arquivar usando UUID real
+      await archiveLead(realLead.id);
+      
+      toast.success('Lead arquivado com sucesso!');
+      refresh();
+    } catch (error) {
+      console.error('Error archiving lead:', error);
+      toast.error('Erro ao arquivar lead');
+    }
+  };
+
+  const handleEditLead = (leadId: string) => {
+    // Encontrar lead pelo ID composto
+    const stage = Object.keys(leadsByStage).find(s =>
+      leadsByStage[s].some(l => l.id === leadId)
+    );
+    
+    if (stage) {
+      const lead = leadsByStage[stage].find(l => l.id === leadId);
+      if (lead) {
+        setSelectedLead(lead);
+      }
+    }
+  };
+
   // FASE 7: Filtrar leads por tipo de tratamento
   const filteredLeadsByStage = Object.fromEntries(
     Object.entries(leadsByStage).map(([stage, leads]) => [
@@ -91,37 +148,47 @@ export default function CRM() {
   ) as typeof leadsByStage;
 
   return (
-    <div className="space-y-6">
-        {/* Header com Filtro */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">CRM - Funil de Vendas</h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie seus leads desde a simulação até o fechamento
-            </p>
-          </div>
-
-          {/* FASE 7: Filtro por tipo de tratamento */}
-          <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)}>
-            <TabsList>
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Todos
+    <div className="space-y-4 lg:space-y-6 w-full">
+        {/* Header com Filtros - Responsivo */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* Filtro por tipo de tratamento */}
+          <Tabs value={treatmentFilter} onValueChange={(v) => setTreatmentFilter(v as typeof treatmentFilter)} className="w-full sm:w-auto">
+            <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+              <TabsTrigger value="all" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Todos</span>
+                <span className="sm:hidden">All</span>
               </TabsTrigger>
-              <TabsTrigger value="facetas" className="flex items-center gap-2">
-                <Smile className="h-4 w-4" />
-                Facetas
+              <TabsTrigger value="facetas" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Smile className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Facetas</span>
+                <span className="sm:hidden">Fac</span>
               </TabsTrigger>
-              <TabsTrigger value="clareamento" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Clareamento
+              <TabsTrigger value="clareamento" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Clareamento</span>
+                <span className="sm:hidden">Cla</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {/* Toggle para mostrar arquivados */}
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <Switch
+              id="show-archived-crm"
+              checked={showArchived}
+              onCheckedChange={setShowArchived}
+            />
+            <Label htmlFor="show-archived-crm" className="flex items-center gap-2 cursor-pointer text-sm">
+              <Archive className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Mostrar Arquivados</span>
+              <span className="sm:hidden">Arquivados</span>
+            </Label>
+          </div>
         </div>
 
-        {/* Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Métricas - Grid Responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -206,12 +273,14 @@ export default function CRM() {
             onLeadClick={handleLeadClick}
             onMoveLeadToStage={moveLeadToStage}
             onDeleteLead={handleDeleteLead}
+            onArchiveLead={handleArchiveLead}
+            onEditLead={handleEditLead}
           />
         )}
 
         {/* Modais */}
         <LeadDetailModal
-          leadId={selectedLead?.id || null}
+          leadId={selectedLead?.realId || selectedLead?.id || null}
           isOpen={!!selectedLead}
           onClose={handleCloseModal}
           onViewBudget={handleViewBudget}
@@ -236,7 +305,6 @@ export default function CRM() {
             setSelectedBudgetId(null);
           }}
         />
-      </div>
     </div>
   );
 }
