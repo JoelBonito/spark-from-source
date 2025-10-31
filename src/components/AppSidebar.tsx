@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Logo } from '@/components/ui/logo';
 import { useConfig } from '@/contexts/ConfigContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 const allMenuItems = [{
   title: 'Dashboard',
   url: '/',
@@ -46,18 +45,20 @@ const allMenuItems = [{
   icon: Settings,
   bold: false
 }];
-
 interface AppSidebarProps {
   onNavigate?: () => void;
 }
-
-export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
+export function AppSidebar({
+  onNavigate
+}: AppSidebarProps = {}) {
   const location = useLocation();
   const {
     user,
     signOut
   } = useAuth();
-  const { config } = useConfig();
+  const {
+    config
+  } = useConfig();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Filtrar menu items baseado nas configurações
@@ -68,12 +69,10 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     return true;
   });
   const isActive = (path: string) => location.pathname === path;
-  
+
   // Determinar nome a exibir
   const displayName = config?.userName || user?.email?.split('@')[0] || 'Usuário';
-  const displayInitials = config?.userName
-    ? config.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-    : user?.email?.[0].toUpperCase() || 'U';
+  const displayInitials = config?.userName ? config.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : user?.email?.[0].toUpperCase() || 'U';
 
   // Formatar endereço completo da clínica
   const getFullAddress = () => {
@@ -87,107 +86,66 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     }
     return parts.join(' • ');
   };
-
   const fullAddress = getFullAddress();
-
   return <div className={`flex flex-col h-full border-r bg-gradient-to-b from-white to-accent/30 dark:from-sidebar dark:to-accent/10 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
-        {isCollapsed ? (
-          <Logo variant="icon" width={40} />
-        ) : (
-          <Logo variant="compact" width={140} />
-        )}
+        {isCollapsed ? <Logo variant="icon" width={40} /> : <Logo variant="compact" width={140} />}
       </div>
 
       {/* Toggle Button */}
       <div className={`px-3 mb-2 ${isCollapsed ? 'flex justify-center' : 'flex justify-end'}`}>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="h-8 w-8 p-0"
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+        
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
-        {isCollapsed ? (
-          // Modo colapsado - apenas ícones com tooltips
-          <TooltipProvider>
-            {menuItems.map(item => (
-              <Tooltip key={item.url}>
+        {isCollapsed ?
+      // Modo colapsado - apenas ícones com tooltips
+      <TooltipProvider>
+            {menuItems.map(item => <Tooltip key={item.url}>
                 <TooltipTrigger asChild>
-                  <Link
-                    to={item.url}
-                    onClick={onNavigate}
-                    className={`
+                  <Link to={item.url} onClick={onNavigate} className={`
                       flex items-center justify-center px-3 py-3 rounded-md transition-colors
                       ${isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent'}
-                    `}
-                  >
-                    <item.icon className="h-6 w-6" />
+                    `}>
+                    <item.icon className="h-5 w-5" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>{item.title}</p>
                 </TooltipContent>
-              </Tooltip>
-            ))}
-          </TooltipProvider>
-        ) : (
-          // Modo expandido - ícones com texto
-          menuItems.map(item => (
-            <Link
-              key={item.url}
-              to={item.url}
-              onClick={onNavigate}
-              className={`
+              </Tooltip>)}
+          </TooltipProvider> :
+      // Modo expandido - ícones com texto
+      menuItems.map(item => <Link key={item.url} to={item.url} onClick={onNavigate} className={`
                 flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
                 ${isActive(item.url) ? 'bg-primary/10 text-primary font-semibold' : 'text-sidebar-foreground hover:bg-sidebar-accent'}
                 ${item.bold ? 'font-bold' : 'font-medium'}
-              `}
-            >
-              <item.icon className="h-6 w-6" />
+              `}>
+              <item.icon className="h-5 w-5" />
               {item.title}
-            </Link>
-          ))
-        )}
+            </Link>)}
       </nav>
 
       {/* Clinic Info */}
-      {!isCollapsed && (config?.clinicLogoUrl || config?.clinicName || fullAddress) && (
-        <div className="px-4 py-4 border-t bg-accent/5">
+      {!isCollapsed && (config?.clinicLogoUrl || config?.clinicName || fullAddress) && <div className="px-4 py-4 border-t bg-accent/5">
           <div className="space-y-3">
-            {config?.clinicLogoUrl && (
-              <div className="flex justify-center">
-                <img
-                  src={config.clinicLogoUrl}
-                  alt="Logo da clínica"
-                  className="h-16 w-auto object-contain"
-                />
-              </div>
-            )}
-            {config?.clinicName && (
-              <p className="text-xs font-semibold text-center text-foreground">
+            {config?.clinicLogoUrl && <div className="flex justify-center">
+                <img src={config.clinicLogoUrl} alt="Logo da clínica" className="h-16 w-auto object-contain" />
+              </div>}
+            {config?.clinicName && <p className="text-xs font-semibold text-center text-foreground">
                 {config.clinicName}
-              </p>
-            )}
-            {fullAddress && (
-              <p className="text-xs text-center text-muted-foreground line-clamp-3">
+              </p>}
+            {fullAddress && <p className="text-xs text-center text-muted-foreground line-clamp-3">
                 {fullAddress}
-              </p>
-            )}
+              </p>}
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* User Footer */}
       <div className="p-4 border-t">
-        {isCollapsed ? (
-          <TooltipProvider>
+        {isCollapsed ? <TooltipProvider>
             <div className="flex flex-col items-center gap-3">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -203,12 +161,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    onClick={signOut}
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-                  >
+                  <Button variant="ghost" onClick={signOut} size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10">
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
@@ -217,9 +170,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
                 </TooltipContent>
               </Tooltip>
             </div>
-          </TooltipProvider>
-        ) : (
-          <>
+          </TooltipProvider> : <>
             <div className="flex items-center gap-3 mb-2">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground">
@@ -234,8 +185,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </Button>
-          </>
-        )}
+          </>}
       </div>
     </div>;
 }
