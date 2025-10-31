@@ -1,15 +1,16 @@
 import { AppHeader } from './AppHeader';
 import { AppSidebar } from './AppSidebar';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useNotifications } from "@/hooks/useNotifications";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   // Enable real-time notifications
   useNotifications();
-  
+
   const location = useLocation();
   const isAuthRoute = location.pathname === '/auth';
-  
+
   // Para rotas de auth, retornar apenas os children sem layout
   if (isAuthRoute && children) {
     return <>{children}</>;
@@ -29,6 +30,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           {children || <Outlet />}
         </main>
       </div>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }

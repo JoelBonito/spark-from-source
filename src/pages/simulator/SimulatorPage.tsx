@@ -463,12 +463,21 @@ export default function SimulatorPage() {
   };
 
   return (
-    <div className="space-y-6 fade-in-up">
+    <div className="space-y-4 sm:space-y-6 fade-in-up">
       <Tabs value={currentStep} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upload" disabled={currentStep !== 'upload'}>1. Upload</TabsTrigger>
-          <TabsTrigger value="processing" disabled={currentStep !== 'processing'}>2. Processando</TabsTrigger>
-          <TabsTrigger value="result" disabled={currentStep !== 'result'}>3. Resultado</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="upload" disabled={currentStep !== 'upload'} className="text-xs sm:text-sm py-2 px-2 sm:px-4">
+            <span className="hidden sm:inline">1. Upload</span>
+            <span className="sm:hidden">Upload</span>
+          </TabsTrigger>
+          <TabsTrigger value="processing" disabled={currentStep !== 'processing'} className="text-xs sm:text-sm py-2 px-2 sm:px-4">
+            <span className="hidden sm:inline">2. Processando</span>
+            <span className="sm:hidden">Proc.</span>
+          </TabsTrigger>
+          <TabsTrigger value="result" disabled={currentStep !== 'result'} className="text-xs sm:text-sm py-2 px-2 sm:px-4">
+            <span className="hidden sm:inline">3. Resultado</span>
+            <span className="sm:hidden">Result.</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upload" className="space-y-4">
@@ -567,7 +576,7 @@ export default function SimulatorPage() {
               <CardTitle>Resultado da Simulação</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-center block mb-2">Antes</Label>
                   <img src={originalImageUrl || previewUrl} alt="Antes" className="w-full h-auto rounded-lg border" />
@@ -584,14 +593,18 @@ export default function SimulatorPage() {
                 </div>
               </div>
 
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <p className="text-center text-lg font-semibold mb-4">Gostou do resultado?</p>
-                <div className="flex gap-4">
-                  <Button onClick={handleApprove} disabled={loading || generating} className="flex-1" size="lg">
-                    {loading || generating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</> : <><CheckCircle2 className="h-4 w-4 mr-2" />Sim, Gerar Documentos</>}
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-muted rounded-lg">
+                <p className="text-center text-base sm:text-lg font-semibold mb-3 sm:mb-4">Gostou do resultado?</p>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <Button onClick={handleApprove} disabled={loading || generating} className="flex-1 w-full" size="lg">
+                    {loading || generating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando...</>
+                    ) : (
+                      <><CheckCircle2 className="h-4 w-4 mr-2" /><span className="hidden sm:inline">Sim, Gerar Documentos</span><span className="sm:hidden">Gerar Docs</span></>
+                    )}
                   </Button>
-                  <Button onClick={handleReject} disabled={loading || generating} variant="outline" className="flex-1" size="lg">
-                    <XCircle className="h-4 w-4 mr-2" />Não, Nova Simulação
+                  <Button onClick={handleReject} disabled={loading || generating} variant="outline" className="flex-1 w-full" size="lg">
+                    <XCircle className="h-4 w-4 mr-2" /><span className="hidden sm:inline">Não, Nova Simulação</span><span className="sm:hidden">Nova Sim.</span>
                   </Button>
                 </div>
               </div>
