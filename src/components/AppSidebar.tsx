@@ -127,7 +127,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
                       ${isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-sidebar-foreground hover:bg-sidebar-accent'}
                     `}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-6 w-6" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -149,7 +149,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
                 ${item.bold ? 'font-bold' : 'font-medium'}
               `}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-6 w-6" />
               {item.title}
             </Link>
           ))
