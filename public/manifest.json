@@ -5,8 +5,10 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
-  "orientation": "portrait",
+  "theme_color": "#47C4D8",
+  "orientation": "any",
+  "scope": "/",
+  "categories": ["health", "medical", "business"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +21,13 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/trusmile-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "screenshots": []
 }
