@@ -132,6 +132,5 @@ export default function TechnicalReports() {
           />
         )}
       </div>
-    </div>
   );
 }
