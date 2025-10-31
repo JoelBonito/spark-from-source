@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { addDays } from 'date-fns';
 import { generateBudgetNumber, generateManualBudgetPDF } from './pdfService';
+import { notifyBudgetStatusChanged } from './notificationService';
 
 // FASE 3: Definir type union explícito para BudgetStatus
 export type BudgetStatus = 
@@ -221,9 +222,22 @@ export async function createBudget(budgetData: CreateBudgetData): Promise<Budget
 }
 
 export async function updateBudgetStatus(
-  id: string, 
+  id: string,
   status: Budget['status']
 ): Promise<Budget> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Buscar orçamento com informações do paciente antes de atualizar
+  const { data: budgetBefore } = await supabase
+    .from('budgets')
+    .select(`
+      *,
+      patient:patients(name)
+    `)
+    .eq('id', id)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from('budgets')
     .update({ status })
@@ -243,6 +257,21 @@ export async function updateBudgetStatus(
     throw error;
   }
   if (!data) throw new Error('Orçamento não encontrado');
+
+  // Criar notificação persistente quando orçamento é aceito ou rejeitado
+  if ((status === 'accepted' || status === 'rejected') && budgetBefore) {
+    const patientData = budgetBefore.patient as any;
+    const patientName = patientData?.[0]?.name || patientData?.name;
+
+    await notifyBudgetStatusChanged(
+      user.id,
+      budgetBefore.budget_number,
+      id,
+      status,
+      patientName
+    );
+  }
+
   return {
     ...data,
     status: data.status as Budget['status'],

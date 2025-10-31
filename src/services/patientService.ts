@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { notifyPatientCreated } from './notificationService';
 
 export interface Patient {
   id: string;
@@ -234,6 +235,10 @@ export async function createPatient(patientData: CreatePatientData): Promise<Pat
     .single();
 
   if (error) throw error;
+
+  // Criar notificação persistente de novo paciente
+  await notifyPatientCreated(user.id, data.name, data.id);
+
   return data;
 }
 

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { notifyNewLead, notifyLeadStageChanged } from './notificationService';
 
 export interface Lead {
   id: string;
@@ -176,7 +177,18 @@ export async function createLead(leadData: CreateLeadData): Promise<Lead> {
     throw error;
   }
   if (!data) throw new Error('Falha ao criar lead');
-  return data as Lead;
+
+  // Criar notificação persistente de novo lead
+  const createdLead = data as Lead;
+  await notifyNewLead(
+    user.id,
+    createdLead.name,
+    createdLead.id,
+    leadData.source,
+    createdLead.treatment_type === 'facetas' ? 'Facetas' : createdLead.treatment_type === 'clareamento' ? 'Clareamento' : undefined
+  );
+
+  return createdLead;
 }
 
 export async function updateLead(id: string, leadData: UpdateLeadData): Promise<Lead> {
@@ -241,6 +253,15 @@ export async function updateLeadStage(id: string, newStage: string): Promise<Lea
     description: `O lead foi movido para a etapa de ${stageNames[newStage] || newStage}`,
     metadata: { previous_stage: lead.stage, new_stage: newStage }
   });
+
+  // Criar notificação persistente de mudança de etapa
+  await notifyLeadStageChanged(
+    user.id,
+    lead.name,
+    id,
+    newStage,
+    stageNames[newStage] || newStage
+  );
 
   return lead as Lead;
 }

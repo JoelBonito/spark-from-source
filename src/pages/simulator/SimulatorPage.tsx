@@ -19,6 +19,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { createBudget } from '@/services/budgetService';
 import { generateBudgetNumber, generateBudgetPDF, BudgetPDFData } from '@/services/pdfService';
 import { formatCurrency } from '@/utils/formatters';
+import {
+  notifySimulationCompleted,
+  notifySimulationError,
+  notifyPatientCreated,
+  notifyBudgetCreated,
+  notifyNewLead,
+} from '@/services/notificationService';
 
 // Helper para converter URL de imagem para base64
 async function imageUrlToBase64(url: string): Promise<string> {
@@ -153,6 +160,11 @@ export default function SimulatorPage() {
 
       toast.success('Paciente cadastrado com sucesso!');
 
+      // Criar notificação persistente
+      if (user) {
+        await notifyPatientCreated(user.id, newPatient.name, newPatient.id);
+      }
+
       // Atualizar lista de pacientes e selecionar o novo
       await refreshPatients();
       setSelectedPatientId(newPatient.id);
@@ -285,10 +297,34 @@ export default function SimulatorPage() {
         setTeethCount(edgeData.teethCount || teethCount);
         setCurrentStep('result');
         toast.success('Simulação gerada com sucesso!');
+
+        // Criar notificação persistente de simulação concluída
+        if (user) {
+          await notifySimulationCompleted(
+            user.id,
+            treatmentType,
+            patient.name,
+            simulation.id
+          );
+        }
       };
     } catch (error: any) {
       console.error('Erro ao gerar simulação:', error);
       toast.error('Erro ao gerar simulação');
+
+      // Criar notificação persistente de erro na simulação
+      if (user && selectedPatientId) {
+        const patient = patients.find(p => p.id === selectedPatientId);
+        if (patient) {
+          await notifySimulationError(
+            user.id,
+            treatmentType,
+            patient.name,
+            error.message || 'Erro desconhecido'
+          );
+        }
+      }
+
       setCurrentStep('upload');
     } finally {
       setLoading(false);
@@ -342,7 +378,7 @@ export default function SimulatorPage() {
       const budgetPdfUrl = await generateBudgetPDF(budgetData);
       console.log('✓ PDF do orçamento gerado:', budgetPdfUrl);
 
-      await createBudget({
+      const createdBudget = await createBudget({
         budget_number: budgetNumber,
         patient_id: selectedPatientId,
         simulation_id: simulationId,
@@ -357,6 +393,17 @@ export default function SimulatorPage() {
         budget_type: 'automatic',
         treatment_type: treatmentType
       });
+
+      // Criar notificação persistente de orçamento criado
+      if (user && createdBudget) {
+        await notifyBudgetCreated(
+          user.id,
+          patient.name,
+          createdBudget.id,
+          budgetNumber,
+          finalPrice
+        );
+      }
 
       // Atualizar simulação com o PDF do orçamento
       await supabase
@@ -422,6 +469,18 @@ export default function SimulatorPage() {
         if (leadError) throw leadError;
         leadId = newLead.id;
         console.log(`✓ Novo lead criado: ${leadId}`);
+
+        // Criar notificação persistente de novo lead
+        if (user) {
+          const typeLabel = treatmentType === 'facetas' ? 'Facetas' : 'Clareamento';
+          await notifyNewLead(
+            user.id,
+            patient.name,
+            leadId,
+            'simulator',
+            typeLabel
+          );
+        }
       }
 
       // Registrar atividade da simulação
