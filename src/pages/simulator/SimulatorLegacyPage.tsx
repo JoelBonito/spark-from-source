@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import Layout from "@/components/Layout";
 import ImageUpload from "@/components/ImageUpload";
 import ComparisonView from "@/components/ComparisonView";
 import { PatientSelector } from "@/components/PatientSelector";
@@ -388,7 +389,7 @@ export default function Index() {
       
       const servicosParaEdge = servicosAtivos.map(s => ({
         name: s.name,
-        category: s.category || 'outros',
+        category: s.categoria || 'outros',
         price: s.price
       }));
       
