@@ -70,11 +70,6 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6 fade-in-up">
       <div className="flex items-center justify-between gap-4">
-        <Button onClick={handleCreate} className="glow-trusmile">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Serviço
-        </Button>
-
         {/* Toggle para mostrar arquivados */}
         <div className="flex items-center gap-2 whitespace-nowrap">
           <Switch
@@ -88,6 +83,11 @@ export default function ServicesPage() {
             <span className="sm:hidden">Arquivados</span>
           </Label>
         </div>
+
+        <Button onClick={handleCreate} className="glow-trusmile">
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Serviço
+        </Button>
       </div>
 
       {/* Serviços Obrigatórios */}
