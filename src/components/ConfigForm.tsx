@@ -369,51 +369,7 @@ export default function ConfigForm() {
       
 
       {/* PARÂMETROS AVANÇADOS */}
-      <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          ⚙️ Parâmetros de Geração (Gemini)
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Temperature, TopK, TopP, MaxTokens... */}
-          <div className="space-y-2">
-            <Label htmlFor="temperature">Temperatura</Label>
-            <Input id="temperature" type="number" min="0" max="1" step="0.1" value={formData.temperature} onChange={e => setFormData({
-            ...formData,
-            temperature: parseFloat(e.target.value)
-          })} className={errors.temperature ? "border-destructive" : ""} />
-            {errors.temperature && <p className="text-sm text-destructive">{errors.temperature}</p>}
-            <p className="text-xs text-muted-foreground">Randomicidade (0.0=Consistente, 1.0=Criativo)</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="topK">Top K</Label>
-            <Input id="topK" type="number" min="1" step="1" value={formData.topK} onChange={e => setFormData({
-            ...formData,
-            topK: parseInt(e.target.value)
-          })} className={errors.topK ? "border-destructive" : ""} />
-            {errors.topK && <p className="text-sm text-destructive">{errors.topK}</p>}
-            <p className="text-xs text-muted-foreground">Número de tokens a considerar (maior = mais diversidade)</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="topP">Top P</Label>
-            <Input id="topP" type="number" min="0" max="1" step="0.1" value={formData.topP} onChange={e => setFormData({
-            ...formData,
-            topP: parseFloat(e.target.value)
-          })} className={errors.topP ? "border-destructive" : ""} />
-            {errors.topP && <p className="text-sm text-destructive">{errors.topP}</p>}
-            <p className="text-xs text-muted-foreground">Probabilidade cumulativa (0.0-1.0)</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="maxTokens">Max Tokens</Label>
-            <Input id="maxTokens" type="number" min="100" step="1" value={formData.maxTokens} onChange={e => setFormData({
-            ...formData,
-            maxTokens: parseInt(e.target.value)
-          })} className={errors.maxTokens ? "border-destructive" : ""} />
-            {errors.maxTokens && <p className="text-sm text-destructive">{errors.maxTokens}</p>}
-            <p className="text-xs text-muted-foreground">Limite de tokens na resposta (max. 8192)</p>
-          </div>
-        </div>
-      </div>
+      
 
       {/* MÓDULOS DO SISTEMA */}
       <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
@@ -448,8 +404,11 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={async (checked) => {
-            const updatedData = { ...formData, crmEnabled: checked };
+            <Switch id="crmEnabled" checked={formData.crmEnabled} onCheckedChange={async checked => {
+            const updatedData = {
+              ...formData,
+              crmEnabled: checked
+            };
             setFormData(updatedData);
             try {
               await saveConfig(updatedData);
@@ -499,23 +458,21 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch
-              id="facetsEnabled"
-              checked={formData.facetsSimulatorEnabled ?? true}
-              disabled={!formData.whiteningSimulatorEnabled}
-              onCheckedChange={async (checked) => {
-                const updatedData = { ...formData, facetsSimulatorEnabled: checked };
-                setFormData(updatedData);
-                try {
-                  await saveConfig(updatedData);
-                  await refreshConfig();
-                  toast.success(checked ? "Simulador de Facetas ativado" : "Simulador de Facetas desativado");
-                } catch (error: any) {
-                  toast.error("Erro ao salvar configuração");
-                  setFormData(formData);
-                }
-              }}
-            />
+            <Switch id="facetsEnabled" checked={formData.facetsSimulatorEnabled ?? true} disabled={!formData.whiteningSimulatorEnabled} onCheckedChange={async checked => {
+            const updatedData = {
+              ...formData,
+              facetsSimulatorEnabled: checked
+            };
+            setFormData(updatedData);
+            try {
+              await saveConfig(updatedData);
+              await refreshConfig();
+              toast.success(checked ? "Simulador de Facetas ativado" : "Simulador de Facetas desativado");
+            } catch (error: any) {
+              toast.error("Erro ao salvar configuração");
+              setFormData(formData);
+            }
+          }} />
           </div>
           
           {/* Clareamento (toggle) */}
@@ -545,27 +502,27 @@ export default function ConfigForm() {
                 </p>
               </div>
             </div>
-            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={async (checked) => {
-              // Se desativar Clareamento, Facetas deve ser ativado automaticamente
-              const updatedData = {
-                ...formData,
-                whiteningSimulatorEnabled: checked,
-                facetsSimulatorEnabled: checked ? formData.facetsSimulatorEnabled : true
-              };
-              setFormData(updatedData);
-              try {
-                await saveConfig(updatedData);
-                await refreshConfig();
-                if (!checked && !formData.facetsSimulatorEnabled) {
-                  toast.success("Simulador de Clareamento desativado. Facetas foi ativado automaticamente.");
-                } else {
-                  toast.success(checked ? "Simulador de Clareamento ativado" : "Simulador de Clareamento desativado");
-                }
-              } catch (error: any) {
-                toast.error("Erro ao salvar configuração");
-                setFormData(formData);
+            <Switch id="whiteningEnabled" checked={formData.whiteningSimulatorEnabled ?? true} onCheckedChange={async checked => {
+            // Se desativar Clareamento, Facetas deve ser ativado automaticamente
+            const updatedData = {
+              ...formData,
+              whiteningSimulatorEnabled: checked,
+              facetsSimulatorEnabled: checked ? formData.facetsSimulatorEnabled : true
+            };
+            setFormData(updatedData);
+            try {
+              await saveConfig(updatedData);
+              await refreshConfig();
+              if (!checked && !formData.facetsSimulatorEnabled) {
+                toast.success("Simulador de Clareamento desativado. Facetas foi ativado automaticamente.");
+              } else {
+                toast.success(checked ? "Simulador de Clareamento ativado" : "Simulador de Clareamento desativado");
               }
-            }} />
+            } catch (error: any) {
+              toast.error("Erro ao salvar configuração");
+              setFormData(formData);
+            }
+          }} />
           </div>
         </div>
       </div>
