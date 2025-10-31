@@ -383,12 +383,6 @@ export const Patients = () => {
     <div className="space-y-4 lg:space-y-6 w-full">
         {/* Header - Botão de ação */}
         <div className="flex items-center justify-between gap-4">
-          <Button onClick={handleNewPatient} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo Paciente</span>
-            <span className="sm:hidden">Novo</span>
-          </Button>
-
           {/* Toggle para mostrar arquivados */}
           <div className="flex items-center gap-2 whitespace-nowrap">
             <Switch
@@ -402,6 +396,12 @@ export const Patients = () => {
               <span className="sm:hidden">Arquivados</span>
             </Label>
           </div>
+
+          <Button onClick={handleNewPatient} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo Paciente</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
         </div>
 
         {/* Estatísticas - Grid Responsivo */}
