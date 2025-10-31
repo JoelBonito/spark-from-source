@@ -433,13 +433,14 @@ export default function SimulatorPage() {
       let leadId: string;
 
       if (existingLead) {
-        // Atualizar lead existente
+        // Atualizar lead existente e voltar para stage 'simulacao'
         console.log('✓ Lead existente encontrado, atualizando...');
         const newOpportunityValue = (existingLead.opportunity_value || 0) + finalPrice;
 
         await supabase
           .from('leads')
           .update({
+            stage: 'simulacao',
             opportunity_value: newOpportunityValue,
             updated_at: new Date().toISOString()
           })
