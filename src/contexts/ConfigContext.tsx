@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getConfig, Config } from '@/utils/storage';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ConfigContextType {
   config: Config | null;
@@ -12,6 +13,7 @@ const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<Config | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const refreshConfig = async () => {
     try {
@@ -24,9 +26,17 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Recarregar configurações quando o usuário mudar (login/logout)
   useEffect(() => {
-    refreshConfig();
-  }, []);
+    if (user) {
+      // Usuário fez login - carregar configurações
+      refreshConfig();
+    } else {
+      // Usuário fez logout - limpar configurações
+      setConfig(null);
+      setLoading(false);
+    }
+  }, [user]);
 
   return (
     <ConfigContext.Provider value={{ config, loading, refreshConfig }}>
