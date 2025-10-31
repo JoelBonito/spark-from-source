@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Smile, Users, History, FileText, Target, Briefcase, FileBadge, Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
+import { DashboardIcon, SimuladorIcon, CRMIcon, PacientesIcon, OrcamentosIcon, ServicosIcon } from '@/components/ui/custom-icons';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,33 +10,33 @@ import { useConfig } from '@/contexts/ConfigContext';
 const allMenuItems = [{
   title: 'Dashboard',
   url: '/',
-  icon: LayoutDashboard,
+  icon: DashboardIcon,
   bold: false
 }, {
   title: 'Simulador',
   url: '/simulator',
-  icon: Smile,
+  icon: SimuladorIcon,
   bold: true
 }, {
   title: 'CRM',
   url: '/crm',
-  icon: Target,
+  icon: CRMIcon,
   bold: true,
-  configKey: 'crmEnabled' // Adiciona chave de configuração
+  configKey: 'crmEnabled'
 }, {
   title: 'Pacientes',
   url: '/patients',
-  icon: Users,
+  icon: PacientesIcon,
   bold: false
 }, {
   title: 'Orçamentos',
   url: '/budgets',
-  icon: FileText,
+  icon: OrcamentosIcon,
   bold: false
 }, {
   title: 'Serviços',
   url: '/services',
-  icon: Briefcase,
+  icon: ServicosIcon,
   bold: false
 }, {
   title: 'Configurações',
