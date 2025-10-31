@@ -6,6 +6,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/hooks/use-auth';
 import { ConfigProvider } from '@/contexts/ConfigContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -196,11 +197,13 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ConfigProvider>
-          <TooltipProvider>
-            <AppContent />
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
+          <SidebarProvider>
+            <TooltipProvider>
+              <AppContent />
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </SidebarProvider>
         </ConfigProvider>
       </AuthProvider>
     </QueryClientProvider>

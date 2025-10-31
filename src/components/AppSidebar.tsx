@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DashboardIcon, SimuladorIcon, CRMIcon, PacientesIcon, OrcamentosIcon, ServicosIcon } from '@/components/ui/custom-icons';
@@ -7,7 +6,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Logo } from '@/components/ui/logo';
 import { useConfig } from '@/contexts/ConfigContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import logoIcon from '@/assets/trusmile-logo.png';
 
 const allMenuItems = [{
   title: 'Dashboard',
@@ -58,7 +59,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     signOut
   } = useAuth();
   const { config } = useConfig();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleCollapsed } = useSidebar();
 
   // Filtrar menu items baseado nas configurações
   const menuItems = allMenuItems.filter(item => {
@@ -94,7 +95,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
       {/* Logo */}
       <div className="flex items-center justify-center py-6 px-4">
         {isCollapsed ? (
-          <Logo variant="icon" width={40} />
+          <img
+            src={logoIcon}
+            alt="TruSmile"
+            className="w-12 h-12 object-contain"
+          />
         ) : (
           <Logo variant="compact" width={140} />
         )}
@@ -105,7 +110,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapsed}
           className="h-8 w-8 p-0"
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
